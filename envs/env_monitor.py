@@ -32,7 +32,6 @@ class EnvMonitor:
 
     def init_cav_infos(self):
         self.critical_moment_infos = {
-            "veh_id": "",
             "criticality_step_info": {},
             "ndd_step_info": {},
             "drl_obs_step_info": {},
@@ -148,7 +147,7 @@ class EnvMonitor:
     
     def update_negligence_mode(self, control_cmds):
         for veh_id, control_cmd in control_cmds.items():
-            if "mode" in control_cmd:
+            if control_cmd and "mode" in control_cmd:
                 if len(self.car_with_maneuver_challenges[veh_id]) == 0:
                     print("NegligenceError", veh_id, "", "", utils.get_time(), sep='\t')
                 neg_mode = control_cmd["mode"]
@@ -186,18 +185,6 @@ class EnvMonitor:
             json.dump(data, f, indent=4)
         os.replace(file_copy_path, file_path)
 
-    def get_route_length(self, veh_id_prefix=None):
-        total_distance = 0
-        for veh_id in self.total_distance["after"].keys():
-            if veh_id_prefix is None or veh_id.startswith(veh_id_prefix):
-                veh_dist_before = self.total_distance["before"].get(veh_id, 0.0)
-                veh_dist_after = self.total_distance["after"].get(veh_id, 0.0)
-                # print(veh_id, veh_dist_before, veh_dist_after, veh_dist_after - veh_dist_before)
-                if veh_dist_after > veh_dist_before:
-                    total_distance += veh_dist_after - veh_dist_before
-
-        return total_distance
-
     def export_final_state(self, veh_1_id, veh_2_id, importance, end_reason):
         neg_mode, neg_time, neg_car, neg_info = None, -1.0, None, None
         if veh_1_id is not None and veh_2_id is not None:
@@ -225,9 +212,22 @@ class EnvMonitor:
                 neg_info = veh_2_neg_info
                 neg_car = veh_2_id
 
-        total_distance = self.get_route_length()
-        bv_22_total_distance = self.get_route_length("BV_22")
-        cav_total_distance = self.get_route_length("CAV")
+        total_distance = 0
+        for veh_id in self.total_distance["after"].keys():
+            veh_dist_before = self.total_distance["before"].get(veh_id, 0.0)
+            veh_dist_after = self.total_distance["after"].get(veh_id, 0.0)
+            # print(veh_id, veh_dist_before, veh_dist_after, veh_dist_after - veh_dist_before)
+            if veh_dist_after > veh_dist_before:
+                total_distance += veh_dist_after - veh_dist_before
+
+        bv_22_total_distance = 0
+        for veh_id in self.total_distance["after"].keys():
+            if veh_id.startswith("BV_22"):
+                veh_dist_before = self.total_distance["before"].get(veh_id, 0.0)
+                veh_dist_after = self.total_distance["after"].get(veh_id, 0.0)
+                # print(veh_id, veh_dist_before, veh_dist_after, veh_dist_after - veh_dist_before)
+                if veh_dist_after > veh_dist_before:
+                    bv_22_total_distance += veh_dist_after - veh_dist_before
 
         experiments_infos = {
             "veh_1_id": veh_1_id,
@@ -240,7 +240,6 @@ class EnvMonitor:
             "importance": importance,
             "distance": total_distance,
             "bv_22_distance": bv_22_total_distance,
-            "cav_distance": cav_total_distance,
             "end_reason": end_reason,
             "num_maneuver_challenges": self.num_maneuver_challenges,
             "lane_id": traci.vehicle.getLaneID(veh_1_id) if veh_1_id is not None else None,
@@ -251,9 +250,9 @@ class EnvMonitor:
         for veh_id, time_set in self.car_with_maneuver_challenges.items():
             self.car_with_maneuver_challenges[veh_id] = list(time_set)        
         self.load_to_json("maneuver_challenges.json", self.car_with_maneuver_challenges, "maneuver_challenges")
-        self.load_to_json("critical_moment_infos.json", self.critical_moment_infos, "critical_moment_infos")
+        # self.load_to_json("critical_moment_infos.json", self.critical_moment_infos, "critical_moment_infos")
 
-    def update_critical_moment_info(self, veh_id, infos_dict):
+    def update_critical_moment_info(self, infos_dict):
         # fetch the information from infos_dict
         current_time = infos_dict["current_time"]
         criticality_negligence = infos_dict["criticality_negligence"]
@@ -261,9 +260,8 @@ class EnvMonitor:
         d2rl_obs = infos_dict["d2rl_obs"]
         IS_prob = infos_dict["IS_prob"]
         # update critical information of CAV with the current time
-        self.critical_moment_infos["veh_id"] = veh_id
-        self.critical_moment_infos["criticality_step_info"].update({current_time: criticality_negligence})
-        self.critical_moment_infos["ndd_step_info"].update({current_time: ndd_negligence_command})
-        self.critical_moment_infos["drl_obs_step_info"].update({current_time: d2rl_obs})
-        self.critical_moment_infos["drl_epsilon_step_info"].update({current_time: 1 - IS_prob})
-        self.critical_moment_infos["real_epsilon_step_info"].update({current_time: 1 - IS_prob})
+        self.critical_moment_infos["criticality_step_info"].update(current_time, criticality_negligence)
+        self.critical_moment_infos["ndd_step_info"].update(current_time, ndd_negligence_command)
+        self.critical_moment_infos["drl_obs_step_info"].update(current_time, d2rl_obs)
+        self.critical_moment_infos["drl_epsilon_step_info"].update(current_time, 1 - IS_prob)
+        self.critical_moment_infos["real_epsilon_step_info"].update(current_time, 1 - IS_prob)

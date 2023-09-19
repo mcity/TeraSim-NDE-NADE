@@ -2,9 +2,10 @@ from mtlsp.simulator import Simulator
 from envs.env_monitor import EnvMonitor
 from envs.safetest_nde import SafeTestNDE
 from envs.safetest_nade import SafeTestNADE
-from envs.safetest_nade_with_av import SafeTestNADEWithAV
+from envs.safetest_nde_sumo import SafeTestNDESUMO
 from mtlsp.logger.infoextractor import InfoExtractor
 from vehicle.safetest_vehicle_factory import SafetestVehicleFactory
+from vehicle.safetest_vehicle_factory import SafetestDummmyVehicleFactory
 
 import argparse
 
@@ -17,20 +18,19 @@ args = parser.parse_args()
 highlight_routes = set(["7", "10", "13", "14", "16"])
 monitor = EnvMonitor(
     highlight_routes=highlight_routes,
-    log_dir=f"{args.dir}/{args.mode}/raw_data",
-    exp_id=f"{args.mode}_{args.nth}",
+    filename=f"{args.dir}/{args.mode}/{args.mode}_{args.nth}/monitor.json",
 )
-env = SafeTestNADEWithAV(
-    vehicle_factory = SafetestVehicleFactory(),
+env = SafeTestNDESUMO(
+    vehicle_factory = SafetestDummmyVehicleFactory(),
     info_extractor=InfoExtractor,
 )
 sim = Simulator(
-    sumo_net_file_path = './maps/Mcity/mcity_new.net.xml',
-    sumo_config_file_path = './maps/Mcity/mcity_new.sumocfg',
+    sumo_net_file_path = './maps/Mcity/mcity.net.xml',
+    sumo_config_file_path = './maps/Mcity/mcity.sumocfg',
     num_tries=10,
-    gui_flag=True,
-    output_path=f"{args.dir}/{args.mode}/raw_data/{args.mode}_{args.nth}",
-    sumo_output_file_types=["fcd", "collision", "tripinfo"],
+    gui_flag=False,
+    output_path=f"{args.dir}/{args.mode}/{args.mode}_{args.nth}",
+    sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
 monitor.bind_env(env)
 sim.bind_env(env)

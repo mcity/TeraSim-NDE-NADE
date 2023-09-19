@@ -30,7 +30,6 @@ mkdir -p ${DIR_NAME}/${mode}
 mkdir -p ${DIR_NAME}/${mode}/raw_data
 mkdir -p ${DIR_NAME}/${mode}/raw_data/final_state
 mkdir -p ${DIR_NAME}/${mode}/raw_data/maneuver_challenges
-mkdir -p ${DIR_NAME}/${mode}/raw_data/critical_moment_infos
 
 del_mode="all"
 

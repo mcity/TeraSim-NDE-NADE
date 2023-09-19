@@ -51,7 +51,6 @@ def get_exp_final_state(basic_infos):
     neg_reason = basic_infos["negligence_mode"]
     route_length = basic_infos["distance"]
     bv_22_route_length = basic_infos["bv_22_distance"]
-    cav_route_length = basic_infos["cav_distance"]
     lane_id = basic_infos["veh_1_lane_id"] if "veh_1_lane_id" in basic_infos else basic_infos["lane_id"]
     # if basic_infos["veh_2_lane_id"] != lane_id:
     #     print(f"Error: {path_name}")
@@ -62,7 +61,7 @@ def get_exp_final_state(basic_infos):
     neg_info = ""
     if basic_infos["negligence_info"] is not None:
         neg_info = basic_infos["negligence_info"]
-    return end_time, crash_veh_1, crash_veh_2, importance, num_maneuver_challenges, neg_veh, neg_time_diff, neg_reason, neg_info, route_length, bv_22_route_length, cav_route_length, lane_id
+    return end_time, crash_veh_1, crash_veh_2, importance, num_maneuver_challenges, neg_veh, neg_time_diff, neg_reason, neg_info, route_length, bv_22_route_length, lane_id
     
 
 def get_exp_collision(basic_infos, path_name, crash_veh_1, crash_veh_2):
@@ -82,7 +81,7 @@ def get_exp_collision(basic_infos, path_name, crash_veh_1, crash_veh_2):
                 print(f"Error: {e}")
     else:
         collision_type, collision_location = "", ""
-    return collision_type, collision_location, relative_heading, distance, end_reason
+    return collision_type, collision_location, relative_heading, distance
 
 
 # @profile
@@ -94,10 +93,8 @@ def export_to_csv(path_name, export_path):
             "crash_veh_1", "crash_veh_2", 
             "importance", "maneuver_challenge", 
             "neg_veh", "neg_time_diff", 
-            "neg_reason", "neg_info", "route_length", 
-            "bv_22_route_length", "cav_route_length", "lane_id", 
-            "collision_type", "location_type", "relative_heading", 
-            "distance", "end_reason"
+            "neg_reason", "neg_info", "route_length", "bv_22_route_length", "lane_id", 
+            "collision_type", "location_type", "relative_heading", "distance"
         ]) + "\n")
         info_cnt = 0
         

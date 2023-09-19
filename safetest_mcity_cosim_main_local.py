@@ -1,10 +1,8 @@
 from mtlsp.simulator import Simulator
 from envs.env_monitor import EnvMonitor
-from envs.safetest_nde import SafeTestNDE
-from envs.safetest_nade import SafeTestNADE
-from envs.safetest_nade_with_av import SafeTestNADEWithAV
+from envs.safetest_nade_cosim import SafeTestNADECoSim
 from mtlsp.logger.infoextractor import InfoExtractor
-from vehicle.safetest_vehicle_factory import SafetestVehicleFactory
+from vehicle.safetest_vehicle_factory import SafetestCosimVehicleFactory_Local, SafetestCosimVehicleFactory_Remote
 
 import argparse
 
@@ -20,9 +18,9 @@ monitor = EnvMonitor(
     log_dir=f"{args.dir}/{args.mode}/raw_data",
     exp_id=f"{args.mode}_{args.nth}",
 )
-env = SafeTestNADEWithAV(
-    vehicle_factory = SafetestVehicleFactory(),
-    info_extractor=InfoExtractor,
+env = SafeTestNADECoSim(
+    vehicle_factory = SafetestCosimVehicleFactory_Local(),
+    info_extractor = InfoExtractor,
 )
 sim = Simulator(
     sumo_net_file_path = './maps/Mcity/mcity_new.net.xml',
@@ -30,7 +28,8 @@ sim = Simulator(
     num_tries=10,
     gui_flag=True,
     output_path=f"{args.dir}/{args.mode}/raw_data/{args.mode}_{args.nth}",
-    sumo_output_file_types=["fcd", "collision", "tripinfo"],
+    sumo_output_file_types=["fcd", "collision"],
+    realtime_flag=True,
 )
 monitor.bind_env(env)
 sim.bind_env(env)

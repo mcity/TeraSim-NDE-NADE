@@ -141,3 +141,6 @@ collision_type_debug/
 split_files/
 mtlsp_arxiv/
 mtlsp/
+ITE_negligence_calibrate_0812/
+cosim_test_localcomputer/
+*.zip

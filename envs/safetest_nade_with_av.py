@@ -1,3 +1,5 @@
+import numpy as np
+
 from .safetest_nade import SafeTestNADE
 from mtlsp.overlay import traci
 import mtlsp.utils as utils
@@ -12,59 +14,49 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
     def on_start(self, ctx):
         super().on_start(ctx)
-        self.add_vehicle(veh_id="CAV", route="cav_route", lane="best", lane_id="EG_1_3_1_1", position=0, speed=0)
+        self.add_vehicle(veh_id="CAV", route="r_CAV", lane="best", lane_id="EG_35_1_14_0", position=0, speed=0)
         traci.vehicle.setColor("CAV", (255, 0, 0, 255))
 
     def ITE_decision(self, control_command_dict, control_info_dict):
         # track CAV at each timestep using traci GUI track
-        # if "CAV" in control_command_dict:
-        #     traci.gui.trackVehicle(viewID='View #0', vehID="CAV")
+        if "CAV" in control_command_dict and self.simulator.gui_flag:
+            traci.gui.trackVehicle(viewID='View #0', vehID="CAV")
         ITE_control_command_dict, weight = super().ITE_decision(control_command_dict, control_info_dict)
         if "CAV" in control_command_dict:
             ITE_control_command_dict["CAV"] = control_command_dict["CAV"]
         return ITE_control_command_dict, weight
     
-    def get_d2rl_obs(self, bv_veh_id):
-        CAV_position = list(traci.vehicle.getPosition("CAV"))
-        CAV_position_lb = [-5, -5]
-        CAV_position_ub = [225, 400]
-        
-        BV_position = traci.vehicle.getPosition(bv_veh_id)
-        BV_cav_relative_position = [BV_position[0] - CAV_position[0], BV_position[1] - CAV_position[1]]
+    # def get_d2rl_obs(self, bv_veh_id):
+    #     CAV_position = traci.vehicle.getPosition("CAV")
+    #     BV_position = traci.vehicle.getPosition(bv_veh_id)
+    #     BV_cav_relative_position = [BV_position[0] - CAV_position[0], BV_position[1] - CAV_position[1]]
 
-        CAV_speed = traci.vehicle.getSpeed("CAV")
-        CAV_speed_lb = 0
-        CAV_speed_ub = 20
-        
-        BV_speed = traci.vehicle.getSpeed(bv_veh_id)
-        BV_cav_relative_speed = BV_speed - CAV_speed
+    #     CAV_speed = traci.vehicle.getSpeed("CAV")
+    #     BV_speed = traci.vehicle.getSpeed(bv_veh_id)
+    #     BV_cav_relative_speed = BV_speed - CAV_speed
 
-        CAV_heading = traci.vehicle.getAngle("CAV")
-        BV_heading = traci.vehicle.getAngle(bv_veh_id)
+    #     CAV_heading = traci.vehicle.getAngle("CAV")
+    #     BV_heading = traci.vehicle.getAngle(bv_veh_id)
 
-        BV_criticality_value = np.log10(self.importance_sampling_weight)
-        bv_criticality_value_lb = -16
-        bv_criticality_value_ub = 0
+    #     BV_criticality_value = np.log10(self.importance_sampling_weight)
+    #     bv_criticality_value_lb = -16
+    #     bv_criticality_value_ub = 0
 
-        vehicle_info_lb, vehicle_info_ub = [-20, -20, -10], [20, 20, 10]
-        vehicle_info_list = [BV_cav_relative_position[0], BV_cav_relative_position[1], BV_cav_relative_speed]
+    #     vehicle_info_lb, vehicle_info_ub = [-20, -20, -10], [20, 20, 10]
+    #     # bv_crit
+    #     total_obs_for_DRL_ori = np.array(CAV_position + [CAV_speed] + [BV_criticality_value] + [bv_criticality_flag] + [bv_criticality_value] + vehicle_info_list)
+    #     total_obs_for_DRL = 2 * (total_obs_for_DRL_ori - lb_array)/(ub_array - lb_array) - 1 # normalize the observation
+    #     total_obs_for_DRL = np.clip(total_obs_for_DRL, -5, 5) # clip the observation
+    #     return np.float32(np.array(total_obs_for_DRL))
 
-        lb_array = np.array(CAV_position_lb + [CAV_speed_lb] + [bv_criticality_value_lb] + vehicle_info_lb)
-        ub_array = np.array(CAV_position_ub + [CAV_speed_ub] + [bv_criticality_value_ub] + vehicle_info_ub)
-
-        total_obs_for_DRL_ori = np.array(CAV_position + [CAV_speed] + [BV_criticality_value] + vehicle_info_list)
-        total_obs_for_DRL = 2 * (total_obs_for_DRL_ori - lb_array)/(ub_array - lb_array) - 1 # normalize the observation
-        total_obs_for_DRL = np.clip(total_obs_for_DRL, -5, 5) # clip the observation
-        return np.float32(np.array(total_obs_for_DRL))
-
-    def get_cav_info(self, current_time, veh_id, IS_prob, criticality_dict, ndd_control_command_dict):
-        infos_dict = {}
-        infos_dict["current_time"] = current_time
-        infos_dict["criticality_negligence"] = criticality_dict[veh_id]["negligence"]
-        infos_dict["ndd_negligence_command"] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
-        infos_dict["d2rl_obs"] = self.get_d2rl_obs(veh_id).tolist()
-        infos_dict["IS_prob"] = IS_prob
-        return infos_dict
+    # def get_cav_info(self, current_time, veh_id, IS_prob, criticality_dict, ndd_control_command_dict):
+    #     infos_dict = {}
+    #     infos_dict["current_time"] = current_time
+    #     infos_dict["criticality_negligence"] = criticality_dict[veh_id]["negligence"]
+    #     infos_dict["ndd_negligence_command"] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
+    #     infos_dict["d2rl_obs"] = self.get_d2rl_obs(veh_id)
+    #     infos_dict["IS_prob"] = IS_prob
+    #     return infos_dict
 
     def ITE_importance_sampling(self, ndd_control_command_dict, criticality_dict):
         """Importance sampling for NADE.
@@ -88,8 +80,8 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
                 IS_prob = default_max_IS_prob
-                infos_dict = self.get_cav_info(utils.get_time(), veh_id, IS_prob, criticality_dict, ndd_control_command_dict)
-                self.monitor.update_critical_moment_info(veh_id, infos_dict)                
+                # infos_dict = self.get_cav_info(utils.get_time(), veh_id, IS_prob, criticality_dict, ndd_control_command_dict)
+                # self.monitor.update_critical_moment_info(veh_id, infos_dict)                
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
@@ -101,7 +93,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
     def get_maneuver_challenge(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future):
         cav_future = {"CAV": all_normal_veh_future["CAV"]} if "CAV" in all_normal_veh_future else None
         return super().get_maneuver_challenge(negligence_veh_id, negligence_veh_future, cav_future)
-
+    
     def should_continue_simulation(self):
         # stop when collision happens or 300s
         collision_id_list = traci.simulation.getCollidingVehiclesIDList()
