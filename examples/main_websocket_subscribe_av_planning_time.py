@@ -1,4 +1,4 @@
-from ascs.communicationtools.web2redis import Subscriber_AVPlanningTime
+from terasim-mr.communicationtools.web2redis import Subscriber_AVPlanningTime
 
 
 subscriber = Subscriber_AVPlanningTime()

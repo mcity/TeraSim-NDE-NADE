@@ -1,7 +1,7 @@
 import argparse
 
-from ascs.communicationtools import constants
-from ascs.communicationtools.redis2ros import ROSPublisher_SUMOStateRedis
+from terasim-mr.communicationtools import constants
+from terasim-mr.communicationtools.redis2ros import ROSPublisher_SUMOStateRedis
 
 
 # Create the ROS publisher to publish the SUMO status to ROS-based Autoware

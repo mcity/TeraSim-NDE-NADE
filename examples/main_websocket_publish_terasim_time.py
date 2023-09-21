@@ -1,4 +1,4 @@
-from ascs.communicationtools.redis2web import Publisher_TeraSimTime
+from terasim-mr.communicationtools.redis2web import Publisher_TeraSimTime
 
 
 publisher = Publisher_TeraSimTime()

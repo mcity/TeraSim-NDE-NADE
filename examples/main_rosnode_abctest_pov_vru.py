@@ -1,4 +1,4 @@
-from ascs.communicationtools.redis2ros import ROSSubsriber_ABCTests_POV_VRU_Redis
+from terasim-mr.communicationtools.redis2ros import ROSSubsriber_ABCTests_POV_VRU_Redis
 
 
 # Create the ROS publisher to publish the frontal traffic light signal information to ROS-based Autoware

@@ -1,4 +1,4 @@
-from ascs.communicationtools.redis2web import Publisher_AutowarePerception
+from terasim-mr.communicationtools.redis2web import Publisher_AutowarePerception
 
 
 publisher = Publisher_AutowarePerception()

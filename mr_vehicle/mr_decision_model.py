@@ -2,10 +2,10 @@ import json
 import math
 import redis
 
-import ascs.communicationtools.constants as constants
+import terasim-mr.communicationtools.constants as constants
 from terasim.vehicle.decision_models.base_decision_model import BaseDecisionModel
 import terasim.utils as utils
-from ascs.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
+from terasim-mr.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
 
 class MRDecisionModelLocal(BaseDecisionModel):
     def __init__(self):

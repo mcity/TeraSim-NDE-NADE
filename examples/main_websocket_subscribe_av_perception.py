@@ -1,4 +1,4 @@
-from ascs.communicationtools.web2redis import Subscriber_AutowarePerception
+from terasim-mr.communicationtools.web2redis import Subscriber_AutowarePerception
 
 
 subscriber = Subscriber_AutowarePerception()

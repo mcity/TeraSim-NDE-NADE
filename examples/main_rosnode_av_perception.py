@@ -1,6 +1,6 @@
 import yaml
 
-from ascs.communicationtools.redis2ros import ROSPublisher_BVafterPerceptionRedis
+from terasim-mr.communicationtools.redis2ros import ROSPublisher_BVafterPerceptionRedis
 
 # Load the configuration file
 with open("examples/configs/Mcity_abctest_param_cosim.yaml", 'r') as stream:

@@ -5,7 +5,7 @@ redis-cli -h localhost -p 6379 flushall
 # run the Autoware simulation
 gnome-terminal --tab -- bash -c "python main_autoware_simulation.py" &
 # run the SUMO simulation
-# gnome-terminal --tab -- bash -c "python ABCwithascs.py" &
+# gnome-terminal --tab -- bash -c "python ABCwithterasim-mr.py" &
 # run the ROS nodes
 ## CAV perception
 gnome-terminal --tab -- bash -c "python examples/main_rosnode_av_perception.py" &

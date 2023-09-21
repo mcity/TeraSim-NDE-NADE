@@ -1,4 +1,4 @@
-from ascs.communicationtools.web2redis import Subscriber_AutowareLocalization
+from terasim-mr.communicationtools.web2redis import Subscriber_AutowareLocalization
 
 
 subscriber = Subscriber_AutowareLocalization()
