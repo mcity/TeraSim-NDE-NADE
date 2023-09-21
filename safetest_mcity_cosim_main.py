@@ -2,7 +2,7 @@ from mtlsp.simulator import Simulator
 from envs.env_monitor import EnvMonitor
 from envs.safetest_nade_cosim import SafeTestNADECoSim
 from mtlsp.logger.infoextractor import InfoExtractor
-from vehicle.safetest_vehicle_factory import SafetestCosimVehicleFactory_Local, SafetestCosimVehicleFactory_Remote
+from mr_vehicle.mr_vehicle_factory import MRVehicleFactoryLocal, MRVehicleFactoryRemote
 
 import redis
 try:
@@ -28,9 +28,9 @@ monitor = EnvMonitor(
     exp_id=f"{args.mode}_{args.nth}",
 )
 if args.communication == "local":
-    veh_factory = SafetestCosimVehicleFactory_Local()
+    veh_factory = MRVehicleFactoryLocal()
 elif args.communication == "remote":
-    veh_factory = SafetestCosimVehicleFactory_Remote()
+    veh_factory = MRVehicleFactoryRemote()
 env = SafeTestNADECoSim(
     vehicle_factory = veh_factory,
     info_extractor=InfoExtractor,
@@ -39,7 +39,7 @@ sim = Simulator(
     sumo_net_file_path = './maps/Mcity/mcity_new.net.xml',
     sumo_config_file_path = './maps/Mcity/mcity_new.sumocfg',
     num_tries=10,
-    gui_flag=True,
+    gui_flag=False,
     output_path=f"{args.dir}/{args.mode}/raw_data/{args.mode}_{args.nth}",
     sumo_output_file_types=["fcd", "collision"],
     realtime_flag=True,
