@@ -3,11 +3,11 @@ import math
 import redis
 import yaml
 
-import terasim-mr.communicationtools.constants as constants
+import terasim_mr.communicationtools.constants as constants
 from terasim.overlay import traci
-import terasim-mr.utils.others as others
+import terasim_mr.utils.others as others
 from terasim.vehicle.sensors.base import BaseSensor
-from terasim-mr.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
+from terasim_mr.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
 
 class MRTLSSensorLocal(BaseSensor):
     def __init__(self, name="ROSTLS", **params):

@@ -1,4 +1,4 @@
-from terasim-mr.communicationtools.redis2ros import ROSPublisher_DummyTrafficlight,ROSPublisher_SUMOTrafficlight
+from terasim_mr.communicationtools.redis2ros import ROSPublisher_DummyTrafficlight,ROSPublisher_SUMOTrafficlight
 
 
 # Create the ROS publisher to publish the frontal traffic light signal information to ROS-based Autoware

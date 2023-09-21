@@ -1,6 +1,6 @@
 import yaml
 
-from terasim-mr.communicationtools.redis2ros import ROSSubsriber_AVAutowareRedis
+from terasim_mr.communicationtools.redis2ros import ROSSubsriber_AVAutowareRedis
 
 # Load the configuration file
 with open("examples/configs/Mcity_abctest_param_cosim.yaml", 'r') as stream:

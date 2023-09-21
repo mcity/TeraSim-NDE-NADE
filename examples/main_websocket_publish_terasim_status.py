@@ -1,4 +1,4 @@
-from terasim-mr.communicationtools.redis2web import Publisher_TeraSimStatus
+from terasim_mr.communicationtools.redis2web import Publisher_TeraSimStatus
 
 
 publisher = Publisher_TeraSimStatus()

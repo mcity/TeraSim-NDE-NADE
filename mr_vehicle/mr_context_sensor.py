@@ -4,10 +4,10 @@ import redis
 import time
 import utm
 import terasim.utils as utils
-import terasim-mr.communicationtools.constants as constants
+import terasim_mr.communicationtools.constants as constants
 from terasim.overlay import traci
 from terasim.vehicle.sensors.base import BaseSensor
-from terasim-mr.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
+from terasim_mr.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
 
 
 class MRContextSensorLocal(BaseSensor):
