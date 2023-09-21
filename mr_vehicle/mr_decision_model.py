@@ -3,8 +3,8 @@ import math
 import redis
 
 import ascs.communicationtools.constants as constants
-from mtlsp.vehicle.decision_models.base_decision_model import BaseDecisionModel
-import mtlsp.utils as utils
+from terasim.vehicle.decision_models.base_decision_model import BaseDecisionModel
+import terasim.utils as utils
 from ascs.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
 
 class MRDecisionModelLocal(BaseDecisionModel):

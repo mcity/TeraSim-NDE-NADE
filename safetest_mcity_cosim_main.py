@@ -1,7 +1,7 @@
-from mtlsp.simulator import Simulator
+from terasim.simulator import Simulator
 from envs.env_monitor import EnvMonitor
 from envs.safetest_nade_cosim import SafeTestNADECoSim
-from mtlsp.logger.infoextractor import InfoExtractor
+from terasim.logger.infoextractor import InfoExtractor
 from mr_vehicle.mr_vehicle_factory import MRVehicleFactoryLocal, MRVehicleFactoryRemote
 
 import redis

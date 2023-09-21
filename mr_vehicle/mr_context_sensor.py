@@ -3,10 +3,10 @@ import numpy as np
 import redis
 import time
 import utm
-import mtlsp.utils as utils
+import terasim.utils as utils
 import ascs.communicationtools.constants as constants
-from mtlsp.overlay import traci
-from mtlsp.vehicle.sensors.base import BaseSensor
+from terasim.overlay import traci
+from terasim.vehicle.sensors.base import BaseSensor
 from ascs.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
 
 

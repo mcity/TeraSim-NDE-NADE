@@ -1,9 +1,9 @@
-from mtlsp.simulator import Simulator
+from terasim.simulator import Simulator
 from envs.env_monitor import EnvMonitor
 from envs.safetest_nde import SafeTestNDE
 from envs.safetest_nade import SafeTestNADE
 from envs.safetest_nade_with_av import SafeTestNADEWithAV
-from mtlsp.logger.infoextractor import InfoExtractor
+from terasim.logger.infoextractor import InfoExtractor
 from vehicle.safetest_vehicle_factory import SafetestVehicleFactory
 
 import argparse

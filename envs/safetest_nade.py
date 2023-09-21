@@ -1,7 +1,7 @@
 from .safetest_nde import SafeTestNDE
 import sumolib
-from mtlsp.overlay import traci
-import mtlsp.utils as utils
+from terasim.overlay import traci
+import terasim.utils as utils
 import numpy as np
 from decimal import Decimal
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="mtlsp safe test"
+#SBATCH --job-name="terasim safe test"
 #SBATCH --mail-user=hyfrankl@umich.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --nodes=1
@@ -20,7 +20,7 @@ cd /home/hyfrankl
 source .bashrc
 cd /home/hyfrankl/Safe-Test-TeraSim
 module load python/3.10.4
-source /home/hyfrankl/mtlsp-venv/bin/activate
+source /home/hyfrankl/terasim-venv/bin/activate
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest"
 export HAS_LIBSUMO=1

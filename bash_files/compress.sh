@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name="mtlsp safe test"
+#SBATCH --job-name="terasim safe test"
 #SBATCH --mail-user=hyfrankl@umich.edu
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --nodes=1

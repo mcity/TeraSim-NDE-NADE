@@ -1,8 +1,8 @@
 import numpy as np
 
 from .safetest_nade import SafeTestNADE
-from mtlsp.overlay import traci
-import mtlsp.utils as utils
+from terasim.overlay import traci
+import terasim.utils as utils
 import numpy as np
 
 class SafeTestNADEWithAV(SafeTestNADE):

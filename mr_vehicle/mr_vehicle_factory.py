@@ -2,12 +2,12 @@ from mr_vehicle.mr_controller import MRController
 from mr_vehicle.mr_decision_model import MRDecisionModelLocal, MRDecisionModelRemote
 from mr_vehicle.mr_context_sensor import MRContextSensorLocal, MRContextSensorRemote
 from mr_vehicle.mr_tls_sensor import MRTLSSensorLocal, MRTLSSensorRemote
-from mtlsp.vehicle.factories.dummy_vehicle_factory import DummyVehicleFactory
+from terasim.vehicle.factories.dummy_vehicle_factory import DummyVehicleFactory
 from vehicle.IDM_MOBIL_with_negligence import IDM_MOBIL_with_negligence
 import settings
-from mtlsp.vehicle.sensors.ego import EgoSensor
-from mtlsp.vehicle.sensors.local import LocalSensor
-from mtlsp.vehicle.vehicle import Vehicle
+from terasim.vehicle.sensors.ego import EgoSensor
+from terasim.vehicle.sensors.local import LocalSensor
+from terasim.vehicle.vehicle import Vehicle
 from vehicle.high_efficiency_controller_v2 import HighEfficiencyControllerV2
 
 class MRVehicleFactoryLocal(DummyVehicleFactory):

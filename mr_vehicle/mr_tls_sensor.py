@@ -4,9 +4,9 @@ import redis
 import yaml
 
 import ascs.communicationtools.constants as constants
-from mtlsp.overlay import traci
+from terasim.overlay import traci
 import ascs.utils.others as others
-from mtlsp.vehicle.sensors.base import BaseSensor
+from terasim.vehicle.sensors.base import BaseSensor
 from ascs.utils.convertion import utm_to_sumo_coordinate, sumo_to_utm_coordinate, center_coordinate_to_sumo_coordinate, sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation, orientation_to_sumo_heading
 
 class MRTLSSensorLocal(BaseSensor):

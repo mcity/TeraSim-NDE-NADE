@@ -1,10 +1,10 @@
-import mtlsp.utils as utils
+import terasim.utils as utils
 import json
 import os
 from collections import defaultdict
 # from vehicle.vehicle_utils import get_collision_type, get_location
 
-from mtlsp.overlay import traci
+from terasim.overlay import traci
 import sumolib
 
 class EnvMonitor:

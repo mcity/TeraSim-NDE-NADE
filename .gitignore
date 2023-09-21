@@ -139,8 +139,8 @@ analysis/videos/*
 check_demo.py
 collision_type_debug/
 split_files/
-mtlsp_arxiv/
-mtlsp/
+terasim_arxiv/
+terasim/
 ITE_negligence_calibrate_0812/
 cosim_test_localcomputer/
 *.zip

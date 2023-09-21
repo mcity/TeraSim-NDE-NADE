@@ -1,8 +1,8 @@
 from .env_monitor import EnvMonitor
-from mtlsp.envs.template import EnvTemplate
-import mtlsp.utils as utils
+from terasim.envs.template import EnvTemplate
+import terasim.utils as utils
 import numpy as np
-from mtlsp.overlay import traci
+from terasim.overlay import traci
 
 class SafeTestNDE(EnvTemplate):
 

@@ -28,7 +28,7 @@ source /venv/bin/activate
 # cd /home/hyfrankl/Safe-Test-TeraSim
 # module load python/3.10.4
 # module load ffmpeg
-# source /home/hyfrankl/mtlsp-venv/bin/activate
+# source /home/hyfrankl/terasim-venv/bin/activate
 
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"

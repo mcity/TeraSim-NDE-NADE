@@ -1,9 +1,9 @@
 import redis
 import time
 
-from mtlsp.overlay import traci
+from terasim.overlay import traci
 from .safetest_nade_with_av import SafeTestNADEWithAV
-import mtlsp.utils as utils
+import terasim.utils as utils
 
 
 REDIS_CONSTANTS_TERASIM_STATE = "terasim_state"
