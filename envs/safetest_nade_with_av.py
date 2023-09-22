@@ -7,11 +7,6 @@ import numpy as np
 
 class SafeTestNADEWithAV(SafeTestNADE):
 
-    def __init__(self, vehicle_factory, info_extractor):
-        super().__init__(vehicle_factory, info_extractor)
-        self.warmup_time = 15*60 # 15 minutes
-        self.run_time = 5*60 # 5 minutes
-
     def on_start(self, ctx):
         super().on_start(ctx)
         self.add_vehicle(veh_id="CAV", route="r_CAV", lane="best", lane_id="EG_35_1_14_0", position=0, speed=0)
@@ -25,38 +20,6 @@ class SafeTestNADEWithAV(SafeTestNADE):
         if "CAV" in control_command_dict:
             ITE_control_command_dict["CAV"] = control_command_dict["CAV"]
         return ITE_control_command_dict, weight
-    
-    # def get_d2rl_obs(self, bv_veh_id):
-    #     CAV_position = traci.vehicle.getPosition("CAV")
-    #     BV_position = traci.vehicle.getPosition(bv_veh_id)
-    #     BV_cav_relative_position = [BV_position[0] - CAV_position[0], BV_position[1] - CAV_position[1]]
-
-    #     CAV_speed = traci.vehicle.getSpeed("CAV")
-    #     BV_speed = traci.vehicle.getSpeed(bv_veh_id)
-    #     BV_cav_relative_speed = BV_speed - CAV_speed
-
-    #     CAV_heading = traci.vehicle.getAngle("CAV")
-    #     BV_heading = traci.vehicle.getAngle(bv_veh_id)
-
-    #     BV_criticality_value = np.log10(self.importance_sampling_weight)
-    #     bv_criticality_value_lb = -16
-    #     bv_criticality_value_ub = 0
-
-    #     vehicle_info_lb, vehicle_info_ub = [-20, -20, -10], [20, 20, 10]
-    #     # bv_crit
-    #     total_obs_for_DRL_ori = np.array(CAV_position + [CAV_speed] + [BV_criticality_value] + [bv_criticality_flag] + [bv_criticality_value] + vehicle_info_list)
-    #     total_obs_for_DRL = 2 * (total_obs_for_DRL_ori - lb_array)/(ub_array - lb_array) - 1 # normalize the observation
-    #     total_obs_for_DRL = np.clip(total_obs_for_DRL, -5, 5) # clip the observation
-    #     return np.float32(np.array(total_obs_for_DRL))
-
-    # def get_cav_info(self, current_time, veh_id, IS_prob, criticality_dict, ndd_control_command_dict):
-    #     infos_dict = {}
-    #     infos_dict["current_time"] = current_time
-    #     infos_dict["criticality_negligence"] = criticality_dict[veh_id]["negligence"]
-    #     infos_dict["ndd_negligence_command"] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
-    #     infos_dict["d2rl_obs"] = self.get_d2rl_obs(veh_id)
-    #     infos_dict["IS_prob"] = IS_prob
-    #     return infos_dict
 
     def ITE_importance_sampling(self, ndd_control_command_dict, criticality_dict):
         """Importance sampling for NADE.
