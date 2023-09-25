@@ -38,11 +38,11 @@ class MRDecisionModelLocal(BaseDecisionModel):
         """
         av_planning_time = self.get_av_planning_time()
         
-        while True:
-            av_planning_time = self.get_av_planning_time()
-            if av_planning_time is None or av_planning_time == str(utils.get_time()):
-                # print("Recieve av planning result:", av_planning_time, utils.get_time())
-                break
+        # while True:
+        #     av_planning_time = self.get_av_planning_time()
+        #     if av_planning_time is None or av_planning_time == str(utils.get_time()):
+        #         # print("Recieve av planning result:", av_planning_time, utils.get_time())
+        #         break
             
         latest_ego_positionheading = self.redis_client.get(self.latest_ego_positionheading_redis_key)
         latest_ego_speed = self.redis_client.get(self.latest_ego_speed_redis_key)
@@ -73,29 +73,3 @@ class MRDecisionModelRemote(MRDecisionModelLocal):
     def __init__(self):
         super().__init__()
         self.latest_ego_states_redis_key = constants.REDIS_CONSTANTS.CAV_EGO_STATES_WEB_SUB
-
-    def derive_control_command_from_observation(self, obs_dict):
-        """derive control command from observation
-
-        Args:
-            obs_dict (dict): vehicle observation dictionary
-
-        Returns:
-            dict: command
-        """
-        latest_ego_states = self.redis_client.get(self.latest_ego_states_redis_key)
-        # print(latest_ego_positionheading, latest_ego_speed)
-        if latest_ego_states is not None:
-            # when CAV has input from Redis server (the source is ROS-based Autoware)
-            latest_ego_states = json.loads(latest_ego_states.decode())
-            command = {
-                "type": "SetSumoTransform",
-                "position": (latest_ego_states['x'], latest_ego_states['y']), # x, y
-                "velocity": latest_ego_states["velocity"], # m/s
-                "angle": math.degrees(latest_ego_states['heading']), # degree
-                "keepRoute": 1
-            }
-            return command, None
-        else:
-            # otherwise, CAV will be controlled by SUMO
-            return None, None
