@@ -11,8 +11,7 @@ class MRDecisionModelLocal(BaseDecisionModel):
     def __init__(self):
         super().__init__()
         self.redis_client = redis.Redis(host='localhost', port=6379, db=0)
-        self.latest_ego_positionheading_redis_key = constants.REDIS_CONSTANTS.CAV_EGO_POSITIONHEADING_ROS
-        self.latest_ego_speed_redis_key = constants.REDIS_CONSTANTS.CAV_EGO_SPEED_ROS
+        self.av_state_key = constants.REDIS_CONSTANTS.AV_STATE
 
     def install(self):
         # utils.set_vehicle_speedmode(self.vehicle.id, 7)
@@ -44,21 +43,18 @@ class MRDecisionModelLocal(BaseDecisionModel):
         #         # print("Recieve av planning result:", av_planning_time, utils.get_time())
         #         break
             
-        latest_ego_positionheading = self.redis_client.get(self.latest_ego_positionheading_redis_key)
-        latest_ego_speed = self.redis_client.get(self.latest_ego_speed_redis_key)
-        # print(latest_ego_positionheading, latest_ego_speed)
-        if latest_ego_positionheading is not None and latest_ego_speed is not None:
+        av_state = self.redis_client.get(self.av_state_key)
+        if av_state is not None:
             # when CAV has input from Redis server (the source is ROS-based Autoware)
-            latest_ego_positionheading = json.loads(latest_ego_positionheading.decode())
-            latest_ego_speed = json.loads(latest_ego_speed.decode())
-            utm_center_coordinates = [latest_ego_positionheading['x'], latest_ego_positionheading['y']]
+            av_state = json.loads(av_state.decode())
+            utm_center_coordinates = [av_state['x'], av_state['y']]
             sumo_center_coordinates = utm_to_sumo_coordinate(utm_center_coordinates)
-            sumo_front_bumper_coordinates = center_coordinate_to_sumo_coordinate(sumo_center_coordinates[0], sumo_center_coordinates[1], latest_ego_positionheading['orientation'])
-            sumo_heading = orientation_to_sumo_heading(latest_ego_positionheading['orientation'])
+            sumo_front_bumper_coordinates = center_coordinate_to_sumo_coordinate(sumo_center_coordinates[0], sumo_center_coordinates[1], av_state['orientation'])
+            sumo_heading = orientation_to_sumo_heading(av_state['orientation'])
             command = {
                 "type": "SetSumoTransform",
                 "position": (sumo_front_bumper_coordinates[0], sumo_front_bumper_coordinates[1]), # x, y
-                "velocity": latest_ego_speed["velocity"], # m/s
+                "velocity": av_state["velocity"], # m/s
                 "angle": sumo_heading, # degree
                 "keepRoute": 1
             }
@@ -67,9 +63,3 @@ class MRDecisionModelLocal(BaseDecisionModel):
         else:
             # otherwise, CAV will be controlled by SUMO
             return None, None
-        
-
-class MRDecisionModelRemote(MRDecisionModelLocal):
-    def __init__(self):
-        super().__init__()
-        self.latest_ego_states_redis_key = constants.REDIS_CONSTANTS.CAV_EGO_STATES_WEB_SUB

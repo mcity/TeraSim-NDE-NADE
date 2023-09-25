@@ -19,7 +19,7 @@ class MRTLSSensorLocal(BaseSensor):
         self.tls_id_list = []
         self.tls_config_dict = {}
         self.redis_client = redis.Redis(host='localhost', port=6379, db=0)
-        self.redis_key = constants.REDIS_CONSTANTS.CAV_FRONT_TLS_INFO_ROS
+        self.redis_key = constants.REDIS_CONSTANTS.AV_TLS
 
     def fetch(self):
         self.update_tls_info()
@@ -120,9 +120,3 @@ class MRTLSSensorLocal(BaseSensor):
         """
         str_cav_front_tls_info = json.dumps(self.cav_front_tls_info)
         self.redis_client.set(self.redis_key, str_cav_front_tls_info)
-
-
-class MRTLSSensorRemote(MRTLSSensorLocal):
-    def __init__(self, name="WebTLS", **params):
-        super().__init__(name, **params)
-        self.redis_key = constants.REDIS_CONSTANTS.CAV_FRONT_TLS_INFO_WEB_PUB

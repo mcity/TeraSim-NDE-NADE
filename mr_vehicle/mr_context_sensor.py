@@ -33,7 +33,7 @@ class MRContextSensorLocal(BaseSensor):
         self.bv_history = [0.0] * (self.history_length * self.max_bvs_num * self.info_length)
         self.context_vehicle_info = {}
         self.redis_client = redis.Redis(host='localhost', port=6379, db=0)
-        self.context_vehicle_info_redis_key = constants.REDIS_CONSTANTS.CAV_CONTEXT_VEHICLE_INFO_ROS
+        self.context_vehicle_info_redis_key = constants.REDIS_CONSTANTS.AV_CONTEXT
 
     def fetch(self):
         self.update_context_vehicle_info()
@@ -118,9 +118,3 @@ class MRContextSensorLocal(BaseSensor):
         str_context_vehicle_info = json.dumps(self.context_vehicle_info)
         self.redis_client.set(self.context_vehicle_info_redis_key, str_context_vehicle_info)
         self.redis_client.set(constants.REDIS_CONSTANTS.TERASIM_TIME, str(utils.get_time()))
-
-
-class MRContextSensorRemote(MRContextSensorLocal):
-    def __init__(self, name="WebContext", **params):
-        super().__init__(name, **params)
-        self.context_vehicle_info_redis_key = constants.REDIS_CONSTANTS.CAV_CONTEXT_VEHICLE_INFO_WEB_PUB
