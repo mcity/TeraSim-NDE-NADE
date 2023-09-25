@@ -1,5 +1,5 @@
-from terasim_mr.communicationtools.web2redis import Subscriber_AutowareLocalization
+from terasim_mr.communicationtools.web2redis import AVStateSubscriber
 
 
-subscriber = Subscriber_AutowareLocalization()
+subscriber = AVStateSubscriber()
 subscriber.run()

@@ -1,5 +1,5 @@
-from terasim_mr.communicationtools.redis2web import Publisher_AutowarePerception
+from terasim_mr.communicationtools.redis2web import AVContextPublisher
 
 
-publisher = Publisher_AutowarePerception()
+publisher = AVContextPublisher()
 publisher.run()

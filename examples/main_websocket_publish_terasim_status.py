@@ -1,5 +1,5 @@
-from terasim_mr.communicationtools.redis2web import Publisher_TeraSimStatus
+from terasim_mr.communicationtools.redis2web import TeraSimStatusPublisher
 
 
-publisher = Publisher_TeraSimStatus()
+publisher = TeraSimStatusPublisher()
 publisher.run()

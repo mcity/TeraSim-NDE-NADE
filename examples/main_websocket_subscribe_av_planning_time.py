@@ -1,5 +1,5 @@
-from terasim_mr.communicationtools.web2redis import Subscriber_AVPlanningTime
+from terasim_mr.communicationtools.web2redis import AVPlanningTimeSubscriber
 
 
-subscriber = Subscriber_AVPlanningTime()
+subscriber = AVPlanningTimeSubscriber()
 subscriber.run()

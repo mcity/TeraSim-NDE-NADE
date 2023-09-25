@@ -1,5 +1,5 @@
-from terasim_mr.communicationtools.redis2web import Publisher_TeraSimTime
+from terasim_mr.communicationtools.redis2web import TeraSimTimePublisher
 
 
-publisher = Publisher_TeraSimTime()
+publisher = TeraSimTimePublisher()
 publisher.run()

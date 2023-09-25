@@ -1,5 +1,5 @@
-from terasim_mr.communicationtools.redis2web import Publisher_AutowareTLS
+from terasim_mr.communicationtools.redis2web import AVTLSPublisher
 
 
-publisher = Publisher_AutowareTLS()
+publisher = AVTLSPublisher()
 publisher.run()
