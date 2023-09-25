@@ -7,7 +7,7 @@ export MCITY_OCTANE_KEY=mcity
 export MCITY_OCTANE_SERVER=https://atrium-simulation.um.city
 
 # run the SUMO simulation
-python safetest_mcity_cosim_main.py --communication remote &
+python safetest_mcity_cosim_main.py &
 ## publish perception to websocket
 python examples/main_websocket_publish_av_perception.py &
 ## publish tls to websocket
