@@ -1,0 +1,15 @@
+version: '3.5'
+services:
+  terasim:
+    image: 213372630447.dkr.ecr.us-east-2.amazonaws.com/terasim:latest
+    build:
+      context: .
+      args:
+        - MCITY_OCTANE_KEY=${MCITY_OCTANE_KEY}
+        - MCITY_OCTANE_SERVER=${MCITY_OCTANE_SERVER}
+    network_mode: host
+    container_name: terasim
+    restart: always
+    environment:
+      - MCITY_OCTANE_KEY=${MCITY_OCTANE_KEY}
+      - MCITY_OCTANE_SERVER=${MCITY_OCTANE_SERVER}
