@@ -45,6 +45,7 @@ class MRContextSensorLocal(BaseSensor):
         """
         interested_time_list = [time.time()]
         vehID = self._agent.id
+        leading_vehicle_id, leading_vehicle_distance = traci.vehicle.getLeader(vehID, 1000)
         realtime_vehicle_id_list = traci.vehicle.getIDList()
         if vehID in realtime_vehicle_id_list:
             sumo_time = traci.simulation.getTime()
@@ -68,6 +69,8 @@ class MRContextSensorLocal(BaseSensor):
                     "slope": traci.vehicle.getSlope(veh_id),
                     "v_lat": traci.vehicle.getLateralSpeed(veh_id),
                     "v_long": traci.vehicle.getSpeed(veh_id),
+                    "edge_id": traci.vehicle.getRoadID(veh_id),
+                    "lane_id": traci.vehicle.getLaneID(veh_id),
                 }
                 # convert from center of front bumber to center of mass
                 sumo_front_bumper_coordinate = obs["pose"]
@@ -98,9 +101,17 @@ class MRContextSensorLocal(BaseSensor):
                     'angular_speed': angular_speed, 'angular_acc': angular_acc,
                     'speed_long': obs["v_long"], 'speed_lat': obs['v_lat'],
                     'accel_long': obs["acc"], 'accel_lat': acc_lat,
+                    'edge_id': obs["edge_id"], 'lane_id': obs["lane_id"],
                     'bv_history': None,
                     'time': self.time_list,
                     'sim_time': sumo_time
+                    "leading_info": {
+                        "is_leading_cav": True,
+                        "distance": leading_vehicle_distance,
+                    } if veh_id == leading_vehicle_id else {
+                        "is_leading_cav": False,
+                        "distance": None,
+                    }
                 }
             veh_id_list = list(self.context_vehicle_info.keys())
             for veh_id in veh_id_list:

@@ -33,7 +33,7 @@ def main(args):
         sumo_config_file_path = './maps/Mcity/mcity_new.sumocfg',
         num_tries=10,
         gui_flag=False,
-        output_path=f"{args.dir}/{args.mode}/raw_data/{args.mode}_{args.nth}",
+        output_path=f"{args.dir}/{args.mode}/raw_data/{args.nth}",
         sumo_output_file_types=["fcd", "collision"],
         realtime_flag=True,
     )
@@ -41,14 +41,13 @@ def main(args):
     sim.bind_env(env)
     sim.run()
 
-parser = argparse.ArgumentParser(description='Run simulation.')
-parser.add_argument('--dir', type=str, help='output directory', default="output")
-parser.add_argument('--mode', type=str, help='the negligence mode.', default="test")
-parser.add_argument('--nth', type=str, help='the nth epoch', default="0_0")
-args = parser.parse_args()
-r = redis.Redis()
-
-while True:
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Run simulation.')
+    parser.add_argument('--dir', type=str, help='output directory', default="output")
+    parser.add_argument('--mode', type=str, help='the negligence mode.', default="test")
+    parser.add_argument('--nth', type=str, help='the nth epoch', default="0_0")
+    args = parser.parse_args()
+    r = redis.Redis()
     r.flushdb()
     main(args)
 
