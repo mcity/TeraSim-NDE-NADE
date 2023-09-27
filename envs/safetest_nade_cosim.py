@@ -12,6 +12,11 @@ REDIS_CONSTANTS_AUTOWARE = "autoware_state"
 
 class SafeTestNADECoSim(SafeTestNADEWithAV):
 
+    def __init__(self, vehicle_factory, info_extractor):
+        super().__init__(vehicle_factory, info_extractor)
+        self.warmup_time = 15*60 # 15 minutes
+        self.run_time = 2*60 # 2 minutes
+
     def on_start(self, ctx):
         super().on_start(ctx)
         self.redis_client = redis.Redis(host='localhost', port=6379, db=0)

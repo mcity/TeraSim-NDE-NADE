@@ -9,8 +9,6 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
     def __init__(self, vehicle_factory, info_extractor):
         super().__init__(vehicle_factory, info_extractor)
-        self.warmup_time = 15*60 # 15 minutes
-        self.run_time = 5*60 # 5 minutes
 
     def on_start(self, ctx):
         super().on_start(ctx)
