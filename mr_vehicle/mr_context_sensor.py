@@ -45,7 +45,14 @@ class MRContextSensorLocal(BaseSensor):
         """
         interested_time_list = [time.time()]
         vehID = self._agent.id
-        leading_vehicle_id, leading_vehicle_distance = traci.vehicle.getLeader(vehID, 1000)
+        leader_info = traci.vehicle.getLeader(vehID, 1000)
+        if leader_info is None:
+            leading_vehicle_id = None
+            leading_vehicle_distance = None
+        else:
+            leading_vehicle_id = leader_info[0]
+            leading_vehicle_distance = leader_info[1]
+        # print("leading_vehicle_id: ", leading_vehicle_id, "leading_vehicle_distance: ", leading_vehicle_distance)
         realtime_vehicle_id_list = traci.vehicle.getIDList()
         if vehID in realtime_vehicle_id_list:
             sumo_time = traci.simulation.getTime()
@@ -104,7 +111,7 @@ class MRContextSensorLocal(BaseSensor):
                     'edge_id': obs["edge_id"], 'lane_id': obs["lane_id"],
                     'bv_history': None,
                     'time': self.time_list,
-                    'sim_time': sumo_time
+                    'sim_time': sumo_time,
                     "leading_info": {
                         "is_leading_cav": True,
                         "distance": leading_vehicle_distance,
