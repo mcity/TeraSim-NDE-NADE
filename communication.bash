@@ -16,7 +16,7 @@ python examples/main_mcityos_publish_av_tls.py &
 ## publish terasim time to McityOS
 python examples/main_mcityos_publish_terasim_time.py &
 ## subscribe av states from McityOS
-python examples/main_mcityos_subscribe_av_states.py &
+python examples/main_mcityos_subscribe_av_state.py &
 ## subscribe av planning time from McityOS
 python examples/main_mcityos_subscribe_av_planning_time.py &
 
