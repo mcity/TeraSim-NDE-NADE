@@ -56,7 +56,7 @@ class MRDecisionModelLocal(BaseDecisionModel):
                 "position": (sumo_front_bumper_coordinates[0], sumo_front_bumper_coordinates[1]), # x, y
                 "velocity": av_state["velocity"], # m/s
                 "angle": sumo_heading, # degree
-                "keepRoute": 1
+                "keepRoute": 0
             }
             # print("terasim_control_command", latest_ego_positionheading['x'], latest_ego_positionheading['y'])
             return command, None
