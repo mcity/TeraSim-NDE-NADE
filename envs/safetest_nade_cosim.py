@@ -15,7 +15,7 @@ class SafeTestNADECoSim(SafeTestNADEWithAV):
     def __init__(self, vehicle_factory, info_extractor):
         super().__init__(vehicle_factory, info_extractor)
         self.warmup_time = 15*60 # 15 minutes
-        self.run_time = 2*60 # 2 minutes
+        self.run_time = 12*60 # 2 minutes
 
     def on_start(self, ctx):
         super().on_start(ctx)
@@ -44,7 +44,7 @@ class SafeTestNADECoSim(SafeTestNADEWithAV):
                 self.monitor.export_final_state(None, None, self.collision_log(), "reachend")
                 # print("timeout", " ", " ", self.collision_log(), utils.get_time(), sep="\t")
                 return False
-            elif utils.get_time() >= self.warmup_time + 15*60:
+            elif utils.get_time() >= self.run_time:
                 self.monitor.export_final_state(None, None, self.collision_log(), "timeout")
                 # print("timeout", " ", " ", self.collision_log(), utils.get_time(), sep="\t")
                 # velocity = sum([traci.vehicle.getSpeed(veh_id) for veh_id in traci.vehicle.getIDList()])
