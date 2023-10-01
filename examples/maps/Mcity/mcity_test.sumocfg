@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration>
+
+    <input> 
+        <net-file value="mcity_sumo_new3.net.xml"/>
+        <route-files value="mcity.route_test.xml"/> 
+        <step-length value = "0.1"/>
+    </input>
+
+    <time>
+        <begin value="0"/>
+        <end value="10000"/>
+    </time>
+
+</configuration>

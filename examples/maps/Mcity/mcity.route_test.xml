@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Thu Mar  4 13:58:52 2021 by Eclipse SUMO jtrrouter Version v1_8_0+0998-9cb88feb28
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/jtrrouterConfiguration.xsd">
+
+    <input>
+        <net-file value="./maps/Mcity/mcity_sumo/mcity_sumo.net.xml"/>
+        <route-files value="./maps/Mcity/mcity_sumo/mcity_sumo.net.xml.trips.xml"/>
+        <turn-ratio-files value="./maps/Mcity/mcity_sumo/mcity.turndefs.xml"/>
+    </input>
+
+    <output>
+        <output-file value="./maps/Mcity/mcity_sumo/mcity.route.xml"/>
+    </output>
+
+    <processing>
+        <no-internal-links value="true"/>
+        <accept-all-destinations value="true"/>
+    </processing>
+
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <route edges="EG_1_3_1 EG_34_1_24 EG_34_1_3 EG_34_1_6 EG_34_1_16 EG_1_1_1" color="yellow" id="route_0"/>
+    <route edges="EG_6_2_1 EG_8_1_1 EG_9_1_1 EG_9_1_23 EG_17_3_1 EG_13_1_1 EG_6_4_1" color="yellow" id="route_1"/>
+    <route edges="EG_22_1_1 EG_21_1_14 EG_21_1_18 EG_21_1_1 EG_19_1_10 EG_25_2_7 EG_24_2_1 EG_23_2_1 EG_15_1_1 gneE4 EG_16_2_1 EG_13_1_1 EG_6_4_1" color="yellow" id="route_2"/>
+    <route edges="EG_1_3_1 EG_34_1_24 EG_34_1_3 EG_34_1_6 EG_34_1_16 EG_1_1_1" color="yellow" id="route_3"/>
+    <route edges="EG_19_1_1 EG_21_1_5 EG_20_1_11 EG_25_2_1 EG_25_2_7 EG_28_2_1 EG_14_2_1 EG_8_3_1 EG_8_3_2 EG_6_4_1" color="yellow" id="route_4"/>
+    <route edges="EG_6_2_1 EG_8_1_1 EG_9_1_1 EG_9_1_23 EG_17_2_1 EG_26_1_1 EG_23_2_1 EG_15_1_1 gneE4 EG_16_2_1 EG_13_1_1" color="yellow" id="route_5"/>
+    <route edges="EG_11_1_1 EG_16_1_5 EG_15_1_8 EG_15_1_10 EG_15_1_17 EG_23_1_1 EG_27_2_1 EG_27_2_2 EG_13_1_1 EG_6_4_1" color="yellow" id="route_6"/>
+    <route edges="EG_25_2_1 EG_20_1_1 EG_21_1_10 EG_21_1_14 EG_18_1_1" color="yellow" id="route_7"/>
+    <route edges="EG_28_2_1 EG_14_2_1 EG_8_3_1 EG_8_3_2 EG_6_4_1" color="yellow" id="route_8"/>
+    <!-- <route edges="EG_22_1_1 EG_21_1_14 EG_21_1_18 EG_9_1_23 EG_17_2_1 EG_26_1_1" color="yellow" id="route_9"/> -->
+    <route edges="EG_22_1_1 EG_21_1_14 EG_21_1_18 EG_9_1_23 EG_17_3_1" color="yellow" id="route_10"/>
+    <route edges="EG_23_2_1 EG_15_1_1 gneE3 EG_16_3_1 EG_26_1_1" color="yellow" id="route_11"/>
+    
+    <vType id="CAR" carFollowModel="IDM" laneChangeModel="SL2015" accel="2.0" decel="9.0" length="4.8" minGap="2.0" maxSpeed="10.0" lcPushy="0.8" lcSpeedGain="0" lcKeepRight="0" lcCooperative="0" lcStrategic="0" lcAccelLat="20000.0"/>
+    <vType id="DEER" guiShape="bus" width="1.5" length="0.8" height="2.0" />    
+    <vType id="TRUCK" vClass="truck" carFollowModel="IDM" laneChangeModel="SL2015" tau="1.0" accel="2.0" decel="4.0" speedDev="0" width="2.55" length="10.0" height="4.0" minGap="2.5" maxSpeed="10.0" lcAccelLat="20000.0" guiShape="truck" lcSpeedGain="0" lcKeepRight="1" lcCooperative="0" lcStrategic="0" />
+    <route edges="EG_1_3_1 EG_34_1_24 EG_34_1_3 gneE0 EG_4_1_1 EG_10_1_1 EG_15_1_17 EG_15_1_1 gneE3 EG_16_3_1 EG_17_1_1 EG_14_2_1 EG_9_1_1 EG_21_1_1 EG_21_1_5 EG_20_1_11 EG_29_1_1 EG_35_1_14" color="yellow" id="route_CAV"/>
+    <route edges="EG_27_1_1 EG_17_1_1 EG_28_1_1 EG_24_2_1 EG_27_1_1" color="yellow" id="route_CV"/>
+    <route edges="EG_1_3_1" color="yellow" id="route_deer"/>
+    <route edges="EG_1_1_1" color="yellow" id="route_flow2"/>
+
+    <flow id="BV_3" route="route_6" number="50" period="exp(0.05)" type="CAR" departLane="best" departPos="random" departSpeed="random"/>
+    <flow id="BV_4" route="route_7" number="50" period="exp(0.05)" type="CAR" departLane="best" departPos="random" departSpeed="random"/>
+    <flow id="BV_5" route="route_8" number="50" period="exp(0.05)" type="CAR" departLane="best" departPos="random" departSpeed="random"/>
+    <flow id="BV_8" route="route_11" number="50" period="exp(0.05)" type="CAR" departLane="best" departPos="random" departSpeed="random"/>
+    <flow id="BV_7" route="route_10" number="60" period="exp(0.06)" type="CAR" departLane="best" departPos="random" departSpeed="random"/>  
+    
+    <flow id="BV_1" from="EG_1_3_1" to="EG_1_1_1" begin="5" end="1000" number="150" type="CAR" departLane="best"/>
+    <flow id="BV_2" route="route_flow2" begin="5" end="1000" number="70" type="CAR" departLane="best"/>
+
+    
+</routes>
