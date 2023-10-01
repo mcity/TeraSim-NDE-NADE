@@ -36,6 +36,7 @@ def main(args):
         output_path=f"{args.dir}/{args.name}/raw_data/{args.nth}",
         sumo_output_file_types=["fcd", "collision"],
         realtime_flag=True,
+        additonal_sumo_args=["--start","--quit-on-end"]
     )
     monitor.bind_env(env)
     sim.bind_env(env)
