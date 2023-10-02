@@ -29,8 +29,8 @@ def main(args):
         info_extractor=InfoExtractor,
     )
     sim = Simulator(
-        sumo_net_file_path = './maps/Mcity/mcity_new.net.xml',
-        sumo_config_file_path = './maps/Mcity/mcity_new.sumocfg',
+        sumo_net_file_path = './maps/Mcity_NSF_demo/mcity.net.xml',
+        sumo_config_file_path = './maps/Mcity_NSF_demo/mcity.sumocfg',
         num_tries=10,
         gui_flag=False,
         output_path=f"{args.dir}/{args.name}/raw_data/{args.nth}",

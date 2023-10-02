@@ -3,7 +3,7 @@
 <configuration>
 
     <input>
-        <net-file value="mcity_new.net.xml"/>
+        <net-file value="mcity.net.xml"/>
         <route-files value="mcity.route.xml"/>
         <step-length value = "0.1"/>
     </input>
