@@ -23,13 +23,13 @@ tmux send-keys -t 0 'redis-server' C-m
 sleep 0.5
 
 # Select pane 1 and run script b
-tmux send-keys -t 1 './cosim_sumo.sh' C-m 
+tmux send-keys -t 1 './bash_files/cosim_sumo.sh' C-m 
 
 # Select pane 2 and run script c
-tmux send-keys -t 2 './cosim_autoware_launch.sh' C-m 
+tmux send-keys -t 2 './bash_files/cosim_autoware_launch.sh' C-m 
 
 # Select pane 3 and run script d
-tmux send-keys -t 3 './cosim_autoware_interrupt.sh' C-m 
+tmux send-keys -t 3 './bash_files/cosim_autoware_interrupt.sh' C-m 
 
 # Attach the tmux session 
 tmux attach-session -t my_session
