@@ -49,10 +49,9 @@ def get_basic_info(path_name):
 
     mark = df["category"] == "intersection"
     maneuver_challenge = df["time"][mark].nunique()
-    # collision_type, collision_location, _, _ = get_collision_type_from_json(fcd_path, monitor_json_path, crash_veh_1, crash_veh_2)
     if crash_mark.sum() != 0:
         try:
-            collision_type, collision_location, _, _ = get_collision_type_from_json(fcd_path, monitor_json_path, crash_veh_1, crash_veh_2)
+            collision_type, collison_severity, collision_location, _, _ = get_collision_type_severity_from_json(fcd_path, monitor_json_path, crash_veh_1, crash_veh_2)
         except Exception as e:
             collision_type, collision_location = "", ""
             if os.path.exists(monitor_json_path):
@@ -192,7 +191,7 @@ def get_distance_from_json(monitor_json, last_timestep, colli_veh_1, colli_veh_2
 
 
 # @profile
-def get_collision_type_from_json(basic_infos, fcd_xml_path, monitor_json_path, colli_veh_1, colli_veh_2):
+def get_collision_type_severity_from_json(basic_infos, fcd_xml_path, monitor_json_path, colli_veh_1, colli_veh_2):
     # read the fcd file
     monitor_json = json.load(open(monitor_json_path, "r"))
     # last_timestep = sorted(monitor_json.keys())[-1]
@@ -215,10 +214,19 @@ def get_collision_type_from_json(basic_infos, fcd_xml_path, monitor_json_path, c
     relative_heading = get_relative_heading(veh1, veh2)
     # get the collision type
     collision_type = get_collision_type(location_region, collided_position, relative_heading, veh1, veh2)
+    collision_severity = get_collision_severity(last_veh1, last_veh2)
     if collision_type == "head_on" and get_relative_heading(last_veh1, last_veh2) < 100:
         collision_type = "angle"
     distance = get_distance_from_json(monitor_json, last_timestep, colli_veh_1, colli_veh_2)
-    return collision_type, location_region, collided_position, relative_heading, distance
+    return collision_type, collision_severity, location_region, collided_position, relative_heading, distance
+
+def get_collision_severity(v1_obj, v2_obj):
+    v1_velocity, v1_heading = v1_obj.speed, v1_obj.speed_heading
+    v2_velocity, v2_heading = v2_obj.speed, v2_obj.speed_heading
+    v1_velocity_vec = np.array([v1_velocity * np.cos(math.radians(v1_heading)), v1_velocity * np.sin(math.radians(v1_heading))])
+    v2_velocity_vec = np.array([v2_velocity * np.cos(math.radians(v2_heading)), v2_velocity * np.sin(math.radians(v2_heading))])
+    speed_diff_norm = np.linalg.norm(v1_velocity_vec - v2_velocity_vec)
+    return speed_diff_norm
 
 
 def get_four_area_of_vehicle(v1):
@@ -318,7 +326,7 @@ def upgraded_get_basic_info(path_name):
         neg_reason = ""
     if end_reason == "collision":
         try:
-            collision_type, collision_location, _, _ = get_collision_type_from_json(fcd_path, monitor_json_path, crash_veh_1, crash_veh_2)
+            collision_type, collision_severity, collision_location, _, _ = get_collision_type_severity_from_json(fcd_path, monitor_json_path, crash_veh_1, crash_veh_2)
         except Exception as e:
             collision_type, collision_location = "", ""
             if os.path.exists(monitor_json_path):

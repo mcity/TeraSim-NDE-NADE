@@ -3,15 +3,18 @@ import matplotlib.pyplot as plt
 import json
 import SumoTrajVis
 import os
-
+from pathlib import Path
 def visualizer(map_location, exp_repo, exp_name, export_path):
     final_state_json = {}
     maneuvers_json = {}
     name_with_core = "_".join(exp_name.split("_")[:-1])
-    with open(f"{exp_repo}/final_state/{name_with_core}_final_state.json", 'r') as f:
+    final_state_json_path = list(Path(f"{exp_repo}").glob(f"**/{name_with_core}_final_state.json"))[0]
+    maneuver_challenges_json_path = list(Path(f"{exp_repo}").glob(f"**/{name_with_core}_maneuver_challenges.json"))[0]
+    print(final_state_json_path)
+    with open(final_state_json_path, 'r') as f:
         final_state_json = json.load(f)
 
-    with open(f"{exp_repo}/maneuver_challenges/{name_with_core}_maneuver_challenges.json", 'r') as f:
+    with open(maneuver_challenges_json_path, 'r') as f:
         maneuvers_json = json.load(f)
 
     # Load net file and trajectory file
@@ -21,7 +24,8 @@ def visualizer(map_location, exp_repo, exp_name, export_path):
     
     if exp_name in final_state_json:
         net = SumoTrajVis.Net(f"{map_location}/maps/Mcity/mcity.net.xml")
-        trajectories = SumoTrajVis.Trajectories(f"{exp_repo}/{exp_name}/fcd_all.xml")
+        fcd_path = str(list(Path(f"{exp_repo}").glob(f"**/{exp_name}/fcd*.xml"))[0])
+        trajectories = SumoTrajVis.Trajectories(fcd_path)
         # Set trajectory color for different vehicles
         for trajectory in trajectories:
             if trajectory.id == "CAV":
