@@ -13,16 +13,17 @@ mkdir -p ${DIR_NAME}/${mode}/raw_data/maneuver_challenges
 
 del_mode="all"
 
-for i in {1..200}; do
+for i in {345..1000}; do
     mkdir -p ${DIR_NAME}/${mode}/raw_data/${mode}_0_${i}
     redis-cli set launch_autoware 1
     
-    echo "initializing autoware, waiting for 45 seconds..."
-    sleep 45
+    echo "initializing autoware, waiting for 30 seconds..."
+    sleep 30
     
     python3 safetest_mcity_cosim_main.py --dir ${DIR_NAME} --name ${mode} --nth 0_${i}
+
     redis-cli set launch_autoware 0
-    
+
     echo "shuting down autoware, waiting for 15 seconds..."
     sleep 15
 done

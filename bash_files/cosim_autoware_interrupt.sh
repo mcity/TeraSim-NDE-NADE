@@ -25,25 +25,8 @@ do
                 kill -INT $pid
             done
 
-	        echo "Stop autoware signal, waiting for 10 seconds..."
+	    echo "Stop autoware signal, waiting for 10 seconds..."
             sleep 10
-            # echo "Kill everything"
-            
-            #  # Get a list of ROS2 process IDs only.
-            # pids=$(pgrep -f ros2)
-
-            # for pid in $pids
-            # do
-            #     # Terminate each ROS2 process.
-            #     kill -TERM $pid
-            # done
-            
-            # # Explicitly terminate rviz processes
-            # rviz_pids=$(pgrep -f rviz)
-            # for pid in $rviz_pids
-            # do
-            #     kill -TERM $pid
-            # done
         fi
     fi
 
