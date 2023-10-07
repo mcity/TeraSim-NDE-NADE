@@ -25,8 +25,8 @@ do
                 kill -INT $pid
             done
 
-	    echo "Stop autoware signal, waiting for 10 seconds..."
-            sleep 10
+	    echo "Stop autoware signal, waiting for 20 seconds..."
+            sleep 25
         fi
     fi
 

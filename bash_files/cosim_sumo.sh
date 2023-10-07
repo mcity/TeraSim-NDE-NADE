@@ -13,7 +13,7 @@ mkdir -p ${DIR_NAME}/${mode}/raw_data/maneuver_challenges
 
 del_mode="all"
 
-for i in {1..200}; do
+for i in {1..350}; do
     mkdir -p ${DIR_NAME}/${mode}/raw_data/${mode}_0_${i}
     redis-cli set launch_autoware 1
     redis-cli set iteration ${i}
