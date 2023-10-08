@@ -1,8 +1,8 @@
-from terasim.vehicle.decision_models.idm_model import IDMModel
-import terasim.utils as utils
+from mtlsp.vehicle.decision_models.idm_model import IDMModel
+import mtlsp.utils as utils
 import numpy as np
 import logging
-from terasim.overlay import traci
+from mtlsp.overlay import traci
 
 import os
 import json
