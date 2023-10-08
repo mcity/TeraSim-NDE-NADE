@@ -69,7 +69,7 @@ def get_location(lane_id, lane_config):
 #         return False
     
 def is_rear_end(observation):
-    from mtlsp.overlay import traci
+    from terasim.overlay import traci
     local_observation = observation["local"].data
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
@@ -87,7 +87,7 @@ def is_rear_end(observation):
         return False
 
 def get_lane_angle(lane_id, mode="start"):
-    from mtlsp.overlay import traci
+    from terasim.overlay import traci
     if lane_id is None:
         return None
     lane_shape = traci.lane.getShape(lane_id)

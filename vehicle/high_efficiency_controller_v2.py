@@ -1,8 +1,8 @@
-from mtlsp.vehicle.controllers.high_efficiency_controller import HighEfficiencyController
-import mtlsp.utils as utils
+from terasim.vehicle.controllers.high_efficiency_controller import HighEfficiencyController
+import terasim.utils as utils
 import random
 from .vehicle_utils import get_location, get_next_lane_edge, get_neighbour_lane
-from mtlsp.overlay import traci
+from terasim.overlay import traci
 
 def get_all_routes():
     return traci.route.getIDList()
