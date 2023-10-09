@@ -1,6 +1,6 @@
 #!/bin/bash
 
-gnome-terminal -x bash -c "./bash_files/cosim_autoware_record.sh; bash"
+# gnome-terminal -x bash -c "./bash_files/cosim_autoware_record.sh; bash"
 
 # Create a new tmux session in detached mode
 tmux new-session -d -s my_session 

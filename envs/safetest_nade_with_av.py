@@ -70,7 +70,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
         # ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["command"] for veh_id in ndd_control_command_dict}
         ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"] for veh_id in ndd_control_command_dict}
         
-        default_max_IS_prob = 1e-2 # epsilon = 0.95 importance sampling
+        default_max_IS_prob = 0.01 # epsilon = 0.95 importance sampling
         for veh_id in criticality_dict:
             if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
                 sampled_prob = np.random.uniform(0, 1)
