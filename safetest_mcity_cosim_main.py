@@ -33,9 +33,10 @@ def main(args):
         sumo_config_file_path = './maps/Mcity_NSF_demo/mcity.sumocfg',
         num_tries=10,
         gui_flag=False,
-        output_path=f"{args.dir}/{args.name}/raw_data/{args.nth}",
+        output_path=f"{args.dir}/{args.name}/raw_data/{args.name}_{args.nth}",
         sumo_output_file_types=["fcd", "collision"],
         realtime_flag=True,
+        additional_sumo_args=["--start","--quit-on-end"]
     )
     monitor.bind_env(env)
     sim.bind_env(env)
