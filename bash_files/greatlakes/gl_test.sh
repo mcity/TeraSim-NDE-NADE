@@ -20,7 +20,7 @@ cd /home/haoweis
 source .bashrc
 cd /home/haoweis/TeraSim-NDE-ITE
 module load python/3.10.4
-source /home/haoweis/Safe-Test-TeraSim/venv/bin/activate
+source /home/haoweis/TeraSim-NDE-ITE/venv/bin/activate
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export HAS_LIBSUMO=1
