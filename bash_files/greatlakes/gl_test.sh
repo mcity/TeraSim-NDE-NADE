@@ -18,7 +18,7 @@
 ulimit -c 0
 cd /home/haoweis
 source .bashrc
-cd /home/haoweis/Safe-Test-TeraSim
+cd /home/haoweis/TeraSim-NDE-ITE
 module load python/3.10.4
 source /home/haoweis/Safe-Test-TeraSim/venv/bin/activate
 
