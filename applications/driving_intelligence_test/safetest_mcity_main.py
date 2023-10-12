@@ -1,3 +1,8 @@
+import sys
+import os
+file_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(file_path + "/../../")
+
 from terasim.simulator import Simulator
 from envs.env_monitor import EnvMonitor
 from envs.safetest_nde import SafeTestNDE
@@ -6,6 +11,7 @@ from terasim.logger.infoextractor import InfoExtractor
 from vehicle.safetest_vehicle_factory import SafetestVehicleFactory
 
 import argparse
+
 
 parser = argparse.ArgumentParser(description='Run simulation.')
 parser.add_argument('--dir', type=str, help='output directory', default="output")
@@ -24,8 +30,8 @@ env = SafeTestNADE(
     info_extractor=InfoExtractor,
 )
 sim = Simulator(
-    sumo_net_file_path = './maps/Mcity/mcity_new.net.xml',
-    sumo_config_file_path = './maps/Mcity/mcity_new.sumocfg',
+    sumo_net_file_path = file_path + '/maps/Mcity_safetest/mcity.net.xml',
+    sumo_config_file_path = file_path + '/maps/Mcity_safetest/mcity.sumocfg',
     num_tries=10,
     gui_flag=False,
     output_path=f"{args.dir}/{args.mode}/raw_data/{args.mode}_{args.nth}",
