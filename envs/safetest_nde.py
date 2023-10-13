@@ -6,10 +6,10 @@ from terasim.overlay import traci
 
 class SafeTestNDE(EnvTemplate):
 
-    def __init__(self, vehicle_factory, info_extractor):
+    def __init__(self, vehicle_factory, info_extractor, warmup_time_lb=900, warmup_time_ub=1200, run_time=300):
         rng = np.random.default_rng()
-        self.warmup_time = rng.integers(low=15*60, high=20*60) # 15 minutes
-        self.run_time = 5*60 # 5 minutes
+        self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub)) # 15 minutes
+        self.run_time = run_time # 5 minutes
         super().__init__(vehicle_factory, info_extractor)
 
     def on_start(self, ctx):
@@ -66,15 +66,6 @@ class SafeTestNDE(EnvTemplate):
         # self.monitor.add_vehicle_to_route(veh_id_list)
         output = super()._add_vehicle_to_env(veh_id_list)
         return output[0] if single_input else output
-    
-    # def _remove_vehicle_from_env(self, veh_id_list):
-    #     if not isinstance(veh_id_list, list):
-    #         veh_id_list = [veh_id_list]
-    #     if utils.get_time() > self.warmup_time:
-    #         distance_dist = self._get_distance(veh_id_list)
-    #         self.monitor.update_distance(distance_dist, "after")
-    #     # self.monitor.remove_vehicle_records(veh_id_list)
-    #     super()._remove_vehicle_from_env(veh_id_list)
     
     def _collision_summary(self, veh_1_id, veh_2_id):
         veh1_mode = utils.get_vehicle_speedmode(veh_1_id)

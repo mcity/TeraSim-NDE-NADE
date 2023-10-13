@@ -243,7 +243,8 @@ class EnvMonitor:
             "num_maneuver_challenges": self.num_maneuver_challenges,
             "lane_id": traci.vehicle.getLaneID(veh_1_id) if veh_1_id is not None else None,
             "veh_2_lane_id": traci.vehicle.getLaneID(veh_2_id) if veh_2_id is not None else None,
-        }.update(final_state_log)
+        }
+        experiments_infos.update(final_state_log)
 
         self.load_to_json("final_state.json", experiments_infos, "final_state")
         for veh_id, time_set in self.car_with_maneuver_challenges.items():

@@ -46,7 +46,10 @@ class SafeTestNADE(SafeTestNDE):
     def final_state_log(self):
         # return f"weight: {Decimal(self.importance_sampling_weight):.2E}"
         neg_log_importance_sampling_weight = -np.log10(self.importance_sampling_weight)
-        return super().final_state_log().update({"importance": neg_log_importance_sampling_weight})
+        original_final_state_log = super().final_state_log()
+        original_final_state_log.update({"importance": neg_log_importance_sampling_weight})
+        return original_final_state_log
+        
     
     def ITE_decision(self, control_command_dict, control_info_dict):
         """NADE decision here.
