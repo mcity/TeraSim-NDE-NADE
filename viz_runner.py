@@ -1,5 +1,4 @@
-import analysis.stats_utils_v2 as stats_utils
-from analysis.viz_utils_v2 import visualizer
+from analysis.viz_utils import visualizer
 import os
 from tqdm import tqdm
 import pandas as pd
