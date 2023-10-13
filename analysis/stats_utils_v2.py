@@ -31,7 +31,7 @@ def merge_each_core_json(path_name, export_file, suffix):
         json.dump(merged_json, f, indent=4)
     return merged_json
 
-
+# @profile
 def get_exp_final_state(basic_infos):
     end_time = basic_infos["end_time"]
     importance = basic_infos["importance"]
@@ -90,23 +90,24 @@ def get_collision_severity_from_fcd(fcd_root, colli_veh_1_id, colli_veh_2_id):
     relative_velocity = np.linalg.norm(relative_velocity_vector)
     return relative_velocity
 
+# @profile
 def get_exp_collision(basic_infos, path_name, exp_id, crash_veh_1, crash_veh_2):
     path_name = pathlib.Path(path_name)
-    fcd_path = list(path_name.glob(f"**/{exp_id}/fcd.xml"))[0]
-    # fcd_tree = ET.parse(fcd_path)
-    # fcd_root = fcd_tree.getroot()
-    monitor_json_path = list(path_name.glob(f"**/{exp_id}/monitor.json"))[0] if len(list(path_name.glob(f"**/{exp_id}/monitor.json"))) > 0 else None
-    # monitor_json_path = os.path.join(path_name, "monitor.json")
+    monitor_json_path = os.path.join(path_name, exp_id, "monitor.json")
     end_reason = basic_infos["end_reason"]
     relative_heading = None
     distance = -10
     if end_reason == "collision":
         try:
+            if not os.path.exists(monitor_json_path):
+                monitor_json_path = list(path_name.glob(f"**/{exp_id}/monitor.json"))[0] if len(list(path_name.glob(f"**/{exp_id}/monitor.json"))) > 0 else None
+            # fcd_path = list(path_name.glob(f"**/{exp_id}/fcd_all.xml"))[0]
+            fcd_path = None
             collision_type, collision_severity, collision_location, _, relative_heading, distance = get_collision_type_severity_from_json(basic_infos, fcd_path, monitor_json_path, crash_veh_1, crash_veh_2)
         except Exception as e:
             collision_type, collision_location, collision_severity = "", "", ""
             if os.path.exists(monitor_json_path):
-                print(f"Error in getting collision type from fcd: {fcd_path}, {e}")
+                print(f"Error in getting collision type from fcd, {e}")
             else:
                 print(f"Error: {e}")
     else:
@@ -132,8 +133,9 @@ def export_to_csv(path_name, export_path):
         # merged_manuever_json = merge_each_core_json(f"{path_name}/maneuver_challenges", f"{export_path}/merged_manuever.json", "maneuver_challenges.json")
         
         with open("check.txt", "w") as c:
-            for exp_id in tqdm(merged_final_state_json.keys()):
+            for exp_id in tqdm(list(merged_final_state_json.keys())):
                 try:
+                # if 1:
                     basic_infos = merged_final_state_json[exp_id]
                     # manuever_json = merged_manuever_json[exp_id]
                     crash_veh_1 = basic_infos["veh_1_id"]
@@ -144,8 +146,8 @@ def export_to_csv(path_name, export_path):
                         crash_veh_2 = ""
                     infos = [exp_id, *get_exp_final_state(basic_infos), *get_exp_collision(basic_infos, f"{path_name}", f"{exp_id}", crash_veh_1, crash_veh_2)]
                     f.write("\t".join([str(info) for info in infos]) + "\n")
-                except:
-                    print(f"Error in {exp_id}")
+                except Exception as e:
+                    print(f"Error in {exp_id}, {e}")
                     info_cnt += 1
                     continue
         print("info_error: ", info_cnt)

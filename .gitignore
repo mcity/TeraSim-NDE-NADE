@@ -148,3 +148,5 @@ ITE_negligence_calibrate_0812/
 cosim_test_localcomputer/
 *.zip
 *.rdb
+demo.py
+*.lprof

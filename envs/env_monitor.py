@@ -185,7 +185,7 @@ class EnvMonitor:
             json.dump(data, f, indent=4)
         os.replace(file_copy_path, file_path)
 
-    def export_final_state(self, veh_1_id, veh_2_id, importance, end_reason):
+    def export_final_state(self, veh_1_id, veh_2_id, final_state_log, end_reason):
         neg_mode, neg_time, neg_car, neg_info = None, -1.0, None, None
         if veh_1_id is not None and veh_2_id is not None:
             # current_time = utils.get_time()
@@ -237,14 +237,13 @@ class EnvMonitor:
             "negligence_info": neg_info,
             "negligence_time": neg_time,
             "negligence_car": neg_car,
-            "importance": importance,
             "distance": total_distance,
             "bv_22_distance": bv_22_total_distance,
             "end_reason": end_reason,
             "num_maneuver_challenges": self.num_maneuver_challenges,
             "lane_id": traci.vehicle.getLaneID(veh_1_id) if veh_1_id is not None else None,
             "veh_2_lane_id": traci.vehicle.getLaneID(veh_2_id) if veh_2_id is not None else None,
-        }
+        }.update(final_state_log)
 
         self.load_to_json("final_state.json", experiments_infos, "final_state")
         for veh_id, time_set in self.car_with_maneuver_challenges.items():

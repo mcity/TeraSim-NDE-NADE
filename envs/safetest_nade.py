@@ -43,17 +43,10 @@ class SafeTestNADE(SafeTestNDE):
         # Simulation stop check
         return self.should_continue_simulation()
 
-    def collision_log(self):
+    def final_state_log(self):
         # return f"weight: {Decimal(self.importance_sampling_weight):.2E}"
         neg_log_importance_sampling_weight = -np.log10(self.importance_sampling_weight)
-        return str(neg_log_importance_sampling_weight)
-    
-    # def negligence_record(self, control_cmds):
-    #     for veh_id in control_cmds:
-    #         if ("negligence" in control_cmds[veh_id] and control_cmds[veh_id]["negligence"]) \
-    #                 or ("tfl_red" in control_cmds[veh_id] and control_cmds[veh_id]["tfl_red"]):
-    #             neg_mode = control_cmds[veh_id]["mode"]
-    #             print("negligence", veh_id, " ", neg_mode, utils.get_time(), sep="\t")
+        return super().final_state_log().update({"importance": neg_log_importance_sampling_weight})
     
     def ITE_decision(self, control_command_dict, control_info_dict):
         """NADE decision here.

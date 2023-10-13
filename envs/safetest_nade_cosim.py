@@ -33,22 +33,16 @@ class SafeTestNADECoSim(SafeTestNADEWithAV):
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
             self.monitor.save_observation(veh_1_id, veh_2_id)
-            self.monitor.export_final_state(veh_1_id, veh_2_id, self.collision_log(), "collision")
-            # output the collision info
-            # self._collision_summary(veh_1_id, veh_2_id)
+            self.monitor.export_final_state(veh_1_id, veh_2_id, self.final_state_log(), "collision")
             return False
         else:
             cav_edge_id = traci.vehicle.getRoadID("CAV")
             if cav_edge_id == "EG_29_1_1":
                 self._vehicle_in_env_distance("after")
-                self.monitor.export_final_state(None, None, self.collision_log(), "reachend")
-                # print("timeout", " ", " ", self.collision_log(), utils.get_time(), sep="\t")
+                self.monitor.export_final_state(None, None, self.final_state_log(), "reachend")
                 return False
             elif utils.get_time() >= self.warmup_time + self.run_time:
-                self.monitor.export_final_state(None, None, self.collision_log(), "timeout")
-                # print("timeout", " ", " ", self.collision_log(), utils.get_time(), sep="\t")
-                # velocity = sum([traci.vehicle.getSpeed(veh_id) for veh_id in traci.vehicle.getIDList()])
-                # print("velocity: {}".format(velocity))
+                self.monitor.export_final_state(None, None, self.final_state_log(), "timeout")
                 return False
         return True
 

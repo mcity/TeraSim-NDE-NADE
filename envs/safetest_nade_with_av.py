@@ -64,7 +64,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
         vehicle_list = traci.vehicle.getIDList()
         if "CAV" not in vehicle_list:
             self._vehicle_in_env_distance("after")
-            self.monitor.export_final_state(None, None, self.collision_log(), "CAV_out_of_env")
+            self.monitor.export_final_state(None, None, self.final_state_log(), "CAV_out_of_env")
             return False
         elif num_colliding_vehicles >= 2 and "CAV" in collision_id_list:
             self._vehicle_in_env_distance("after")
@@ -72,10 +72,10 @@ class SafeTestNADEWithAV(SafeTestNADE):
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
             self.monitor.save_observation(veh_1_id, veh_2_id)
-            self.monitor.export_final_state(veh_1_id, veh_2_id, self.collision_log(), "collision")
+            self.monitor.export_final_state(veh_1_id, veh_2_id, self.final_state_log(), "collision")
             return False
         elif utils.get_time() >= self.warmup_time + self.run_time:
             self._vehicle_in_env_distance("after")
-            self.monitor.export_final_state(None, None, self.collision_log(), "timeout")
+            self.monitor.export_final_state(None, None, self.final_state_log(), "timeout")
             return False
         return True

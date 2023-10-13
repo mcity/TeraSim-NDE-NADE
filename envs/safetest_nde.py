@@ -34,8 +34,11 @@ class SafeTestNDE(EnvTemplate):
     def on_stop(self, ctx):
         return super().on_stop(ctx)
     
-    def collision_log(self):
-        return "0"
+    def final_state_log(self):
+        return {
+            "warmup_time": self.warmup_time,
+            "run_time": self.run_time,
+        }
     
     def has_negligence(self, veh_1_id, veh_2_id):
         if veh_1_id in self.monitor.negligence_mode.keys():
@@ -82,7 +85,7 @@ class SafeTestNDE(EnvTemplate):
         veh2_angle = utils.get_vehicle_angle(veh_2_id)
         veh1_dist = utils.get_distance(veh_1_id)
         veh2_dist = utils.get_distance(veh_2_id)
-        print("collision", veh_1_id, veh_2_id, self.collision_log(), utils.get_time(), sep="\t")
+        print("collision", veh_1_id, veh_2_id, self.final_state_log(), utils.get_time(), sep="\t")
         print("collision_mode", veh1_mode, veh2_mode, veh1_lanemode, veh2_lanemode, sep="\t")
         print("collision_dist", veh1_dist, veh2_dist, veh1_angle, veh2_angle, sep="\t")
 
@@ -94,43 +97,10 @@ class SafeTestNDE(EnvTemplate):
             colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
-            # if not self.has_negligence(veh_1_id, veh_2_id):
-            #     print("ignore_collision", veh_1_id, veh_2_id, self.collision_log(), utils.get_time(), sep="\t")
-            #     return True
-            # monitor the collision
             self.monitor.save_observation(veh_1_id, veh_2_id)
-            self.monitor.export_final_state(veh_1_id, veh_2_id, self.collision_log(), "collision")
-            # output the collision info
-            # self._collision_summary(veh_1_id, veh_2_id)
+            self.monitor.export_final_state(veh_1_id, veh_2_id, self.final_state_log(), "collision")
             return False
         elif utils.get_time() >= self.warmup_time + self.run_time:
-            self.monitor.export_final_state(None, None, self.collision_log(), "timeout")
-            # print("timeout", " ", " ", self.collision_log(), utils.get_time(), sep="\t")
-            # velocity = sum([traci.vehicle.getSpeed(veh_id) for veh_id in traci.vehicle.getIDList()])
-            # print("velocity: {}".format(velocity))
+            self.monitor.export_final_state(None, None, self.final_state_log(), "timeout")
             return False
         return super().should_continue_simulation()
-
-    # def detect_collision(self):
-    #     cav_info = self.vehicle_list['CAV'].observation.information
-    #     cav_head_pos = cav_info["Ego"]["position"]
-    #     cav_heading = cav_info["Ego"]["heading"]/180*math.pi
-    #     cav_param = utils.CAR_PARAM()
-    #     cav_center_list = utils.three_circle_center_helper(cav_head_pos, cav_heading, cav_param)
-    #     num_veh = 0
-    #     cav_context_info = self.vehicle_list['CAV'].observation.context
-    #     for key in cav_context_info:
-    #         if key != "CAV":
-    #             num_veh += 1
-    #             veh_head_pos = cav_context_info[key][66]
-    #             veh_heading = cav_context_info[key][67]/180*math.pi
-    #             if "PERSON" in key:
-    #                 veh_param = utils.PERSON_PARAM()
-    #                 # continue
-    #             else:
-    #                 veh_param = utils.CAR_PARAM()
-    #             veh_center_list = utils.three_circle_center_helper(veh_head_pos, veh_heading, veh_param)
-    #             if utils.detect_crash_three_circle(cav_center_list, cav_param, veh_center_list, veh_param):
-    #                 if utils.sat_detection(cav_center_list[1], cav_heading, cav_param, veh_center_list[1], veh_heading, veh_param):
-    #                     return True, ("CAV",  key)
-    #     return False, ()
