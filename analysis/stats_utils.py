@@ -29,6 +29,8 @@ def merge_each_core_json(path_name, export_file, suffix):
 def get_exp_final_state(basic_infos):
     end_time = basic_infos["end_time"]
     importance = basic_infos["importance"]
+    warmup_time = basic_infos["warmup_time"]
+    run_time = basic_infos["run_time"]
     crash_veh_1 = basic_infos["veh_1_id"]
     if crash_veh_1 is None:
         crash_veh_1 = ""
@@ -56,7 +58,7 @@ def get_exp_final_state(basic_infos):
     neg_info = ""
     if basic_infos["negligence_info"] is not None:
         neg_info = basic_infos["negligence_info"]
-    return end_time, crash_veh_1, crash_veh_2, importance, num_maneuver_challenges, neg_veh, neg_time_diff, neg_reason, neg_info, route_length, bv_22_route_length, lane_id
+    return end_time, warmup_time, run_time, crash_veh_1, crash_veh_2, importance, num_maneuver_challenges, neg_veh, neg_time_diff, neg_reason, neg_info, route_length, bv_22_route_length, lane_id
 
 def get_collision_severity_from_fcd(fcd_root, colli_veh_1_id, colli_veh_2_id):
     # get the last timestep of the fcd root
@@ -114,7 +116,7 @@ def export_to_csv(path_name, export_path):
     # write the csv file
     with open(f"{export_path}/stats.tsv", "w") as f:
         f.write("\t".join([
-            "name", "end_time", 
+            "name", "end_time", "warmup_time", "run_time"
             "crash_veh_1", "crash_veh_2", 
             "importance", "maneuver_challenge", 
             "neg_veh", "neg_time_diff", 
