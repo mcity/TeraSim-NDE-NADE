@@ -25,7 +25,7 @@ source /home/haoweis/TeraSim-NDE-ITE/venv/bin/activate
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export HAS_LIBSUMO=1
 
-exp_name="ITE_autoware_universe_map_recalibrate_v5"
+exp_name="ITE_autoware_universe_map_recalibrate_v6"
 mkdir -p ${DIR_NAME}/${exp_name}
 mkdir -p ${DIR_NAME}/${exp_name}/raw_data
 mkdir -p ${DIR_NAME}/${exp_name}/raw_data/final_state
