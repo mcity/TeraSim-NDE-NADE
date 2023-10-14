@@ -116,7 +116,7 @@ def export_to_csv(path_name, export_path):
     # write the csv file
     with open(f"{export_path}/stats.tsv", "w") as f:
         f.write("\t".join([
-            "name", "end_time", "warmup_time", "run_time"
+            "name", "end_time", "warmup_time", "run_time", 
             "crash_veh_1", "crash_veh_2", 
             "importance", "maneuver_challenge", 
             "neg_veh", "neg_time_diff", 
