@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=7gb
 #SBATCH --array=0-499 # how many workers you are using
-#SBATCH --time=00-02:00:00 # time duration
+#SBATCH --time=00-04:00:00 # time duration
 #SBATCH --account=henryliu98
 #SBATCH --partition=standard
 #SBATCH --output=/home/haoweis/safe_test.log # change to your directory
@@ -25,7 +25,7 @@ source /home/haoweis/TeraSim-NDE-ITE/venv/bin/activate
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export HAS_LIBSUMO=1
 
-exp_name="ITE_autoware_universe_map_recalibrate_v7"
+exp_name="ITE_autoware_universe_map_recalibrate_v9"
 mkdir -p ${DIR_NAME}/${exp_name}
 mkdir -p ${DIR_NAME}/${exp_name}/raw_data
 mkdir -p ${DIR_NAME}/${exp_name}/raw_data/final_state

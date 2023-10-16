@@ -143,10 +143,10 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     Given current observation and the negligence mode, detect what type of collisions will be generated
     """
 
-    highway_cutin_prob = 7.2e-8 * 0.952 * 0.91 * 1.5 * 0.67 * 0.91 * 1.01 # some sideswipe, some angle
-    highway_rearend_prob = 8.4e-5 * 0.748 * 0.46 * 1.5 * 1.3 * 1.5 * 0.71 * 0.77 * 0.76
+    highway_cutin_prob = 7.2e-8 * 0.952 * 0.91 * 1.5 * 0.67 * 0.91 * 1.01 * 0.872 # some sideswipe, some angle
+    highway_rearend_prob = 8.4e-5 * 0.748 * 0.46 * 1.5 * 1.3 * 1.5 * 0.71 * 0.77 * 0.76 * 1.15
 
-    roundabout_rearend_prob = 3.6e-8 * 0.952 * 0.86 * 0.98 * 1.27 * 1.25 * 1.04 * 0.79
+    roundabout_rearend_prob = 3.6e-8 * 0.952 * 0.86 * 0.98 * 1.27 * 1.25 * 1.04 * 0.79 * 1.39
     roundabout_neglect_conflict_lead_prob = 3.6e-7 * 0.5 * 2.27 * 1.5 * 0.6 * 0.76 * 0.85 * 0.73 # ignore conflict
     roundabout_cutin_prob = 8.4e-8 * 1.121 * 0.91 * 1.2 * 0.93 * 1.03 * 1.01 * 0.97 # mostly sideswipe
 
