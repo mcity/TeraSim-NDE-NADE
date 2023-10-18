@@ -14,6 +14,7 @@
 # For more information see the manual pages of crontab(5) and cron(8)
 # 
 # m h  dom mon dow   command
+
 @reboot redis-server &
 @reboot bash /home/zhijie/terasim/TeraSim-NDE-ITE/applications/driving_intelligence_test/bash_files/sumo_launch.sh &
 @reboot bash /home/zhijie/terasim/TeraSim-NDE-ITE/applications/driving_intelligence_test/bash_files/sumo_record.sh &

@@ -6,7 +6,7 @@ DIR_NAME="/home/ubuntu/terasim/TeraSim-NDE-ITE/applications/driving_intelligence
 export HAS_LIBSUMO=1
 
 echo $HOSTNAME
-VERSION=v4
+VERSION=v5
 mode=cosim_test_aws_${VERSION}_${HOSTNAME}
 
 mkdir -p ${DIR_NAME}/${mode}
@@ -36,4 +36,7 @@ for i in {1..1000}; do
 
     echo "shuting down autoware, waiting for 45 seconds..."
     sleep 45
+
+    echo "uploading file to aws cloud..."
+    python3 /home/ubuntu/terasim/Terasim-NDE-ITE/applications/driving_intelligence_test/upload_output_aws.py --dir ${DIR_NAME} --mode ${mode} --nth 0_${i}
 done
