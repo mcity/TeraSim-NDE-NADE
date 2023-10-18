@@ -17,6 +17,7 @@ def main():
     
     hostname = "cosim_test_local"
     folder_name = 'output/' + hostname + '/raw_data/cav_context_0_' + iteration
+    print(folder_name)
 
     av_context_str_prev = ""
 
