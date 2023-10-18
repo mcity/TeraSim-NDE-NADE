@@ -29,10 +29,10 @@ def main(args):
         info_extractor=InfoExtractor,
     )
     sim = Simulator(
-        sumo_net_file_path = './maps/Mcity_NSF_demo/mcity.net.xml',
-        sumo_config_file_path = './maps/Mcity_NSF_demo/mcity.sumocfg',
+        sumo_net_file_path = './applications/2023_10_NSF_demo/maps/mcity.net.xml',
+        sumo_config_file_path = './applications/2023_10_NSF_demo/maps/mcity.sumocfg',
         num_tries=10,
-        gui_flag=False,
+        gui_flag=True,
         output_path=f"{args.dir}/{args.name}/raw_data/{args.name}_{args.nth}",
         sumo_output_file_types=["fcd", "collision"],
         realtime_flag=True,
