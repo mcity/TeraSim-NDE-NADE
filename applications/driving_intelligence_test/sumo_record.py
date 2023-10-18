@@ -11,15 +11,11 @@ def main():
     iteration = r.get('iteration')
     while iteration is None:
         iteration = r.get('iteration')
-    
-    hostname = "cosim_test_local"
-    # hostname = r.get('hostname')
-    # while hostname is None:
-    #     hostname = r.get('hostname')
-    #     print("No hostname found in Redis")
 
     iteration = iteration.decode("utf-8")
     print("Iteration number: " + iteration)
+    
+    hostname = "cosim_test_local"
     folder_name = 'output/' + hostname + '/raw_data/cav_context_0_' + iteration
 
     av_context_str_prev = ""
