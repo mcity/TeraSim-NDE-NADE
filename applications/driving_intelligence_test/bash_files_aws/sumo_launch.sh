@@ -38,5 +38,5 @@ for i in {1..1000}; do
     sleep 45
 
     echo "uploading file to aws cloud..."
-    python3 /home/ubuntu/terasim/Terasim-NDE-ITE/applications/driving_intelligence_test/upload_output_aws.py --dir ${DIR_NAME} --mode ${mode} --nth 0_${i}
+    python3 upload_output_aws.py --dir ${DIR_NAME} --mode ${mode} --nth 0_${i}
 done
