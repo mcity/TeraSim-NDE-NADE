@@ -25,6 +25,7 @@ for i in {1..1000}; do
     redis-cli set launch_autoware 1
     redis-cli set iteration ${i}
     redis-cli set hostname $HOSTNAME
+    redis-cli set version $VERSION
     
     echo "initializing autoware, waiting for 45 seconds..."
     sleep 45
