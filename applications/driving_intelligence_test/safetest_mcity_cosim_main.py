@@ -37,7 +37,7 @@ def main(args):
         sumo_net_file_path = file_path + '/maps/Mcity_safetest/mcity.net.xml',
         sumo_config_file_path = file_path + '/maps/Mcity_safetest/mcity.sumocfg',
         num_tries=10,
-        gui_flag=True,
+        gui_flag=False,
         output_path=f"{args.dir}/{args.name}/raw_data/{args.name}_{args.nth}",
         sumo_output_file_types=["fcd", "collision"],
         realtime_flag=True,
