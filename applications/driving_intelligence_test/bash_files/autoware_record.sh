@@ -2,7 +2,7 @@
 sleep 3
 
 source /home/zhijie/autoware/install/setup.bash
-DIR_NAME="/home/zhijie/terasim/Terasim-NDE-ITE/output"
+DIR_NAME="/home/zhijie/terasim/TeraSim-NDE-ITE/applications/driving_intelligence_test/output"
 mode="cosim_test_local"
 
 while true

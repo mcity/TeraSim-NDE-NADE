@@ -1,7 +1,7 @@
 #!/bin/bash
 sleep 3
 
-cd /home/zhijie/terasim/Terasim-NDE-ITE/
+cd /home/zhijie/terasim/TeraSim-NDE-ITE/applications/driving_intelligence_test
 while true
 do
     # Use redis-cli to get the value of the key. Change mykey to your key.

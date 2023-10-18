@@ -2,7 +2,7 @@
 sleep 3
 
 # temporary directory
-DIR_NAME="/home/zhijie/terasim/Terasim-NDE-ITE/output"
+DIR_NAME="/home/zhijie/terasim/TeraSim-NDE-ITE/applications/driving_intelligence_test/output"
 export HAS_LIBSUMO=1
 
 mode="cosim_test_local"
@@ -14,7 +14,7 @@ mkdir -p ${DIR_NAME}/${mode}/raw_data/maneuver_challenges
 
 del_mode="all"
 
-cd /home/zhijie/terasim/Terasim-NDE-ITE/
+cd /home/zhijie/terasim/TeraSim-NDE-ITE/applications/driving_intelligence_test
 
 for i in {1..1000}; do
     mkdir -p ${DIR_NAME}/${mode}/raw_data/${mode}_0_${i}
