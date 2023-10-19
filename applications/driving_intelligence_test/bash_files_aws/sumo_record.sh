@@ -9,7 +9,7 @@ do
     
     if [[ $value -eq 1 ]]
     then
-    	python3 sumo_record.py
+    	python3 sumo_record_aws.py
     fi
 
     # Wait for a while before checking again.

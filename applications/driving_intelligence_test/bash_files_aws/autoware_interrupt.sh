@@ -20,11 +20,11 @@ do
             done
             
             # Explicitly send an interrupt signal to rviz processes
-            rviz_pids=$(pgrep -f rviz)
-            for pid in $rviz_pids
-            do
-                kill -INT $pid
-            done
+            # rviz_pids=$(pgrep -f rviz)
+            # for pid in $rviz_pids
+            # do
+            #     kill -INT $pid
+            # done
 
 	    echo "Stop autoware signal, waiting for 40 seconds..."
             sleep 40
