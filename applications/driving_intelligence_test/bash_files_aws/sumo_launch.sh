@@ -27,6 +27,7 @@ mkdir -p ${DIR_NAME}/${mode}/raw_data/cav_context_0_${i}
 redis-cli set iteration ${i}
 redis-cli set hostname $HOSTNAME
 redis-cli set version $VERSION
+redis-cli set launch_autoware 1
 
 echo "initializing autoware, waiting for 45 seconds..."
 sleep 45
@@ -40,6 +41,7 @@ do
     kill -INT $pid
 done
 
+redis-cli set launch_autoware 0
 sleep 15
 
 echo "uploading file to aws cloud..."
