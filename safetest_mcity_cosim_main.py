@@ -5,6 +5,7 @@ from terasim.logger.infoextractor import InfoExtractor
 from mr_vehicle.mr_vehicle_factory import MRVehicleFactory
 
 import redis
+
 try:
     r = redis.Redis()
     keys = r.keys('*')
@@ -14,9 +15,9 @@ except:
 
 import argparse
 
-def main(args):
 
-    highlight_routes = set(["7", "10", "13", "14", "16"])
+def main(args):
+    highlight_routes = {"7", "10", "13", "14", "16"}
     monitor = EnvMonitor(
         highlight_routes=highlight_routes,
         log_dir=f"{args.dir}/{args.name}/raw_data",
@@ -25,22 +26,23 @@ def main(args):
 
     veh_factory = MRVehicleFactory()
     env = SafeTestNADECoSim(
-        vehicle_factory = veh_factory,
+        vehicle_factory=veh_factory,
         info_extractor=InfoExtractor,
     )
     sim = Simulator(
-        sumo_net_file_path = './applications/2023_10_NSF_demo/maps/mcity.net.xml',
-        sumo_config_file_path = './applications/2023_10_NSF_demo/maps/mcity.sumocfg',
+        sumo_net_file_path='./applications/2023_10_NSF_demo/maps/mcity.net.xml',
+        sumo_config_file_path='./applications/2023_10_NSF_demo/maps/mcity.sumocfg',
         num_tries=10,
         gui_flag=True,
         output_path=f"{args.dir}/{args.name}/raw_data/{args.name}_{args.nth}",
         sumo_output_file_types=["fcd", "collision"],
         realtime_flag=True,
-        additional_sumo_args=["--start","--quit-on-end"]
+        additional_sumo_args=["--start", "--quit-on-end"]
     )
     monitor.bind_env(env)
     sim.bind_env(env)
     sim.run()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run simulation.')
@@ -51,5 +53,3 @@ if __name__ == "__main__":
     r = redis.Redis()
     r.flushdb()
     main(args)
-
-
