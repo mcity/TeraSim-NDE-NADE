@@ -23,7 +23,7 @@ def visualizer(map_location, exp_repo, exp_name, export_path):
         os.system(f"chmod 755 {export_path}")
     
     if exp_name in final_state_json:
-        net = SumoTrajVis.Net(f"{map_location}/maps/Mcity/mcity.net.xml")
+        net = SumoTrajVis.Net(f"{map_location}/mcity.net.xml")
         fcd_path = str(list(Path(f"{exp_repo}").glob(f"**/{exp_name}/fcd*.xml"))[0])
         trajectories = SumoTrajVis.Trajectories(fcd_path)
         # Set trajectory color for different vehicles
