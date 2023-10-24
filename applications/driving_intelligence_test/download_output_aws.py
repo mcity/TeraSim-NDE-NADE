@@ -14,7 +14,7 @@ s3 = boto3.resource(
 
 remote_folder = "output_ITE_autoware_universe_aws"
 
-local_folder = "output/"+"cosim_test_aws_v1"
+local_folder = "output/"+"cosim_test_aws_v5"
 os.makedirs(local_folder, exist_ok=True)
 def downloads3(obj_key):
     output_file_path = obj_key.replace(remote_folder,local_folder)
@@ -23,7 +23,7 @@ def downloads3(obj_key):
     os.makedirs(output_file_folder, exist_ok=True)
     s3.Bucket(s3_bucket_name).download_file(obj_key, output_file_path)
 
-filter_keys = [remote_folder,"cosim_test_aws_v1"]
+filter_keys = [remote_folder,"cosim_test_aws_v5"]
 obj_key_list = []
 for obj in tqdm(s3.Bucket(s3_bucket_name).objects.all()):
     # filter files
