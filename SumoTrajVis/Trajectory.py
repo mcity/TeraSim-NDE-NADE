@@ -486,7 +486,7 @@ class Trajectories:
                 values = traj._get_values_at_time(time)
                 x_cav, y_cav = values["x"], values["y"]
                 if x_cav is None or y_cav is None:
-                    print("aaaa")
+                    continue
                 xlim = (x_cav - 120.0, x_cav + 120.0)
                 ylim = (y_cav - 120.0, y_cav + 120.0)
                 ax.axis("equal")
