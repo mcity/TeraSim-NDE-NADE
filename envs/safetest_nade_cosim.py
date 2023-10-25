@@ -4,18 +4,14 @@ import time
 from terasim.overlay import traci
 from .safetest_nade_with_av import SafeTestNADEWithAV
 import terasim.utils as utils
-
-
-REDIS_CONSTANTS_TERASIM_STATE = "terasim_state"
-REDIS_CONSTANTS_AUTOWARE = "autoware_state"
-
+from terasim_mr.communicationtools import constants
 
 class SafeTestNADECoSim(SafeTestNADEWithAV):
 
     def on_start(self, ctx):
         super().on_start(ctx)
         self.redis_client = redis.Redis(host='localhost', port=6379, db=0)
-        self.redis_client.set(REDIS_CONSTANTS_TERASIM_STATE, "1")
+        self.redis_client.set(constants.REDIS_CONSTANTS.TERASIM_STATUS, "1")
         time.sleep(5)
     
     def should_continue_simulation(self):
@@ -42,5 +38,5 @@ class SafeTestNADECoSim(SafeTestNADEWithAV):
         return True
 
     def on_stop(self, ctx):
-        self.redis_client.set(REDIS_CONSTANTS_TERASIM_STATE, "0")
+        self.redis_client.set(constants.REDIS_CONSTANTS.TERASIM_STATUS, "0")
         super().on_stop(ctx)
