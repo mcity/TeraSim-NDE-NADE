@@ -17,7 +17,7 @@ def merge_each_core_json(path_name, export_file, suffix):
     for file in tqdm(final_json_files):
         json_file = os.path.join(path_name, file)
         try:
-            json_data = json.load(open(json_file, "r"))
+            json_data = json.load(open(file, "r"))
             merged_json.update(json_data)
         except Exception as e:
             print(f"Error: {e} in {json_file}")

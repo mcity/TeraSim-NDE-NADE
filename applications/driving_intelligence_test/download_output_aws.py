@@ -17,6 +17,8 @@ remote_folder = "output_ITE_autoware_universe_aws"
 local_folder = "output/"+"cosim_test_aws_v5"
 os.makedirs(local_folder, exist_ok=True)
 def downloads3(obj_key):
+    print("obj_key: ", obj_key)
+    print()
     output_file_path = obj_key.replace(remote_folder,local_folder)
     output_file_name = output_file_path.split("/")[-1]
     output_file_folder = output_file_path.replace(output_file_name,"")
@@ -38,6 +40,6 @@ print(len(obj_key_list))
 
 
 from multiprocessing import Pool
-with Pool(10) as p:
+with Pool(5) as p:
     for _ in tqdm(p.imap_unordered(downloads3, obj_key_list), total=len(obj_key_list)):
         pass
