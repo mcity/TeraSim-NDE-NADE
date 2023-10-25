@@ -75,7 +75,7 @@ class SafeTestNADE(SafeTestNDE):
             } for veh_id in control_command_dict
         }
         ndd_dict = {veh_id: control_command_dict[veh_id]["ndd"] for veh_id in control_command_dict}
-        trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 5, 0.6, ndd_dict[veh_id]) for veh_id in control_command_dict}
+        trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 8, 0.5, ndd_dict[veh_id]) for veh_id in control_command_dict}
         maneuver_challenge_dict = self.get_maneuver_challenge_dict(trajectory_dict)
         time = utils.get_time()
         self.monitor.add_maneuver_challenges(maneuver_challenge_dict, time)
@@ -83,6 +83,10 @@ class SafeTestNADE(SafeTestNDE):
         
         # TO-DO: return the ITE control command
         ITE_control_command_dict, weight = self.ITE_importance_sampling(control_command_dict, criticality_dict)
+        for control_command in ITE_control_command_dict:
+            if "mode" in control_command:
+                neg_mode = control_command["mode"]
+
         return ITE_control_command_dict, weight
     
     def ITE_importance_sampling(self, ndd_control_command_dict, criticality_dict):
@@ -99,15 +103,15 @@ class SafeTestNADE(SafeTestNDE):
         # ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["command"] for veh_id in ndd_control_command_dict}
         ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"] for veh_id in ndd_control_command_dict}
         
-        default_max_IS_prob = 5e-3 # epsilon = 0.95 importance sampling
+        default_max_IS_prob = 0.1 # epsilon = 0.95 importance sampling
         for veh_id in criticality_dict:
             if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
                 sampled_prob = np.random.uniform(0, 1)
                 ndd_normal_prob = ndd_control_command_dict[veh_id]["ndd"]["normal"]["prob"]
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
-                # IS_prob = default_IS_prob
-                IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, default_max_IS_prob)
+                IS_prob = default_max_IS_prob
+                # IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, default_max_IS_prob)
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
@@ -395,6 +399,12 @@ class SafeTestNADE(SafeTestNDE):
             "velocity": veh_info['velocity'],
             "heading": veh_info['heading'],
         }
+        avoid_collision_control_command = {
+            "lateral": "central",
+            "longitudinal": -9.0,
+            "type": "lon_lat",
+        }
+        trajectory_dict["avoid_collision"] = self.predict_future_position(veh_info, "avoid_collision", avoid_collision_control_command, duration_list)
         for modality in ndd_decision_dict:
             execute_modality = "normal" if veh_id == "CAV" else modality # CAV will only give normal future prediction, while BVs will have both normal and future
             control_command = ndd_decision_dict[execute_modality]
