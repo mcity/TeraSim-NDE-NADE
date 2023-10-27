@@ -872,49 +872,61 @@
     </edge>
 
     <tlLogic id="NODE_11" type="static" programID="0" offset="0">
-        <phase duration="15" state="rrrGrrrG"/>
+        <phase duration="34" state="rrrGrrrG"/>
         <phase duration="3"  state="rrryrrry"/>
-        <phase duration="3"  state="rrrrrrrr"/>
-        <phase duration="16" state="GrrrGrrr"/>
+        <phase duration="1"  state="rrrrrrrr"/>
+        <phase duration="10" state="GrrrGrrr"/>
         <phase duration="3"  state="yrrryrrr"/>
-        <phase duration="3"  state="rrrrrrrr"/>
-        <phase duration="16" state="rGgrrGgr"/>
+        <phase duration="1"  state="rrrrrrrr"/>
+        <phase duration="80" state="rGgrrGgr"/>
         <phase duration="3"  state="ryyrryyr"/>
-        <phase duration="3"  state="rrrrrrrr"/>
+        <phase duration="1"  state="rrrrrrrr"/>
     </tlLogic>
     <tlLogic id="NODE_12" type="static" programID="0" offset="0">
-        <phase duration="30" state="GGgr"/>
+        <phase duration="15" state="GGgr"/>
         <phase duration="3"  state="yyyr"/>
-        <phase duration="30" state="rrrG"/>
+        <phase duration="1" state="rrrr"/>
+        <phase duration="15" state="rrrG"/>
         <phase duration="3"  state="rrry"/>
+        <phase duration="1" state="rrrr"/>
     </tlLogic>
     <tlLogic id="NODE_17" type="static" programID="0" offset="0">
-        <phase duration="10" state="rGrrrGrrr"/>
+        <phase duration="15" state="rGrrrGrrr"/>
         <phase duration="3"  state="ryrrryrrr"/>
+        <phase duration="1"  state="rrrrrrrrr"/>
         <phase duration="30" state="GrrrGrrrr"/>
         <phase duration="3"  state="yrrryrrrr"/>
-        <phase duration="10" state="rrrGrrrrG"/>
+        <phase duration="1"  state="rrrrrrrrr"/>
+        <phase duration="30" state="rrrGrrrrG"/>
         <phase duration="3"  state="rrryrrrry"/>
-        <phase duration="30" state="rrGrrrGGr"/>
+        <phase duration="1"  state="rrrrrrrrr"/>
+        <phase duration="26" state="rrGrrrGGr"/>
         <phase duration="3"  state="rryrrryyr"/>
+        <phase duration="1"  state="rrrrrrrrr"/>
     </tlLogic>
     <tlLogic id="NODE_18" type="static" programID="0" offset="0">
-        <phase duration="40" state="GgrrGgrr"/>
+        <phase duration="15" state="GgrrGgrr"/>
         <phase duration="3"  state="yyrryyrr"/>
-        <phase duration="40" state="rrGgrrGg"/>
+        <phase duration="1"  state="rrrrrrrr"/>
+        <phase duration="15" state="rrGgrrGg"/>
         <phase duration="3"  state="rryyrryy"/>
+        <phase duration="1"  state="rrrrrrrr"/>
     </tlLogic>
     <tlLogic id="NODE_23" type="static" programID="0" offset="0">
-        <phase duration="30" state="GgrG"/>
+        <phase duration="15" state="GgrG"/>
         <phase duration="3"  state="yyry"/>
-        <phase duration="30" state="rrGr"/>
+        <phase duration="1"  state="rrrr"/>
+        <phase duration="15" state="rrGr"/>
         <phase duration="3"  state="rryr"/>
+        <phase duration="1"  state="rrrr"/>
     </tlLogic>
     <tlLogic id="NODE_24" type="static" programID="0" offset="0">
-        <phase duration="42" state="GgrG"/>
+        <phase duration="25" state="GgrG"/>
         <phase duration="3"  state="yyry"/>
-        <phase duration="42" state="rrGr"/>
+        <phase duration="1"  state="rrrr"/>
+        <phase duration="25" state="rrGr"/>
         <phase duration="3"  state="rryr"/>
+        <phase duration="1"  state="rrrr"/>
     </tlLogic>
 
     <junction id="NODE_1" type="priority" x="133.93" y="59.76" z="269.69" incLanes="EG_1_1_1_0 EG_1_1_1_1 EG_35_1_18_0" intLanes=":NODE_1_0_0 :NODE_1_0_1 :NODE_1_2_0" shape="138.76,72.51,270.03 146.36,72.19,270.08 138.48,47.47,269.37 134.28,44.75,269.28 127.88,47.10,269.15 120.83,47.28,269.09 114.99,45.82,269.04 112.13,49.92,269.08" customShape="1">
