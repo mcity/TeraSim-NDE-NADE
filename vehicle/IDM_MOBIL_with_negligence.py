@@ -70,8 +70,11 @@ class IDM_MOBIL_with_negligence(IDMModel):
         control_command, action_dist, mode = self.decision(obs_dict["local"].data)
         return control_command, action_dist, None
 
-
     def derive_control_command_from_observation(self, obs_dict):
+        commands, control_info, negligence_info = self.derive_control_command_from_observation_detailed(obs_dict)
+        return commands, control_info
+    
+    def derive_control_command_from_observation_detailed(self, obs_dict):
         IDM_parameters, MOBIL_parameters, vehicle_location = self.change_IDM_MOBIL_parameters_from_location(obs_dict)
         negligence_mode_list_dict = {
             "freeway": ["Lead", "LeftFoll", "RightFoll"],
@@ -110,6 +113,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         # avoid negligence when car is generated or at low speed
         mingap = traci.vehicle.getMinGap(veh_id)
         neg_mode = ""
+        control_command_and_mode_list = []
         if veh_distance_from_departure >= 10:
             # consider traffic light, leftfoll, rightfoll, lead negligence mode in order
             if veh_speed >= 2:
@@ -126,12 +130,14 @@ class IDM_MOBIL_with_negligence(IDMModel):
                             continue
                     control_command_after = self.car_negligence(obs_dict, negligence_mode, control_command_before)
                     if control_command_after is not None:
-                        neg_mode = negligence_mode
-                        break
+                        control_command_and_mode_list.append((control_command_after, negligence_mode))
             else:
                 neg_mode = "TFL"
 
+        negligence_info = {}
         # assign the negligence command to control command
+        if len(control_command_and_mode_list) > 0:
+            control_command_after, neg_mode = control_command_and_mode_list[0]
         if control_command_after is not None:
             # Variable negligence probability setting
             negligence_prob, neg_info = self.get_negligence_prob(obs_dict, neg_mode)
@@ -140,11 +146,12 @@ class IDM_MOBIL_with_negligence(IDMModel):
             control_command_after["info"] = neg_info
             control_info['negligence'] = {"command": control_command_after, "prob": negligence_prob, "location": vehicle_location}
             control_info['normal'] = {"command": control_command_before, "prob": 1 - negligence_prob, "location": vehicle_location}
+            negligence_info = {neg_mode: {"command": control_command_after, "prob": 0, "location": vehicle_location} for control_command_after, neg_mode in control_command_and_mode_list}
             # select the control command based on the probability
             prob = np.random.uniform(0, 1)
             if prob < negligence_prob:
                 commands = control_command_after
-        return commands, control_info
+        return commands, control_info, negligence_info
     
     def decision(self, observation):
         """Vehicle decides next action based on IDM model.

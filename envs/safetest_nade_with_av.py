@@ -4,10 +4,12 @@ from .safetest_nade import SafeTestNADE
 from terasim.overlay import traci
 import terasim.utils as utils
 import numpy as np
+from vehicle.IDM_MOBIL_with_negligence import IDM_MOBIL_with_negligence
 
 class SafeTestNADEWithAV(SafeTestNADE):
 
     def on_start(self, ctx):
+        self.surrogate_model = IDM_MOBIL_with_negligence(MOBIL_lc_flag=True, stochastic_acc_flag=False)
         super().on_start(ctx)
         self.add_vehicle(veh_id="CAV", route="r_CAV", lane="best", lane_id="EG_35_1_14_0", position=0, speed=0)
         traci.vehicle.setColor("CAV", (255, 0, 0, 255))
@@ -52,6 +54,21 @@ class SafeTestNADEWithAV(SafeTestNADE):
                     weight *= ndd_normal_prob / (1 - IS_prob)
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"]
         return ITE_control_command_dict, weight
+
+    def predict_future_trajectory_dict(self, veh_id, time_horizon, time_resolution, ndd_decision_dict = None):
+        trajectory_dict, veh_info, duration_list = super().predict_future_trajectory_dict(veh_id, time_horizon, time_resolution, ndd_decision_dict)
+        if veh_id != "CAV":
+            return trajectory_dict, veh_info, duration_list
+        else:
+            # get CAV future control commmand, including the normal and negligence control commands
+            cav_obs_dict = self.vehicle_list[veh_id].observation
+            av_control_command, av_control_info, negligence_info = self.surrogate_model.derive_control_command_from_observation_detailed(cav_obs_dict)
+            # # get CAV future trajectory using the normal control command
+            trajectory_dict_normal, veh_info_normal, duration_list_normal = super().predict_future_trajectory_dict(veh_id, time_horizon, time_resolution, ndd_decision_dict)
+            for neg_mode in negligence_info:
+                control_command = negligence_info[neg_mode]
+                trajectory_dict[neg_mode] = self.predict_future_position(veh_info, neg_mode, control_command["command"], duration_list)
+            return trajectory_dict, veh_info, duration_list
 
     def get_maneuver_challenge(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future):
         cav_future = {"CAV": all_normal_veh_future["CAV"]} if "CAV" in all_normal_veh_future else None
