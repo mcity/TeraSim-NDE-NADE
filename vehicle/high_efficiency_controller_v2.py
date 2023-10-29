@@ -97,7 +97,12 @@ class HighEfficiencyControllerV2(HighEfficiencyController):
                 controlled_acc = self.params["v_low"] - current_velocity
         # Lateral control
         # lane_keep_duration = self.params["acc_duration"]
-        lane_keep_duration = self.params["neg_duration"] if negligence_flag else self.params["acc_duration"]
+        if negligence_flag:
+            lane_keep_duration = self.params["neg_duration"]
+        elif "duration" in control_command:
+            lane_keep_duration = control_command["duration"]
+        else:
+            lane_keep_duration = self.params["acc_duration"]
         if control_command["lateral"] == "SUMO":
             utils.set_vehicle_lanechangemode(veh_id)
             if controlled_acc:
