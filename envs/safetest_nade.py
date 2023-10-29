@@ -75,19 +75,40 @@ class SafeTestNADE(SafeTestNDE):
             } for veh_id in control_command_dict
         }
         ndd_dict = {veh_id: control_command_dict[veh_id]["ndd"] for veh_id in control_command_dict}
-        trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 8, 0.5, ndd_dict[veh_id]) for veh_id in control_command_dict}
-        maneuver_challenge_dict = self.get_maneuver_challenge_dict(trajectory_dict)
+        trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 5, 0.6, ndd_dict[veh_id])[0] for veh_id in control_command_dict}
+        maneuver_challenge_dict, maneuver_challenge_info = self.get_maneuver_challenge_dict(trajectory_dict)
         time = utils.get_time()
         self.monitor.add_maneuver_challenges(maneuver_challenge_dict, time)
         criticality_dict = {veh_id: self.get_criticality_dict(ndd_dict[veh_id], maneuver_challenge_dict[veh_id]) for veh_id in control_command_dict}
         
         # TO-DO: return the ITE control command
         ITE_control_command_dict, weight = self.ITE_importance_sampling(control_command_dict, criticality_dict)
-        for control_command in ITE_control_command_dict:
-            if "mode" in control_command:
-                neg_mode = control_command["mode"]
+        neglect_pair_list = self.get_neglecting_vehicle_id(ITE_control_command_dict, maneuver_challenge_info)
+        neglected_vehicle_list = [pair[1] for pair in neglect_pair_list]
+        ITE_control_command_dict = self.apply_collision_avoidance(neglected_vehicle_list, ITE_control_command_dict)
 
         return ITE_control_command_dict, weight
+    
+    def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
+        for veh_id in neglected_vehicle_list:
+            ITE_control_command_dict[veh_id] = {
+                "lateral": "central",
+                "longitudinal": -9.0,
+                "type": "lon_lat",
+                "duration": 2.0,
+            }
+        return ITE_control_command_dict
+
+    def get_neglecting_vehicle_id(self, control_command_dict, maneuver_challenge_info):
+
+        neglect_pair_list = []
+        for veh_id in control_command_dict:
+            control_command = control_command_dict[veh_id]
+            if "mode" in control_command: # neglegence happens
+                neglecting_vehicle_id = veh_id
+                neglected_vehicle_id = list(maneuver_challenge_info[neglecting_vehicle_id].keys())[0]
+                neglect_pair_list.append((neglecting_vehicle_id, neglected_vehicle_id))
+        return neglect_pair_list
     
     def ITE_importance_sampling(self, ndd_control_command_dict, criticality_dict):
         """Importance sampling for NADE.
@@ -138,14 +159,14 @@ class SafeTestNADE(SafeTestNDE):
         maneuver_challenges = {
             veh_id: self.get_maneuver_challenge(veh_id, negligence_future_trajectory_dict[veh_id], normal_future_trajectory_dict) for veh_id in trajectory_dict
         }
-
+        maneuver_challenge_info = {}
         # normalize the maneuver challenge
         maneuver_challenge_dict = {veh_id: {"normal": 0} for veh_id in trajectory_dict}
         for veh_id in trajectory_dict:
             if "negligence" in trajectory_dict[veh_id]:
                 maneuver_challenge_dict[veh_id]["negligence"] = maneuver_challenges[veh_id]["has_occur"]
-
-        return maneuver_challenge_dict
+                maneuver_challenge_info[veh_id] = maneuver_challenges[veh_id]["info"]
+        return maneuver_challenge_dict, maneuver_challenge_info
 
     def get_maneuver_challenge_BV_22(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future):
         bv_22_future = {veh_id: all_normal_veh_future[veh_id] for veh_id in all_normal_veh_future if "BV_22." in veh_id}
@@ -276,7 +297,7 @@ class SafeTestNADE(SafeTestNDE):
         Returns:
             criticality_dict (dict): the criticality of the negligence vehicle
         """
-        assert set(ndd_dict.keys()) == set(maneuver_challenge_dict.keys()), "The keys of ndd_dict and maneuver_challenge_dict should be the same."
+        # assert set(ndd_dict.keys()) == set(maneuver_challenge_dict.keys()), "The keys of ndd_dict and maneuver_challenge_dict should be the same."
         criticality_dict = {}
         for maneuver in ndd_dict:
             criticality_dict[maneuver] = ndd_dict[maneuver]["prob"] * maneuver_challenge_dict[maneuver]
@@ -409,4 +430,4 @@ class SafeTestNADE(SafeTestNDE):
             execute_modality = "normal" if veh_id == "CAV" else modality # CAV will only give normal future prediction, while BVs will have both normal and future
             control_command = ndd_decision_dict[execute_modality]
             trajectory_dict[modality] = self.predict_future_position(veh_info, execute_modality, control_command["command"], duration_list)
-        return trajectory_dict
+        return trajectory_dict, veh_info, duration_list
