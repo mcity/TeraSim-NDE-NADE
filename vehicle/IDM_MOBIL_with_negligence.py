@@ -241,6 +241,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
             commands.update(control_command_before)
             commands['longitudinal'] = max(4, commands['longitudinal'])
             commands["tfl_red"] = 1
+            commands["mode"] = "negligence"
         return commands
 
     def car_negligence(self, obs_dict, negligence_mode, control_command_before):
@@ -262,7 +263,8 @@ class IDM_MOBIL_with_negligence(IDMModel):
             # compute the control command after negligence
             # commands, _ = super().derive_control_command_from_observation(obs_dict)
             commands, _, _ = self.derive_control_command_from_obs_helper(obs_dict)
-            commands['negligence'] = 1
+            commands['car_negligence'] = 1
+            commands["mode"] = "negligence"
             # restore the observation
             obs_dict["local"].data[negligence_mode] = tmp
             # judge the significance of negligence

@@ -14,7 +14,7 @@ def get_all_route_edges():
         all_route_edges[route] = traci.route.getEdges(route)
     return all_route_edges
 
-class HighEfficiencyControllerV2(HighEfficiencyController):
+class HighEfficiencyControllerITE(HighEfficiencyController):
     params = {
             "v_high": 20,
             "v_low": 0,
@@ -67,15 +67,14 @@ class HighEfficiencyControllerV2(HighEfficiencyController):
             action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
         """ 
         # Set Safe Mode from SUMO
-        tfl_red_flag = 'tfl_red' in control_command.keys() and control_command['tfl_red'] == 1
-        negligence_flag = 'negligence' in control_command.keys() and control_command['negligence'] == 1
-        negligence_flag = negligence_flag or tfl_red_flag
+        negligence_flag = "mode" in control_command and control_command["mode"] == "negligence"
+        avoid_collision_flag = "mode" in control_command and control_command["mode"] == "avoid_collision"
 
         # # disable MOBIL lane change
         # control_command["lateral"] = "central"
 
         if not self.is_busy:    
-            if negligence_flag:
+            if negligence_flag or avoid_collision_flag:
                 utils.set_vehicle_speedmode(veh_id, 0)
                 if not self.is_busy:
                     self.controlled_duration = self.neg_step_num  # begin counting the negligence timesteps

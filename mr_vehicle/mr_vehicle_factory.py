@@ -8,7 +8,7 @@ import settings
 from terasim.vehicle.sensors.ego import EgoSensor
 from terasim.vehicle.sensors.local import LocalSensor
 from terasim.vehicle.vehicle import Vehicle
-from vehicle.high_efficiency_controller_v2 import HighEfficiencyControllerV2
+from vehicle.high_efficiency_controller_ite import HighEfficiencyControllerITE
 
 class MRVehicleFactory(DummyVehicleFactory):
     def create_vehicle(self, veh_id, simulator):
@@ -35,6 +35,6 @@ class MRVehicleFactory(DummyVehicleFactory):
                 "lc_duration": 1,  # the lane change duration will be 1 second
                 "neg_duration": 2, # the negligence duration will be 2 second
             }
-            controller = HighEfficiencyControllerV2(simulator, control_params)
+            controller = HighEfficiencyControllerITE(simulator, control_params)
         return Vehicle(veh_id, simulator, sensors=sensor_list,
                        decision_model=decision_model, controller=controller)

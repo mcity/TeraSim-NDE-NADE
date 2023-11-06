@@ -147,7 +147,7 @@ class EnvMonitor:
     
     def update_negligence_mode(self, control_cmds):
         for veh_id, control_cmd in control_cmds.items():
-            if control_cmd and "mode" in control_cmd:
+            if control_cmd and "mode" in control_cmd and control_cmd["mode"] == "negligence":
                 if len(self.car_with_maneuver_challenges[veh_id]) == 0:
                     print("NegligenceError", veh_id, "", "", utils.get_time(), sep='\t')
                 neg_mode = control_cmd["mode"]

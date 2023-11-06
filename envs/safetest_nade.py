@@ -3,7 +3,12 @@ import sumolib
 from terasim.overlay import traci
 import terasim.utils as utils
 import numpy as np
-from decimal import Decimal
+import math
+veh_length = 5.0
+veh_width = 2.0
+circle_r = 1.3
+tem_len = math.sqrt(circle_r**2-(veh_width/2)**2)
+from terasim_mr.utils.convertion import sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation
 
 class Point:
     def __init__(self, position_tuple):
@@ -20,12 +25,46 @@ def check_func(PointList):
             return False
     return True
 
+def collision_check(traj1, traj2):
+    time_series = list(traj1.keys())
+    for time in time_series:
+        center_list_1 = get_circle_center_list(traj1[time])
+        center_list_2 = get_circle_center_list(traj2[time])
+        for p1 in center_list_1:
+            for p2 in center_list_2:
+                dist = cal_dist(p1, p2)
+                if dist <= 2*circle_r:
+                    return True
+    return False
+
+def get_circle_center_list(traj_point):
+    center1 = (traj_point["x_lon"], traj_point["x_lat"])
+    heading = traj_point["heading"]
+    center0 = (
+        center1[0]+(veh_length/2-tem_len)*math.cos(heading),
+        center1[1]+(veh_length/2-tem_len)*math.sin(heading)
+    )
+    center2 = (
+        center1[0]-(veh_length/2-tem_len)*math.cos(heading),
+        center1[1]-(veh_length/2-tem_len)*math.sin(heading)
+    )
+    center_list = [center0, center1, center2]
+    return center_list
+
+
+def cal_dist(p1, p2):
+    x1, y1 = p1[0], p1[1]
+    x2, y2 = p2[0], p2[1]
+    return math.sqrt((x1-x2)**2+(y1-y2)**2)
+
+
 class SafeTestNADE(SafeTestNDE):
 
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
         return super().on_start(ctx)
 
+    # @profile
     def on_step(self, ctx):
         self._vehicle_in_env_distance("after")
         # Make decisions and execute commands
@@ -50,7 +89,7 @@ class SafeTestNADE(SafeTestNDE):
         original_final_state_log.update({"importance": neg_log_importance_sampling_weight})
         return original_final_state_log
         
-    
+    # @profile
     def ITE_decision(self, control_command_dict, control_info_dict):
         """NADE decision here.
 
@@ -96,6 +135,7 @@ class SafeTestNADE(SafeTestNDE):
                 "longitudinal": -9.0,
                 "type": "lon_lat",
                 "duration": 2.0,
+                "mode": "avoid_collision",
             }
         return ITE_control_command_dict
 
@@ -131,8 +171,8 @@ class SafeTestNADE(SafeTestNDE):
                 ndd_normal_prob = ndd_control_command_dict[veh_id]["ndd"]["normal"]["prob"]
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
-                IS_prob = default_max_IS_prob
-                # IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, default_max_IS_prob)
+                # IS_prob = default_max_IS_prob
+                IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, default_max_IS_prob)
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
@@ -141,6 +181,7 @@ class SafeTestNADE(SafeTestNDE):
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"]
         return ITE_control_command_dict, weight
 
+    # @profile
     def get_maneuver_challenge_dict(self, trajectory_dict):
         """Get the maneuver challenge for each vehicle when it is in the negligence mode while other vehicles are in the normal mode.
 
@@ -156,15 +197,36 @@ class SafeTestNADE(SafeTestNDE):
         negligence_future_trajectory_dict = {
             veh_id: trajectory_dict[veh_id].get("negligence", None) for veh_id in trajectory_dict
         }
+        avoidance_future_trajectory_dict = {
+            veh_id: trajectory_dict[veh_id].get("avoid_collision", None) for veh_id in trajectory_dict
+        }
         maneuver_challenges = {
             veh_id: self.get_maneuver_challenge(veh_id, negligence_future_trajectory_dict[veh_id], normal_future_trajectory_dict) for veh_id in trajectory_dict
         }
+        maneuver_challenge_avoidance_dict = {
+            veh_id: self.get_maneuver_challenge(veh_id, negligence_future_trajectory_dict[veh_id], avoidance_future_trajectory_dict, highlight_flag=False) for veh_id in trajectory_dict
+        }
+
+        for veh_id in maneuver_challenges:
+            if maneuver_challenges[veh_id]["maneuver_challenge"] and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
+                maneuver_challenges[veh_id]["maneuver_challenge"] = 0
+                maneuver_challenges[veh_id]["info"] = {}
+
+        for veh_id in maneuver_challenges:
+            if maneuver_challenges[veh_id]["maneuver_challenge"]:
+                utils.highlight_vehicle(veh_id, duration=0.1)
+                try:
+                    neglected_veh_id = list(maneuver_challenges[veh_id]["info"].keys())[0]
+                    utils.highlight_vehicle(neglected_veh_id, duration=0.1)
+                except:
+                    print(f"no neglected vehicle for {veh_id}")
+
         maneuver_challenge_info = {}
         # normalize the maneuver challenge
         maneuver_challenge_dict = {veh_id: {"normal": 0} for veh_id in trajectory_dict}
         for veh_id in trajectory_dict:
             if "negligence" in trajectory_dict[veh_id]:
-                maneuver_challenge_dict[veh_id]["negligence"] = maneuver_challenges[veh_id]["has_occur"]
+                maneuver_challenge_dict[veh_id]["negligence"] = maneuver_challenges[veh_id]["maneuver_challenge"]
                 maneuver_challenge_info[veh_id] = maneuver_challenges[veh_id]["info"]
         return maneuver_challenge_dict, maneuver_challenge_info
 
@@ -172,13 +234,14 @@ class SafeTestNADE(SafeTestNDE):
         bv_22_future = {veh_id: all_normal_veh_future[veh_id] for veh_id in all_normal_veh_future if "BV_22." in veh_id}
         return self.get_maneuver_challenge(negligence_veh_id, negligence_veh_future, bv_22_future)
 
-    def get_maneuver_challenge(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future):
+    # @profile
+    def get_maneuver_challenge(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future, highlight_flag=True):
         """Get the maneuver challenge for the negligence vehicle.
 
         Args:
             negligence_veh_id (str): the id of the negligence vehicle
             negligence_veh_future (list): the future trajectory of the negligence vehicle
-            all_normal_veh_future (dict): all_normal_veh_future[veh_id] = future trajectory of the normal vehicle
+            all_normal_veh_future (dict): all_normal_veh _future[veh_id] = future trajectory of the normal vehicle
 
         Returns:
             num_affected_vehicles (int): the number of vehicles that will be affected by the negligence vehicle
@@ -191,17 +254,13 @@ class SafeTestNADE(SafeTestNDE):
                 if veh_id == negligence_veh_id:
                     continue
                 if self.is_intersect(negligence_veh_future, all_normal_veh_future[veh_id]):
-                    utils.highlight_vehicle(veh_id, 2)
-                    utils.highlight_vehicle(negligence_veh_id, 2)
-                    # print("intersection", negligence_veh_id, veh_id, " ", utils.get_time(), sep="\t")
-                    try:
-                        assert check_func(negligence_veh_future)
-                        assert check_func(all_normal_veh_future[veh_id])
-                    except:
-                        print("intersection_err", negligence_veh_id, veh_id, " ", utils.get_time(), sep="\t")
+                    # if highlight_flag:
+                    #     utils.highlight_vehicle(veh_id, duration=2)
+                    #     utils.highlight_vehicle(negligence_veh_id, duration=2)
                     maneuver_challenge_info[veh_id] = 1
-        return {"has_occur": int(len(maneuver_challenge_info) > 0), "info": maneuver_challenge_info} # the first element is the number of vehicles that will be affected by the negligence vehicle
+        return {"maneuver_challenge": int(len(maneuver_challenge_info) > 0), "info": maneuver_challenge_info} # the first element is the number of vehicles that will be affected by the negligence vehicle
     
+    # @profile
     def is_intersect(self, trajectory1, trajectory2):
         """Check if two trajectories intersect.
 
@@ -212,12 +271,35 @@ class SafeTestNADE(SafeTestNDE):
         Returns:
             bool: True if the trajectories intersect, False otherwise.
         """
-        time_steps = min(len(trajectory1), len(trajectory2))
+        if cal_dist(trajectory1["position"][0], trajectory2["position"][0]) > 30:
+            return False
+
+        time_steps = min(len(trajectory1["position"]), len(trajectory2["position"]))
+        trajectory1_position = [Point(position_tuple) for position_tuple in trajectory1["position"]]
+        trajectory2_position = [Point(position_tuple) for position_tuple in trajectory2["position"]]
+        # if the initial position of trajectory1 and trajectory2 distance are larger than a threshold, then they are not intersected
+        traj_1_dict = {timestep: {
+            "x_lon": trajectory1["position"][timestep][0],
+            "x_lat": trajectory1["position"][timestep][1],
+            "heading": sumo_heading_to_orientation(trajectory1["heading"][timestep]),
+        } for timestep in range(time_steps)}
+        traj_2_dict = {timestep: {
+            "x_lon": trajectory2["position"][timestep][0],
+            "x_lat": trajectory2["position"][timestep][1],
+            "heading": sumo_heading_to_orientation(trajectory2["heading"][timestep]),
+        } for timestep in range(time_steps)}
+
+        # three circle collision check
+        # ! the vehicle length thing should not be hard coded
+        collision_check_result = collision_check(traj_1_dict, traj_2_dict)
+        if collision_check_result:
+            return True
+
         for i in range(time_steps - 1):
-            segment1_start = trajectory1[i]
-            segment1_end = trajectory1[i + 1]
-            segment2_start = trajectory2[i]
-            segment2_end = trajectory2[i + 1]
+            segment1_start = trajectory1_position[i]
+            segment1_end = trajectory1_position[i + 1]
+            segment2_start = trajectory2_position[i]
+            segment2_end = trajectory2_position[i + 1]
 
             if self.do_segments_intersect(segment1_start, segment1_end, segment2_start, segment2_end):
                 return True
@@ -317,13 +399,13 @@ class SafeTestNADE(SafeTestNDE):
         future_distance_list = [
             velocity * duration + 0.5 * acceleration * duration * duration for duration in duration_list
         ]
-        # the offset delta list should be non-decreasing and non-negative
+        # the lane_position delta list should be non-decreasing and non-negative
         future_distance_list[0] = max(future_distance_list[0], 0)
         for i in range(1, len(future_distance_list)):
             future_distance_list[i] = max(future_distance_list[i], future_distance_list[i-1])
         return future_distance_list
     
-    def predict_future_position(self, veh_info, modality, control_command, duration_list):
+    def predict_future_position_heading(self, veh_info, modality, control_command, duration_list):
         """Predict the future position of the vehicle.
 
         Args:
@@ -336,50 +418,55 @@ class SafeTestNADE(SafeTestNDE):
             future_position_list (list): the list of future position
         """
         road_id = veh_info["road_id"]
-        offset_delta_list = self.predict_future_distance(veh_info["velocity"], control_command["longitudinal"], duration_list)
-        new_offset = veh_info["offset"] + offset_delta_list[-1] # the vehicle will be at this offset after the duration from the beginning of the road
+        future_distance_list = self.predict_future_distance(veh_info["velocity"], control_command["longitudinal"], duration_list)
         current_lane_length = traci.lane.getLength(veh_info["lane_id"])
         current_route_index = veh_info["route_id_list"].index(road_id)
 
-        new_position_list = []
+        new_position_list, new_heading_list = [], []
         # get the displacement of the vehicle in each step
-        offset_delta_list_delta = np.diff(offset_delta_list, prepend=0)
-        new_offset = veh_info["offset"]
-        for offset_delta in offset_delta_list_delta:
-            new_offset += offset_delta
-            # find the road id and offset of the vehicle after the duration
-            while (new_offset > current_lane_length) \
-                and (veh_info["route_id_list"].index(road_id) < len(veh_info["route_id_list"]) - 1):
-                # current_route_index = min(veh_info["route_id_list"].index(road_id), len(veh_info["route_id_list"])-2)
+        future_distance_list_delta = np.diff(future_distance_list, prepend=0)
+        new_lane_position = veh_info["lane_position"]
+        for lane_position_delta in future_distance_list_delta:
+            new_lane_position += lane_position_delta
+            # find the road id and lane_position of the vehicle after the duration
+            while (new_lane_position > current_lane_length) and (veh_info["route_id_list"].index(road_id) < len(veh_info["route_id_list"]) - 1):
                 current_route_index = veh_info["route_id_list"].index(road_id)
                 road_id = veh_info["route_id_list"][current_route_index + 1]
-                new_offset = new_offset - current_lane_length
-                # current_lane_length = veh_info["route_length_list"][veh_info["route_index"]+1]
+                new_lane_position = new_lane_position - current_lane_length
                 current_lane_length = veh_info["route_length_list"][current_route_index+1]
 
             # find the new lane index of the vehicle
-            max_laneIndex = traci.edge.getLaneNumber(road_id)
+            max_lane_index = traci.edge.getLaneNumber(road_id)
             if control_command["lateral"] == "left":
-                new_laneIndex = veh_info["lane_index"] + 1
+                new_lane_index = veh_info["lane_index"] + 1
             elif control_command["lateral"] == "right":
-                new_laneIndex = veh_info["lane_index"] - 1
+                new_lane_index = veh_info["lane_index"] - 1
             else:
-                new_laneIndex = veh_info["lane_index"]
-            new_laneIndex = 0 if new_laneIndex >= max_laneIndex else new_laneIndex
+                new_lane_index = veh_info["lane_index"]
+            new_lane_index = 0 if new_lane_index >= max_lane_index else new_lane_index
+            new_lane_id = road_id + f"_{new_lane_index}"
 
-            # clip the new offset (why we need this?)
+            # clip the new lane_position (why we need this?)
             # if the last simulation position is out of the route
             # but no need, if two vehicles arrive within 3 seconds
-            max_new_offset = traci.lane.getLength(road_id+f"_{new_laneIndex}")
-            new_offset = np.clip(new_offset, 0, max_new_offset)
+            max_new_lane_position = traci.lane.getLength(road_id+f"_{new_lane_index}")
+            new_lane_position = np.clip(new_lane_position, 0, max_new_lane_position)
             
             # change the lane position and index to global position
-            new_position = traci.simulation.convert2D(road_id, new_offset, new_laneIndex)
-            new_position_list.append(Point(new_position))
+            new_position = traci.simulation.convert2D(road_id, new_lane_position, new_lane_index)
+            new_heading = traci.lane.getAngle(new_lane_id, new_lane_position)
+            new_position_center = sumo_coordinate_to_center_coordinate(new_position[0], new_position[1], sumo_heading_to_orientation(new_heading), veh_info["length"])
+            new_position_list.append(new_position_center)
+            new_heading_list.append(new_heading)
 
-            if (new_offset == max_new_offset) and (veh_info["route_id_list"].index(road_id) == len(veh_info["route_id_list"]) - 1):
+            if (new_lane_position == max_new_lane_position) and (veh_info["route_id_list"].index(road_id) == len(veh_info["route_id_list"]) - 1): # the vehicle is at the end of the route
                 break
-        return new_position_list
+        return {
+            "position": new_position_list,
+            "heading": new_heading_list,
+            "modality": modality,
+            "control_command": control_command,
+        }
 
     def predict_future_trajectory_dict(self, veh_id, time_horizon, time_resolution, ndd_decision_dict = None):
         """Predict the future trajectory of the vehicle.
@@ -393,25 +480,7 @@ class SafeTestNADE(SafeTestNDE):
         Returns:
             future_trajectory_dict (dict): the future trajectory of the vehicle
         """
-        # load required data from traci
-        veh_info = {
-            "id": veh_id,
-            "route": traci.vehicle.getRoute(veh_id),
-            "route_index": traci.vehicle.getRouteIndex(veh_id),
-            "road_id": traci.vehicle.getRoadID(veh_id),
-            "lane_id": traci.vehicle.getLaneID(veh_id),
-            "lane_index": traci.vehicle.getLaneIndex(veh_id),
-            "position": traci.vehicle.getPosition(veh_id),
-            "velocity": traci.vehicle.getSpeed(veh_id),
-            "heading": traci.vehicle.getAngle(veh_id),
-            "offset": traci.vehicle.getLanePosition(veh_id),
-        }
-
-        # self.net not exist
-        route_with_internal = sumolib.route.addInternal(self.simulator.sumo_net, veh_info['route'])
-        veh_info["route_id_list"] = [route._id for route in route_with_internal]
-        veh_info["route_length_list"] = [route._length for route in route_with_internal]
-
+        veh_info = self.get_vehicle_info(veh_id)
         # include the original position
         duration_list = [time_horizon_id*time_resolution for time_horizon_id in range(time_horizon+1)]
         trajectory_dict = {}
@@ -422,12 +491,41 @@ class SafeTestNADE(SafeTestNDE):
         }
         avoid_collision_control_command = {
             "lateral": "central",
-            "longitudinal": -9.0,
+            "longitudinal": -4.0,
             "type": "lon_lat",
+            "duration": 2.0,
         }
-        trajectory_dict["avoid_collision"] = self.predict_future_position(veh_info, "avoid_collision", avoid_collision_control_command, duration_list)
+        # For each vehicle, predict the future trajectory according to the NDD decision modalities, plus the avoid_collision modality
         for modality in ndd_decision_dict:
-            execute_modality = "normal" if veh_id == "CAV" else modality # CAV will only give normal future prediction, while BVs will have both normal and future
+            execute_modality = "normal" if veh_id == "CAV" else modality
             control_command = ndd_decision_dict[execute_modality]
-            trajectory_dict[modality] = self.predict_future_position(veh_info, execute_modality, control_command["command"], duration_list)
+            trajectory_dict[modality] = self.predict_future_position_heading(veh_info, execute_modality, control_command["command"], duration_list)
+        trajectory_dict["avoid_collision"] = self.predict_future_position_heading(veh_info, "avoid_collision", avoid_collision_control_command, duration_list)
         return trajectory_dict, veh_info, duration_list
+
+    def get_vehicle_info(self, veh_id):
+        """Generate vehicle information for future trajectory prediction
+
+        Args:
+            veh_id (str): input vehicle id
+
+        Returns:
+            veh_info (dict): output dictionary of vehicle information
+        """
+        veh_info = {
+            "id": veh_id,
+            "route": traci.vehicle.getRoute(veh_id),
+            "route_index": traci.vehicle.getRouteIndex(veh_id),
+            "road_id": traci.vehicle.getRoadID(veh_id),
+            "lane_id": traci.vehicle.getLaneID(veh_id),
+            "lane_index": traci.vehicle.getLaneIndex(veh_id),
+            "position": traci.vehicle.getPosition(veh_id),
+            "velocity": traci.vehicle.getSpeed(veh_id),
+            "heading": traci.vehicle.getAngle(veh_id),
+            "lane_position": traci.vehicle.getLanePosition(veh_id),
+            "length": traci.vehicle.getLength(veh_id),
+        }
+        route_with_internal = sumolib.route.addInternal(self.simulator.sumo_net, veh_info['route'])
+        veh_info["route_id_list"] = [route._id for route in route_with_internal]
+        veh_info["route_length_list"] = [route._length for route in route_with_internal]
+        return veh_info
