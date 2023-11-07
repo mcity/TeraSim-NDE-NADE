@@ -140,7 +140,6 @@ class SafeTestNADE(SafeTestNDE):
         return ITE_control_command_dict
 
     def get_neglecting_vehicle_id(self, control_command_dict, maneuver_challenge_info):
-
         neglect_pair_list = []
         for veh_id in control_command_dict:
             control_command = control_command_dict[veh_id]
@@ -161,7 +160,6 @@ class SafeTestNADE(SafeTestNDE):
             weight (float): the importance sampling weight
         """
         weight = 1.0
-        # ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["command"] for veh_id in ndd_control_command_dict}
         ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"] for veh_id in ndd_control_command_dict}
         
         default_max_IS_prob = 0.1 # epsilon = 0.95 importance sampling
@@ -350,9 +348,6 @@ class SafeTestNADE(SafeTestNDE):
         o3 = orientation(segment2_start, segment2_end, segment1_start)
         o4 = orientation(segment2_start, segment2_end, segment1_end)
 
-        # General case
-        # o1 != o2: segment2_start and segment2_end are on different sides of segment1_start and segment1_end
-        # o3 != o4: segment1_start and segment1_end are on different sides of segment2_start and segment2_end
         if o1 != o2 and o3 != o4:
             return True
 

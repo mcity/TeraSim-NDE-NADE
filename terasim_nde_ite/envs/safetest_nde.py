@@ -23,11 +23,9 @@ class SafeTestNDE(EnvTemplate):
         self._vehicle_in_env_distance("before")
 
     def on_step(self, ctx):
-        # Make decisions and execute commands
         control_cmds = self.make_decisions()
         self.execute_control_commands(control_cmds)
         self.monitor.add_observation(control_cmds)
-        # Simulation stop check
         return self.should_continue_simulation()
     
     def on_stop(self, ctx):
@@ -49,9 +47,6 @@ class SafeTestNDE(EnvTemplate):
     def _vehicle_in_env_distance(self, mode):
         veh_id_list = traci.vehicle.getIDList()
         distance_dist = self._get_distance(veh_id_list)
-        # check point for debugging
-        # velocity = sum([traci.vehicle.getSpeed(veh_id) for veh_id in veh_id_list])
-        # print("distance: {}, velocity: {}".format(distance, velocity))
         self.monitor.update_distance(distance_dist, mode)
     
     def _get_distance(self, veh_id_list):
@@ -62,7 +57,6 @@ class SafeTestNDE(EnvTemplate):
         single_input = not isinstance(veh_id_list, list)
         if single_input:
             veh_id_list = [veh_id_list]
-        # self.monitor.add_vehicle_to_route(veh_id_list)
         output = super()._add_vehicle_to_env(veh_id_list)
         return output[0] if single_input else output
     
