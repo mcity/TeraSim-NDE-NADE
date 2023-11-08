@@ -20,11 +20,7 @@ class EnvMonitor:
             os.makedirs(maneuver_challenges_dir)
         self.exp_id = exp_id
         self.total_distance = {"before": {}, "after": {}}
-        # self.route_length = {}
-        # update with vehicles in the environment
-        # self.vehicle_to_route = {}
         self.negligence_mode = defaultdict(dict)
-        # self.depart_pos = 4.9
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
         self.init_cav_infos()
