@@ -16,9 +16,7 @@ parser.add_argument('--exp_name', type=str, help='experiment name', default="tes
 parser.add_argument('--nth', type=str, help='the nth epoch', default="0_0")
 args = parser.parse_args()
 
-highlight_routes = {"7", "10", "13", "14", "16"}
 monitor = EnvMonitor(
-    highlight_routes=highlight_routes,
     log_dir=f"{args.dir}/{args.exp_name}/raw_data",
     exp_id=f"{args.exp_name}_{args.nth}",
 )

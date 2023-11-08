@@ -8,7 +8,7 @@ from terasim.overlay import traci
 import sumolib
 
 class EnvMonitor:
-    def __init__(self, highlight_routes, log_dir, exp_id):
+    def __init__(self, log_dir, exp_id):
         self.observations = {}
         self.num_step = 100
         self.log_dir = log_dir
@@ -19,7 +19,6 @@ class EnvMonitor:
         if not os.path.exists(maneuver_challenges_dir):
             os.makedirs(maneuver_challenges_dir)
         self.exp_id = exp_id
-        self.highlight_routes = highlight_routes
         self.total_distance = {"before": {}, "after": {}}
         # self.route_length = {}
         # update with vehicles in the environment
@@ -43,10 +42,6 @@ class EnvMonitor:
         self.env = env
         self.env.monitor = self
     
-    def is_highlight_vehicle(self, vehicle_id):
-        veh_route = vehicle_id.split('.')[0].split('_')[1]
-        return veh_route in self.highlight_routes
-        
     def add_observation(self, control_cmds):
         current_time = utils.get_time()
         current_observation = self._record(control_cmds)
@@ -78,17 +73,9 @@ class EnvMonitor:
         if len(self.observations) > self.num_step:
             self.observations.pop(min(self.observations.keys()))
 
-    # def update_distance(self, distance, mode):
-    #     self.total_distance[mode] += distance
-    
     def update_distance(self, distance_dict, mode):
         self.total_distance[mode].update(distance_dict)
-    
-    # def add_vehicle_to_route(self, veh_id_list):
-    #     for veh_id in veh_id_list:
-    #         if veh_id != "CAV":
-    #             self.vehicle_to_route.update({veh_id: traci.vehicle.getRouteID(veh_id)})
-            
+
     def remove_vehicle_records(self, veh_id_list):
         for veh_id in veh_id_list:
             # self.vehicle_to_route.pop(veh_id)
@@ -98,7 +85,6 @@ class EnvMonitor:
         current_observation = {}
         current_all_veh_obs = self._veh_obs()
         for veh_id, control_cmd in control_cmds.items():
-            # if self.is_highlight_vehicle(veh_id):
             if True:
                 current_veh_obs = {
                     "obs": current_all_veh_obs[veh_id],
@@ -106,16 +92,6 @@ class EnvMonitor:
                 }
                 current_observation.update({veh_id: current_veh_obs})
         return current_observation
-
-    # def get_route_length(self, veh_id):
-    #     route_id = self.vehicle_to_route[veh_id]
-    #     if route_id not in self.route_length:
-    #         routes = traci.route.getEdges(route_id)
-    #         route_with_internal = sumolib.route.addInternal(self.env.simulator.sumo_net, routes)
-    #         total_length = sum([route._length for route in route_with_internal])
-    #         self.route_length.update({route_id: total_length})
-    #     route_length = self.route_length[route_id]
-    #     return route_length
         
     def _veh_obs(self):
         veh_obs = {veh.id: veh.observation for veh in self.env.vehicle_list}
@@ -134,12 +110,6 @@ class EnvMonitor:
         } # "Ego" is the ego vehicle
         for key in veh_observation.keys():
             if key != "Ego" and veh_observation[key] is not None:
-                # observation.update({
-                #     key: {
-                #         "veh_id": veh_observation[key]["veh_id"],
-                #         "distance": veh_observation[key]["distance"],
-                #     }
-                # })
                 observation.update({
                     key: veh_observation[key]
                 })
@@ -152,8 +122,6 @@ class EnvMonitor:
                     print("NegligenceError", veh_id, "", "", utils.get_time(), sep='\t')
                 neg_mode = control_cmd["mode"]
                 obs_dict = self.env.vehicle_list[veh_id].observation
-                # if neg_mode == "Lead":
-                #     traci.vehicle.highlight(veh_id, (0, 255, 0), duration = 2)
                 self.negligence_mode.update({
                     veh_id: {
                         "mode": neg_mode,
@@ -188,7 +156,6 @@ class EnvMonitor:
     def export_final_state(self, veh_1_id, veh_2_id, final_state_log, end_reason):
         neg_mode, neg_time, neg_car, neg_info = None, -1.0, None, None
         if veh_1_id is not None and veh_2_id is not None:
-            # current_time = utils.get_time()
             veh_1_negligence_mode = self.negligence_mode[veh_1_id]
             veh_2_negligence_mode = self.negligence_mode[veh_2_id]
 
@@ -216,7 +183,6 @@ class EnvMonitor:
         for veh_id in self.total_distance["after"].keys():
             veh_dist_before = self.total_distance["before"].get(veh_id, 0.0)
             veh_dist_after = self.total_distance["after"].get(veh_id, 0.0)
-            # print(veh_id, veh_dist_before, veh_dist_after, veh_dist_after - veh_dist_before)
             if veh_dist_after > veh_dist_before:
                 total_distance += veh_dist_after - veh_dist_before
 
@@ -225,7 +191,6 @@ class EnvMonitor:
             if veh_id.startswith("BV_22"):
                 veh_dist_before = self.total_distance["before"].get(veh_id, 0.0)
                 veh_dist_after = self.total_distance["after"].get(veh_id, 0.0)
-                # print(veh_id, veh_dist_before, veh_dist_after, veh_dist_after - veh_dist_before)
                 if veh_dist_after > veh_dist_before:
                     bv_22_total_distance += veh_dist_after - veh_dist_before
 
