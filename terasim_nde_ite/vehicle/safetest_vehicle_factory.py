@@ -12,7 +12,7 @@ class SafetestVehicleFactory(DummyVehicleFactory):
         super().__init__()
 
     def create_vehicle(self, veh_id, simulator):
-        sensor_list = [EgoSensor(), LocalSensor()]
+        sensor_list = [EgoSensor(), LocalSensor(name="local", obs_range=20)]
         decision_model = IDM_MOBIL_with_negligence(MOBIL_lc_flag=True, stochastic_acc_flag=False, lane_config=self.lane_config)
         # decision_model = IDMModel(MOBIL_lc_flag=True, stochastic_acc_flag=True)
         control_params = {

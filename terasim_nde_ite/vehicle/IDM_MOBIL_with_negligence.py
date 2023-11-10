@@ -66,8 +66,22 @@ class IDM_MOBIL_with_negligence(IDMModel):
     def derive_control_command_from_obs_helper(self, obs_dict):
         if "local" not in obs_dict:
             raise ValueError("No local observation")
+        # obs_dict = self.fix_observation(obs_dict)
         control_command, action_dist, mode = self.decision(obs_dict["local"].data)
         return control_command, action_dist, None
+
+    def fix_observation(self, obs_dict):
+        """
+        Fix the observation for the vehicle in the intersection, when two vehicles are blocking each other in the intersection, add the vehicle to the observation
+        """
+        veh_id = obs_dict['local'].data['Ego']['veh_id']
+        surrouding_vehicle_id_list = self.get_surrounding_vehicle_id_list(veh_id)
+        for surrounding_vehicle_id in surrouding_vehicle_id_list:
+            if surrounding_vehicle_id not in obs_dict['local'].data:
+                return obs_dict
+            if is_block(surrounding_vehicle_id, veh_id): # if surrounding vehicle is blocking the ego vehicles
+                obs_dict['local'].data["Lead"] = obs_dict['local'].data[surrounding_vehicle_id]
+
 
     def derive_control_command_from_observation(self, obs_dict):
         commands, control_info, negligence_info = self.derive_control_command_from_observation_detailed(obs_dict)

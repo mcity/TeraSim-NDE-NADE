@@ -125,6 +125,14 @@ class SafeTestNADE(SafeTestNDE):
         neglect_pair_list = self.get_neglecting_vehicle_id(ITE_control_command_dict, maneuver_challenge_info)
         neglected_vehicle_list = [pair[1] for pair in neglect_pair_list]
         ITE_control_command_dict = self.apply_collision_avoidance(neglected_vehicle_list, ITE_control_command_dict)
+        for veh_id in trajectory_dict:
+            if veh_id in ITE_control_command_dict:
+                ITE_control_command_dict[veh_id]["info"] = {
+                    "trajectory_prediction": trajectory_dict[veh_id] if veh_id in trajectory_dict else None,
+                    "maneuver_challenge": maneuver_challenge_dict[veh_id] if veh_id in maneuver_challenge_dict else None,
+                    "criticality": criticality_dict[veh_id] if veh_id in criticality_dict else None,
+                }
+
 
         return ITE_control_command_dict, weight
     
