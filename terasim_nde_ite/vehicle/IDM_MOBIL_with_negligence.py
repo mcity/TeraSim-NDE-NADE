@@ -72,9 +72,10 @@ class IDM_MOBIL_with_negligence(IDMModel):
     def derive_control_command_from_observation(self, obs_dict):
         commands, control_info, negligence_info = self.derive_control_command_from_observation_detailed(obs_dict)
         return commands, control_info
-    
-    def derive_control_command_from_observation_detailed(self, obs_dict):
-        IDM_parameters, MOBIL_parameters, vehicle_location = self.change_IDM_MOBIL_parameters_from_location(obs_dict)
+
+    def get_negligence_modes(self, obs_dict, vehicle_location=None):
+        if vehicle_location is None:
+            vehicle_location = get_location(obs_dict["local"].data["Ego"]["road_id"], self.lane_config)
         negligence_mode_list_dict = {
             "freeway": ["Lead", "LeftFoll", "RightFoll"],
             "intersection": ["Lead", "LeftFoll", "RightFoll"],
@@ -85,71 +86,82 @@ class IDM_MOBIL_with_negligence(IDMModel):
             if key in vehicle_location:
                 negligence_mode_list = negligence_mode_list_dict[key]
                 break
-        # vehicle basic info
+        return negligence_mode_list
+
+    def get_vehicle_info(self, obs_dict):
         veh_id = obs_dict['local'].data['Ego']['veh_id']
-        veh_speed = utils.get_speed(veh_id)
+        veh_speed = obs_dict['local'].data['Ego']['velocity']
         veh_distance_from_departure = utils.get_distance(veh_id)
         veh_tfl = utils.get_next_traffic_light(veh_id)
-        
-        # compute the control command before negligence
-        # control_command_before, info = super().derive_control_command_from_observation(obs_dict)
-        _, control_command_before_dist, _ = self.derive_control_command_from_obs_helper(obs_dict)
+        return veh_id, veh_speed, veh_distance_from_departure, veh_tfl
+
+    def sample_nde_control_command(self, control_command_distribution_dict):
+        choice_list = list(control_command_distribution_dict.keys())
+        p_list = [control_command_distribution_dict[key]["prob"] for key in choice_list]
+        command_key = np.random.choice(choice_list, p=p_list)
+        control_command_before = control_command_distribution_dict[command_key]["command"]
+        return control_command_before
+
+
+    
+    def derive_control_command_from_observation_detailed(self, obs_dict):
+        # change the IDM and MOBIL parameters based on the location
+        IDM_parameters, MOBIL_parameters, vehicle_location = self.change_IDM_MOBIL_parameters_from_location(obs_dict)
+
+        # negligence mode list in different locations
+        negligence_mode_list = self.get_negligence_modes(obs_dict, vehicle_location)
+
+        # vehicle basic info
+        veh_id, veh_speed, veh_distance_from_departure, veh_tfl = self.get_vehicle_info(obs_dict)
+        veh_info = {
+            "veh_id": veh_id,
+            "veh_speed": veh_speed,
+            "veh_distance_from_departure": veh_distance_from_departure,
+            "veh_tfl": veh_tfl,
+        }
+        # compute the control command without negligence
+        _, control_command_nde_distribution, _ = self.derive_control_command_from_obs_helper(obs_dict)
         
         # choose the normal control command based on the probability
-        choice_list = list(control_command_before_dist.keys())
-        p_list = [control_command_before_dist[key]["prob"] for key in choice_list]
-        command_key = np.random.choice(choice_list, p=p_list)
-        control_command_before = control_command_before_dist[command_key]["command"]
+        control_command_nde = self.sample_nde_control_command(control_command_nde_distribution)
         
-        commands = control_command_before
+        commands = control_command_nde
 
         # vehicle commands and info with basic settings
         control_info = {}
-        control_info['normal'] = {"command": control_command_before, "prob": 1, "location": vehicle_location}
-        control_command_after = None
+        control_info['normal'] = {"command": control_command_nde, "prob": 1, "location": vehicle_location}
+        control_command_negligence, neg_mode = None, None
 
-        # compute the control command after negligence
-        # avoid negligence when car is generated or at low speed
-        mingap = traci.vehicle.getMinGap(veh_id)
-        neg_mode = ""
+        # compute the control command with negligence, including TFL and car negligence
         control_command_and_mode_list = []
-        if veh_distance_from_departure >= 10:
-            # consider traffic light, leftfoll, rightfoll, lead negligence mode in order
-            if veh_speed >= 2:
-                control_command_after = self.tfl_negligence(veh_tfl, control_command_before)
-            if control_command_after is None:
-                for negligence_mode in negligence_mode_list:
-                    neg_obs_dict = obs_dict["local"].data[negligence_mode]
-                    if neg_obs_dict is not None:
-                        if neg_obs_dict["velocity"] < 0.5 and obs_dict['local'].data['Ego']['velocity'] < 0.5:
-                            continue
-                        if neg_obs_dict["distance"] < -2:
-                            continue
-                        elif negligence_mode == "Lead" and neg_obs_dict["distance"] > mingap and veh_speed < 2:
-                            continue
-                    control_command_after = self.car_negligence(obs_dict, negligence_mode, control_command_before)
-                    if control_command_after is not None:
-                        control_command_and_mode_list.append((control_command_after, negligence_mode))
-            else:
-                neg_mode = "TFL"
+        control_command_negligence_tfl = self.tfl_negligence(control_command_nde, veh_info)
+        if control_command_negligence_tfl is not None:
+            control_command_and_mode_list.append((control_command_negligence_tfl, "TFL"))
+        for car_negligence_mode in negligence_mode_list:
+            control_command_negligence_vehicle = self.car_negligence(obs_dict, car_negligence_mode, control_command_nde, veh_info)
+            if control_command_negligence_vehicle is not None:
+                control_command_and_mode_list.append((control_command_negligence_vehicle, car_negligence_mode))
 
         negligence_info = {}
         # assign the negligence command to control command
         if len(control_command_and_mode_list) > 0:
-            control_command_after, neg_mode = control_command_and_mode_list[0]
-        if control_command_after is not None:
-            # Variable negligence probability setting
-            negligence_prob, neg_info = self.get_negligence_prob(obs_dict, neg_mode)
-            # assert "negligence" in control_command_after or "tfl_red" in control_command_after
-            control_command_after["mode"] = neg_mode
-            control_command_after["info"] = neg_info
-            control_info['negligence'] = {"command": control_command_after, "prob": negligence_prob, "location": vehicle_location}
-            control_info['normal'] = {"command": control_command_before, "prob": 1 - negligence_prob, "location": vehicle_location}
+            control_command_negligence, neg_mode = control_command_and_mode_list[0]
+        if control_command_negligence is not None:
+            negligence_prob, predicted_collision_type = self.get_negligence_prob(obs_dict, neg_mode)
+            control_command_negligence["mode"] = "negligence"
+            control_command_negligence["info"] = {
+                "predicted_collision_type": predicted_collision_type,
+                "negligence_prob": negligence_prob,
+                "negligece_mode": neg_mode,
+                "location": vehicle_location,
+            }
+            control_info['negligence'] = {"command": control_command_negligence, "prob": negligence_prob, "location": vehicle_location}
+            control_info['normal'] = {"command": control_command_nde, "prob": 1 - negligence_prob, "location": vehicle_location}
             negligence_info = {neg_mode: {"command": control_command_after, "prob": 0, "location": vehicle_location} for control_command_after, neg_mode in control_command_and_mode_list}
             # select the control command based on the probability
             prob = np.random.uniform(0, 1)
             if prob < negligence_prob:
-                commands = control_command_after
+                commands = control_command_negligence
         return commands, control_info, negligence_info
     
     def decision(self, observation):
@@ -223,7 +235,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         action["type"] = "lon_lat"
         return action, action_dist, mode
     
-    def tfl_negligence(self, veh_tfl, control_command_before):
+    def tfl_negligence(self, control_command_nde, veh_info):
         """Traffic light negligence function
 
         Args:
@@ -234,16 +246,20 @@ class IDM_MOBIL_with_negligence(IDMModel):
         Returns:
             commands (dict): control command
         """
-        commands = None
-        if len(veh_tfl) == 4 and (veh_tfl[3] == 'r' or veh_tfl[3] == 'y') and veh_tfl[2] < 4:
-            commands = {}
-            commands.update(control_command_before)
-            commands['longitudinal'] = max(4, commands['longitudinal'])
-            commands["tfl_red"] = 1
-            commands["mode"] = "negligence"
-        return commands
+        veh_distance_from_departure = veh_info["veh_distance_from_departure"]
+        veh_speed = veh_info["veh_speed"]
+        veh_tfl = veh_info["veh_tfl"]
+        tfl_negligence_command = None
+        if veh_distance_from_departure >= 10 and veh_speed >= 2: # avoid negligence when car is generated or at low speed
+            if len(veh_tfl) == 4 and (veh_tfl[3] == 'r' or veh_tfl[3] == 'y') and veh_tfl[2] < 4:
+                tfl_negligence_command = {}
+                tfl_negligence_command.update(control_command_nde)
+                tfl_negligence_command['longitudinal'] = max(4, tfl_negligence_command['longitudinal'])
+                tfl_negligence_command["tfl_red"] = 1
+                tfl_negligence_command["mode"] = "negligence"
+        return tfl_negligence_command
 
-    def car_negligence(self, obs_dict, negligence_mode, control_command_before):
+    def car_negligence(self, obs_dict, negligence_mode, control_command_nde, veh_info):
         """Car negligence function
 
         Args:
@@ -254,22 +270,33 @@ class IDM_MOBIL_with_negligence(IDMModel):
         Returns:
             commands (dict): control command after negligence
         """
-        commands = None
-        if obs_dict["local"].data[negligence_mode] is not None:
-            # prepare the observation for negligence
-            tmp = obs_dict["local"].data[negligence_mode]
-            obs_dict["local"].data[negligence_mode] = None
-            # compute the control command after negligence
-            # commands, _ = super().derive_control_command_from_observation(obs_dict)
-            commands, _, _ = self.derive_control_command_from_obs_helper(obs_dict)
-            commands['car_negligence'] = 1
-            commands["mode"] = "negligence"
-            # restore the observation
-            obs_dict["local"].data[negligence_mode] = tmp
-            # judge the significance of negligence
-            if not self.has_siginificance(negligence_mode, control_command_before, commands):
-                commands = None
-        return commands
+        veh_distance_from_departure = veh_info["veh_distance_from_departure"]
+        veh_speed = veh_info["veh_speed"]
+        veh_id = veh_info["veh_id"]
+        mingap = traci.vehicle.getMinGap(veh_id)
+        car_negligence_command = None
+        if veh_distance_from_departure >= 10:
+            neg_obs_dict = obs_dict["local"].data[negligence_mode]
+            if neg_obs_dict is not None:
+                if neg_obs_dict["velocity"] < 0.5 and obs_dict['local'].data['Ego']['velocity'] < 0.5:
+                    return car_negligence_command
+                if neg_obs_dict["distance"] < -2:
+                    return car_negligence_command
+                elif negligence_mode == "Lead" and neg_obs_dict["distance"] > mingap and veh_speed < 2:
+                    return car_negligence_command
+
+                # prepare the observation for negligence
+                tmp = obs_dict["local"].data[negligence_mode]
+                obs_dict["local"].data[negligence_mode] = None
+                car_negligence_command, _, _ = self.derive_control_command_from_obs_helper(obs_dict)
+                car_negligence_command['car_negligence'] = 1
+                car_negligence_command["mode"] = "negligence"
+                # restore the observation
+                obs_dict["local"].data[negligence_mode] = tmp
+                # judge the significance of negligence
+                if not self.has_siginificance(negligence_mode, control_command_nde, car_negligence_command):
+                    car_negligence_command = None
+        return car_negligence_command
 
     @staticmethod
     def has_siginificance(negligence_mode, control_command_before, control_command_after):
