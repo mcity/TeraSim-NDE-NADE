@@ -69,7 +69,9 @@ class SafeTestNADE(SafeTestNDE):
         self._vehicle_in_env_distance("after")
         # Make decisions and execute commands
         control_cmds, infos = self.make_decisions()
-        ITE_control_cmds, weight = self.ITE_decision(control_cmds, infos) # enable ITE
+        infos, obs_dicts = self.get_observation_dicts(infos)
+        ITE_control_cmds, weight, trajectory_dicts, maneuver_challenge_dicts, criticality_dicts = self.ITE_decision(control_cmds, infos) # enable ITE
+        ITE_control_cmds = self.fix_intersection_decisions(ITE_control_cmds, obs_dicts, trajectory_dicts)
         # ITE_control_cmds = {veh_id: control_cmds[veh_id]["command"] for veh_id in control_cmds} # disable ITE
         # record the negligence mode
         # self.negligence_record(ITE_control_cmds)
@@ -81,6 +83,43 @@ class SafeTestNADE(SafeTestNDE):
         self.importance_sampling_weight *= weight # update the importance sampling weight
         # Simulation stop check
         return self.should_continue_simulation()
+    
+    def get_observation_dicts(self, infos):
+        obs_dicts = {}
+        for veh_id in infos:
+            obs_dicts[veh_id] = infos[veh_id]["obs_dict"]
+            infos[veh_id].pop("obs_dict")
+        return infos, obs_dicts
+    
+    def fix_intersection_decisions(self, control_cmds, obs_dicts, trajectory_dicts):
+        for veh_id in control_cmds:
+            if veh_id not in obs_dicts or veh_id not in trajectory_dicts:
+                continue
+            veh_control_cmd = control_cmds[veh_id]
+            veh_obs_dict = obs_dicts[veh_id]
+            obs_surrounding_veh_ids = [veh_obs_dict["local"].data[key]["veh_id"] for key in veh_obs_dict["local"].data if veh_obs_dict["local"].data[key]]
+            veh_predicted_trajectory_dict = trajectory_dicts[veh_id]
+            context_info = traci.vehicle.getContextSubscriptionResults(veh_id)
+            surrouding_vehicle_id_list = list(context_info.keys())
+            for surrounding_vehicle_id in surrouding_vehicle_id_list:
+                if surrounding_vehicle_id not in obs_dicts or surrounding_vehicle_id not in trajectory_dicts or surrounding_vehicle_id == veh_id:
+                    continue
+                if surrounding_vehicle_id in obs_surrounding_veh_ids:
+                    continue
+                surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
+                if self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["avoid_collision"]):
+                    print(f"veh_id: {veh_id}, surrounding_vehicle_id: {surrounding_vehicle_id}")
+                    control_cmds[veh_id] = { 
+                        "lateral": "central",
+                        "longitudinal": -9.0,
+                        "type": "lon_lat",
+                        "duration": 2.0,
+                        "mode": "avoid_collision",
+                    }
+                    break
+        return control_cmds
+
+            
 
     def final_state_log(self):
         # return f"weight: {Decimal(self.importance_sampling_weight):.2E}"
@@ -132,9 +171,7 @@ class SafeTestNADE(SafeTestNDE):
                     "maneuver_challenge": maneuver_challenge_dict[veh_id] if veh_id in maneuver_challenge_dict else None,
                     "criticality": criticality_dict[veh_id] if veh_id in criticality_dict else None,
                 }
-
-
-        return ITE_control_command_dict, weight
+        return ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
         for veh_id in neglected_vehicle_list:
@@ -468,7 +505,6 @@ class SafeTestNADE(SafeTestNDE):
             "position": new_position_list,
             "heading": new_heading_list,
             "modality": modality,
-            "control_command": control_command,
         }
 
     def predict_future_trajectory_dict(self, veh_id, time_horizon, time_resolution, ndd_decision_dict = None):
