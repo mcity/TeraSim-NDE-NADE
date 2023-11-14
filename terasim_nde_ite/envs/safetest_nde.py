@@ -81,6 +81,13 @@ class SafeTestNDE(EnvTemplate):
             colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
+            net = self.simulator.sumo_net
+            current_node = traci.vehicle.getRoadID(veh_1_id)
+            veh_1_lane_id = traci.vehicle.getLaneID(veh_1_id)
+            veh_2_lane_id = traci.vehicle.getLaneID(veh_2_id)
+            veh_1_link = traci.lane.getLinks(veh_1_lane_id)[0][0]
+            veh_2_link = traci.lane.getLinks(veh_2_lane_id)[0][0]
+            # foe_info = net.getNode(current_node).areFoes(veh_1_link, veh_2_link)
             self.monitor.save_observation(veh_1_id, veh_2_id)
             self.monitor.export_final_state(veh_1_id, veh_2_id, self.final_state_log(), "collision")
             return False

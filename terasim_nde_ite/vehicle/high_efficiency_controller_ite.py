@@ -58,7 +58,9 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
                 # if no route can reach the target edge, then let the vehicle go to the target edge
                 final_edge_id_in_new_route = final_edge_id_in_new_route if final_edge_id_in_new_route is not None else new_target_edge
                 traci.vehicle.changeTarget(veh_id, new_target_edge)
-        
+
+    def is_urban_lanechange(self, veh_edge_id):
+        return ("EG_1_1_1" not in veh_edge_id) and ("EG_1_3_1" not in veh_edge_id) and ("NODE_7_0" not in veh_edge_id)
 
     def execute_control_command(self, veh_id, control_command, obs_dict):
         """Vehicle acts based on the input action.
@@ -72,7 +74,7 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
 
         # # disable MOBIL lane change
         # control_command["lateral"] = "central"
-
+        utils.set_vehicle_speedmode(veh_id, 0)
         if not self.is_busy:    
             if negligence_flag or avoid_collision_flag:
                 utils.set_vehicle_speedmode(veh_id, 0)
@@ -80,9 +82,11 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
                     self.controlled_duration = self.neg_step_num  # begin counting the negligence timesteps
                     self.is_busy = True
             else:
-                # utils.set_vehicle_speedmode(veh_id, 1)
                 utils.set_vehicle_speedmode(veh_id)
-        
+
+        if avoid_collision_flag:
+            print(f"{veh_id}, acceleration: {control_command['longitudinal']}, duration: {control_command['duration']}, {traci.vehicle.getAcceleration(veh_id)}, {self.controlled_duration}")
+
         # Longitudinal control
         if control_command["longitudinal"] == "SUMO":
             utils.set_vehicle_speedmode(veh_id)
@@ -92,10 +96,8 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             current_velocity = obs_dict["ego"].data["speed"]
             if current_velocity + controlled_acc > self.params["v_high"]:
                 controlled_acc = self.params["v_high"] - current_velocity
-            elif current_velocity + controlled_acc < self.params["v_low"]:
-                controlled_acc = self.params["v_low"] - current_velocity
-        # Lateral control
-        # lane_keep_duration = self.params["acc_duration"]
+            # elif current_velocity + controlled_acc < self.params["v_low"]:
+            #     controlled_acc = self.params["v_low"] - current_velocity
         if negligence_flag:
             lane_keep_duration = self.params["neg_duration"]
         elif "duration" in control_command:
@@ -104,26 +106,38 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             lane_keep_duration = self.params["acc_duration"]
         if control_command["lateral"] == "SUMO":
             utils.set_vehicle_lanechangemode(veh_id)
-            if controlled_acc:
-                self.simulator.change_vehicle_speed(veh_id, controlled_acc, lane_keep_duration)
+            if controlled_acc is not None:
+                self.change_vehicle_speed(veh_id, controlled_acc, lane_keep_duration)
         else:
             
             if control_command["lateral"] == "central":
                 utils.set_vehicle_lanechangemode(veh_id, 512) # disable lane change in central mode
-                # current_lane_offset = utils.get_vehicle_lateral_lane_position(veh_id)
-                # self.simulator.change_vehicle_sublane_dist(veh_id, -current_lane_offset, self.step_size)
-                if controlled_acc:
-                    self.simulator.change_vehicle_speed(veh_id, controlled_acc, lane_keep_duration)
+                if controlled_acc is not None:
+                    self.change_vehicle_speed(veh_id, controlled_acc, lane_keep_duration)
             else:
-                # utils.set_vehicle_speedmode(veh_id, 1)
                 lane_change_mode = 0 if utils.get_distance(veh_id) > 10 else 512
                 utils.set_vehicle_lanechangemode(veh_id, lane_change_mode)
                 utils.set_vehicle_speedmode(veh_id)
                 self.simulator.change_vehicle_lane(veh_id, control_command["lateral"], self.params["lc_duration"])
-                if controlled_acc:
-                    self.simulator.change_vehicle_speed(veh_id, controlled_acc, self.params["lc_duration"])
+                if controlled_acc is not None:
+                    self.change_vehicle_speed(veh_id, controlled_acc, self.params["lc_duration"])
                 self.controlled_duration = self.lc_step_num + random.randint(5, 10) # begin counting the lane change maneuver timesteps
                 self.is_busy = True
                 vehicle_edge_id = obs_dict["local"].data["Ego"]["road_id"]
-                if "EG_1_1_1" not in vehicle_edge_id and "EG_1_3_1" not in vehicle_edge_id and "NODE_7_0" not in vehicle_edge_id: # vehicle not on highway
+                if self.is_urban_lanechange(vehicle_edge_id):
                     self.execute_urban_lanechange(veh_id, control_command, obs_dict)
+
+    def change_vehicle_speed(self, veh_id, acceleration, duration=1.0):
+        """Fix the acceleration of a vehicle to be a specified value in the specified duration.
+
+        Args:
+            vehID (str): Vehicle ID
+            acceleration (float): Specified acceleration of vehicle.
+            duration (float, optional): Specified time interval to fix the acceleration in s. Defaults to 1.0.
+        """        
+        # traci.vehicle.slowDown take duration + deltaT to reach the desired speed
+        initial_speed = traci.vehicle.getSpeed(veh_id)
+        final_duration = utils.get_step_size()+duration
+        if initial_speed + acceleration*final_duration < 0:
+            final_duration = -initial_speed/acceleration
+        traci.vehicle.setAcceleration(veh_id, acceleration, final_duration)

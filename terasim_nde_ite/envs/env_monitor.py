@@ -38,9 +38,9 @@ class EnvMonitor:
         self.env = env
         self.env.monitor = self
     
-    def add_observation(self, control_cmds):
+    def add_observation(self, control_cmds, obs_dicts):
         current_time = utils.get_time()
-        current_observation = self._record(control_cmds)
+        current_observation = self._record(control_cmds, obs_dicts)
         self.update_infos(current_time, current_observation)
         self._lru_collection()
 
@@ -77,9 +77,9 @@ class EnvMonitor:
             # self.vehicle_to_route.pop(veh_id)
             self.negligence_mode.pop(veh_id, "exit")
         
-    def _record(self, control_cmds):
+    def _record(self, control_cmds, obs_dicts=None):
         current_observation = {}
-        current_all_veh_obs = self._veh_obs()
+        current_all_veh_obs = self._veh_obs() if obs_dicts is None else obs_dicts
         for veh_id, control_cmd in control_cmds.items():
             if True:
                 current_veh_obs = {

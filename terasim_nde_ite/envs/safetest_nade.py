@@ -77,7 +77,7 @@ class SafeTestNADE(SafeTestNDE):
         # self.negligence_record(ITE_control_cmds)
         self.monitor.update_negligence_mode(ITE_control_cmds)
         # monitor the environment
-        self.monitor.add_observation(ITE_control_cmds)
+        self.monitor.add_observation(ITE_control_cmds, obs_dicts)
         # weight = 1.0 # disable ITE
         self.execute_control_commands(ITE_control_cmds)
         self.importance_sampling_weight *= weight # update the importance sampling weight
@@ -96,6 +96,8 @@ class SafeTestNADE(SafeTestNDE):
             if veh_id not in obs_dicts or veh_id not in trajectory_dicts:
                 continue
             veh_control_cmd = control_cmds[veh_id]
+            if "mode" in veh_control_cmd and (veh_control_cmd["mode"] == "avoid_collision" or veh_control_cmd["mode"] == "negligence"): # do not change the negligence or avoid_collision mode
+                continue
             veh_obs_dict = obs_dicts[veh_id]
             obs_surrounding_veh_ids = [veh_obs_dict["local"].data[key]["veh_id"] for key in veh_obs_dict["local"].data if veh_obs_dict["local"].data[key]]
             veh_predicted_trajectory_dict = trajectory_dicts[veh_id]
@@ -108,8 +110,9 @@ class SafeTestNADE(SafeTestNDE):
                     continue
                 surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
                 if self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["avoid_collision"]):
-                    print(f"veh_id: {veh_id}, surrounding_vehicle_id: {surrounding_vehicle_id}")
-                    control_cmds[veh_id] = { 
+                    current_simulation_time = utils.get_time()
+                    print(f"{current_simulation_time}, veh_id: {veh_id}, surrounding_vehicle_id: {surrounding_vehicle_id}, veh_speed: {veh_obs_dict['ego'].data['speed']}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, surrounding_vehicle_speed: {obs_dicts[surrounding_vehicle_id]['ego'].data['speed']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
+                    control_cmds[veh_id] = {
                         "lateral": "central",
                         "longitudinal": -9.0,
                         "type": "lon_lat",

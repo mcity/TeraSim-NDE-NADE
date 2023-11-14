@@ -21,8 +21,8 @@ class IDM_MOBIL_with_negligence(IDMModel):
         super().install()
         utils.set_vehicle_speedmode(self.vehicle.id)
         utils.set_vehicle_lanechangemode(self.vehicle.id)
-        traci.vehicle.setDecel(self.vehicle.id, 4)
-        self.vehicle.simulator.set_vehicle_emegency_deceleration(self.vehicle.id, 4)
+        traci.vehicle.setDecel(self.vehicle.id, 9)
+        self.vehicle.simulator.set_vehicle_emegency_deceleration(self.vehicle.id, 9)
     
     def get_negligence_prob(self, obs_dict, negligence_mode):
         # see here for lane to ["roundabout", "freeway", "intersection"]        
