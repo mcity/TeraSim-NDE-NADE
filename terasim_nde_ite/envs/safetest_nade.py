@@ -34,8 +34,8 @@ def collision_check(traj1, traj2):
             for p2 in center_list_2:
                 dist = cal_dist(p1, p2)
                 if dist <= 2*circle_r:
-                    return True
-    return False
+                    return True, time
+    return False, None
 
 def get_circle_center_list(traj_point):
     center1 = (traj_point["x_lon"], traj_point["x_lat"])
@@ -91,38 +91,66 @@ class SafeTestNADE(SafeTestNDE):
             infos[veh_id].pop("obs_dict")
         return infos, obs_dicts
     
-    def fix_intersection_decisions(self, control_cmds, obs_dicts, trajectory_dicts):
+    def fix_intersection_decisions(self, control_cmds, obs_dicts, trajectory_dicts, focus_id_list=None):
+        if focus_id_list:
+            control_cmds = {veh_id: control_cmds[veh_id] for veh_id in control_cmds if veh_id in focus_id_list}
+            obs_dicts = {veh_id: obs_dicts[veh_id] for veh_id in obs_dicts if veh_id in focus_id_list}
+            trajectory_dicts = {veh_id: trajectory_dicts[veh_id] for veh_id in trajectory_dicts if veh_id in focus_id_list}
         for veh_id in control_cmds:
+            # only apply to vehicle associated with normal control command
             if veh_id not in obs_dicts or veh_id not in trajectory_dicts:
                 continue
             veh_control_cmd = control_cmds[veh_id]
             if "mode" in veh_control_cmd and (veh_control_cmd["mode"] == "avoid_collision" or veh_control_cmd["mode"] == "negligence"): # do not change the negligence or avoid_collision mode
                 continue
+
+            # get surronding vehicles
             veh_obs_dict = obs_dicts[veh_id]
+            veh_lane_id = veh_obs_dict["local"].data["Ego"]["road_id"] + "_" + str(veh_obs_dict["local"].data["Ego"]["lane_index"])
+            veh_lane_internal_foe_lanes = traci.lane.getInternalFoes(veh_lane_id)
+            if not veh_lane_internal_foe_lanes:
+                continue
+
             obs_surrounding_veh_ids = [veh_obs_dict["local"].data[key]["veh_id"] for key in veh_obs_dict["local"].data if veh_obs_dict["local"].data[key]]
             veh_predicted_trajectory_dict = trajectory_dicts[veh_id]
             context_info = traci.vehicle.getContextSubscriptionResults(veh_id)
             surrouding_vehicle_id_list = list(context_info.keys())
+
             for surrounding_vehicle_id in surrouding_vehicle_id_list:
-                if surrounding_vehicle_id not in obs_dicts or surrounding_vehicle_id not in trajectory_dicts or surrounding_vehicle_id == veh_id:
+                surrounding_vehicle_obs_dict = obs_dicts[surrounding_vehicle_id]
+                surrounding_vehicle_obs_surrounding_veh_ids = [surrounding_vehicle_obs_dict["local"].data[key]["veh_id"] for key in surrounding_vehicle_obs_dict["local"].data if surrounding_vehicle_obs_dict["local"].data[key]]
+                # no surrounding vehicle information
+                # if surrounding_vehicle_id not in obs_dicts or surrounding_vehicle_id not in trajectory_dicts or surrounding_vehicle_id == veh_id:
+                #     continue
+                # veh has observed the surrounding vehicle
+                # if surrounding_vehicle_id in obs_surrounding_veh_ids or veh_id in surrounding_vehicle_obs_surrounding_veh_ids:
+                #     continue
+                # surrounding vehicle is not in the foe lanes
+                surrouding_veh_lane_id = context_info[surrounding_vehicle_id][81]
+                if surrouding_veh_lane_id not in veh_lane_internal_foe_lanes:
                     continue
-                if surrounding_vehicle_id in obs_surrounding_veh_ids:
-                    continue
+
+                # print(f"surrounding vehicle {surrounding_vehicle_id} is in the foe lanes of {veh_id}")
+
                 surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
-                if self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["avoid_collision"]):
-                    current_simulation_time = utils.get_time()
-                    print(f"{current_simulation_time}, veh_id: {veh_id}, surrounding_vehicle_id: {surrounding_vehicle_id}, veh_speed: {veh_obs_dict['ego'].data['speed']}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, surrounding_vehicle_speed: {obs_dicts[surrounding_vehicle_id]['ego'].data['speed']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
-                    control_cmds[veh_id] = {
-                        "lateral": "central",
-                        "longitudinal": -9.0,
-                        "type": "lon_lat",
-                        "duration": 2.0,
-                        "mode": "avoid_collision",
-                    }
+                collision_check, collision_timestep = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["normal"])
+
+                
+                
+                if collision_check:
+                    ego_distance_to_collision = self.calculate_distance(veh_predicted_trajectory_dict["normal"]["position"][collision_timestep],veh_predicted_trajectory_dict["initial"]["position"])
+                    surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
+                    if ego_distance_to_collision > surrounding_distance_to_collision:
+                        current_simulation_time = utils.get_time()
+                        print(f"{current_simulation_time}, veh_id: {veh_id}, surrounding_vehicle_id: {surrounding_vehicle_id}, veh_speed: {veh_obs_dict['ego'].data['speed']}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, surrounding_vehicle_speed: {obs_dicts[surrounding_vehicle_id]['ego'].data['speed']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
+                        veh_obs_dict["local"].data["Lead"] = surrounding_vehicle_obs_dict["local"].data["Ego"]
+                        veh_obs_dict["local"].data["Lead"]["distance"] = ego_distance_to_collision
+                        control_cmds[veh_id], _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
                     break
         return control_cmds
 
-            
+    def calculate_distance(self, point1, point2):
+        return math.sqrt((point1[0]-point2[0])**2+(point1[1]-point2[1])**2)
 
     def final_state_log(self):
         # return f"weight: {Decimal(self.importance_sampling_weight):.2E}"
@@ -299,10 +327,8 @@ class SafeTestNADE(SafeTestNDE):
             for veh_id in all_normal_veh_future:
                 if veh_id == negligence_veh_id:
                     continue
-                if self.is_intersect(negligence_veh_future, all_normal_veh_future[veh_id]):
-                    # if highlight_flag:
-                    #     utils.highlight_vehicle(veh_id, duration=2)
-                    #     utils.highlight_vehicle(negligence_veh_id, duration=2)
+                collision_flag, _ = self.is_intersect(negligence_veh_future, all_normal_veh_future[veh_id])
+                if collision_flag:
                     maneuver_challenge_info[veh_id] = 1
         return {"maneuver_challenge": int(len(maneuver_challenge_info) > 0), "info": maneuver_challenge_info} # the first element is the number of vehicles that will be affected by the negligence vehicle
     
@@ -318,7 +344,7 @@ class SafeTestNADE(SafeTestNDE):
             bool: True if the trajectories intersect, False otherwise.
         """
         if cal_dist(trajectory1["position"][0], trajectory2["position"][0]) > 30:
-            return False
+            return False, None
 
         time_steps = min(len(trajectory1["position"]), len(trajectory2["position"]))
         trajectory1_position = [Point(position_tuple) for position_tuple in trajectory1["position"]]
@@ -337,9 +363,9 @@ class SafeTestNADE(SafeTestNDE):
 
         # three circle collision check
         # ! the vehicle length thing should not be hard coded
-        collision_check_result = collision_check(traj_1_dict, traj_2_dict)
+        collision_check_result, collision_timestep = collision_check(traj_1_dict, traj_2_dict)
         if collision_check_result:
-            return True
+            return True, collision_timestep
 
         for i in range(time_steps - 1):
             segment1_start = trajectory1_position[i]
@@ -348,9 +374,9 @@ class SafeTestNADE(SafeTestNDE):
             segment2_end = trajectory2_position[i + 1]
 
             if self.do_segments_intersect(segment1_start, segment1_end, segment2_start, segment2_end):
-                return True
+                return True, i
 
-        return False
+        return False, None
     
     def do_segments_intersect(self, segment1_start, segment1_end, segment2_start, segment2_end):
         """Check if two line segments intersect.

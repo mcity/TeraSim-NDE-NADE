@@ -1,11 +1,13 @@
+import os, sys
+sys.path.append("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE")
+dir_path = os.path.dirname(os.path.realpath(__file__))
+
 from terasim.simulator import Simulator
 from terasim_nde_ite.envs.env_monitor import EnvMonitor
 from terasim_nde_ite.envs.safetest_nade import SafeTestNADE
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_ite.vehicle.safetest_vehicle_factory import SafetestVehicleFactory
 import argparse
-import os
-dir_path = os.path.dirname(os.path.realpath(__file__))
 
 parser = argparse.ArgumentParser(description='Run simulation.')
 parser.add_argument('--dir', type=str, help='output directory', default="output")
@@ -25,7 +27,7 @@ sim = Simulator(
     sumo_net_file_path = dir_path+'/maps/Mcity_safetest/mcity.net.xml',
     sumo_config_file_path = dir_path+'/maps/Mcity_safetest/mcity.sumocfg',
     num_tries=10,
-    gui_flag=True,
+    gui_flag=False,
     output_path=f"{args.dir}/{args.exp_name}/raw_data/{args.exp_name}_{args.nth}",
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
