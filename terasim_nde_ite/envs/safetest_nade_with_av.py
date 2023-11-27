@@ -35,17 +35,13 @@ class SafeTestNADEWithAV(SafeTestNADE):
         weight = 1.0
         # ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["command"] for veh_id in ndd_control_command_dict}
         ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"] for veh_id in ndd_control_command_dict}
-        
-        default_max_IS_prob = 0.01 # epsilon = 0.95 importance sampling
         for veh_id in criticality_dict:
             if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
                 sampled_prob = np.random.uniform(0, 1)
                 ndd_normal_prob = ndd_control_command_dict[veh_id]["ndd"]["normal"]["prob"]
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
-                IS_prob = default_max_IS_prob
-                # infos_dict = self.get_cav_info(utils.get_time(), veh_id, IS_prob, criticality_dict, ndd_control_command_dict)
-                # self.monitor.update_critical_moment_info(veh_id, infos_dict)                
+                IS_prob = self.importance_sampling_prob           
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]

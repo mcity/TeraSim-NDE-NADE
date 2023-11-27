@@ -79,8 +79,11 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             if negligence_flag or avoid_collision_flag:
                 utils.set_vehicle_speedmode(veh_id, 0)
                 if not self.is_busy:
-                    self.controlled_duration = self.neg_step_num  # begin counting the negligence timesteps
                     self.is_busy = True
+                    if negligence_flag:
+                        self.controlled_duration = self.neg_step_num  # begin counting the negligence timesteps
+                    elif avoid_collision_flag:
+                        self.controlled_duration = self.calculate_decelerate_duration(veh_id, control_command["longitudinal"])
             else:
                 utils.set_vehicle_speedmode(veh_id)
 
@@ -127,6 +130,22 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
                 if self.is_urban_lanechange(vehicle_edge_id):
                     self.execute_urban_lanechange(veh_id, control_command, obs_dict)
 
+    def calculate_decelerate_duration(self, veh_id, deceleration):
+        """Calculate the duration to decelerate to a certain speed.
+
+        Args:
+            veh_id (str): Vehicle ID
+            deceleration (float): Specified deceleration of vehicle.
+
+        Returns:
+            float: The duration to decelerate to a certain speed.
+        """        
+        current_speed = traci.vehicle.getSpeed(veh_id)
+        if deceleration >= 0:
+            return 1
+        else:
+            return max(1, int(-current_speed/deceleration * 10)+1)
+
     def change_vehicle_speed(self, veh_id, acceleration, duration=1.0):
         """Fix the acceleration of a vehicle to be a specified value in the specified duration.
 
@@ -139,5 +158,5 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
         initial_speed = traci.vehicle.getSpeed(veh_id)
         final_duration = utils.get_step_size()+duration
         if initial_speed + acceleration*final_duration < 0:
-            final_duration = -initial_speed/acceleration
+            final_duration = self.calculate_decelerate_duration(veh_id, acceleration)
         traci.vehicle.setAcceleration(veh_id, acceleration, final_duration)

@@ -62,6 +62,7 @@ class SafeTestNADE(SafeTestNDE):
 
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
+        self.importance_sampling_prob = 0.1
         return super().on_start(ctx)
 
     # @profile
@@ -82,7 +83,11 @@ class SafeTestNADE(SafeTestNDE):
         self.execute_control_commands(ITE_control_cmds)
         self.importance_sampling_weight *= weight # update the importance sampling weight
         # Simulation stop check
-        return self.should_continue_simulation()
+        a = self.should_continue_simulation()
+        # if not a:
+        #     focus_list = traci.simulation.getCollidingVehiclesIDList()
+        #     w = self.fix_intersection_decisions(ITE_control_cmds, obs_dicts, trajectory_dicts, focus_list)
+        return a
     
     def get_observation_dicts(self, infos):
         obs_dicts = {}
@@ -120,11 +125,11 @@ class SafeTestNADE(SafeTestNDE):
                 surrounding_vehicle_obs_dict = obs_dicts[surrounding_vehicle_id]
                 surrounding_vehicle_obs_surrounding_veh_ids = [surrounding_vehicle_obs_dict["local"].data[key]["veh_id"] for key in surrounding_vehicle_obs_dict["local"].data if surrounding_vehicle_obs_dict["local"].data[key]]
                 # no surrounding vehicle information
-                # if surrounding_vehicle_id not in obs_dicts or surrounding_vehicle_id not in trajectory_dicts or surrounding_vehicle_id == veh_id:
-                #     continue
+                if surrounding_vehicle_id not in obs_dicts or surrounding_vehicle_id not in trajectory_dicts or surrounding_vehicle_id == veh_id:
+                    continue
                 # veh has observed the surrounding vehicle
-                # if surrounding_vehicle_id in obs_surrounding_veh_ids or veh_id in surrounding_vehicle_obs_surrounding_veh_ids:
-                #     continue
+                if surrounding_vehicle_id in obs_surrounding_veh_ids or veh_id in surrounding_vehicle_obs_surrounding_veh_ids:
+                    continue
                 # surrounding vehicle is not in the foe lanes
                 surrouding_veh_lane_id = context_info[surrounding_vehicle_id][81]
                 if surrouding_veh_lane_id not in veh_lane_internal_foe_lanes:
@@ -142,10 +147,12 @@ class SafeTestNADE(SafeTestNDE):
                     surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
                     if ego_distance_to_collision > surrounding_distance_to_collision:
                         current_simulation_time = utils.get_time()
-                        print(f"{current_simulation_time}, veh_id: {veh_id}, surrounding_vehicle_id: {surrounding_vehicle_id}, veh_speed: {veh_obs_dict['ego'].data['speed']}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, surrounding_vehicle_speed: {obs_dicts[surrounding_vehicle_id]['ego'].data['speed']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
+
                         veh_obs_dict["local"].data["Lead"] = surrounding_vehicle_obs_dict["local"].data["Ego"]
                         veh_obs_dict["local"].data["Lead"]["distance"] = ego_distance_to_collision
                         control_cmds[veh_id], _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                        print(
+                            f"{current_simulation_time}, veh_id: {veh_id}, control_command: {control_cmds[veh_id]}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'].data['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
                     break
         return control_cmds
 
@@ -206,6 +213,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
         for veh_id in neglected_vehicle_list:
+            print(f"time: {utils.get_time()}, neglected vehicle: {veh_id} avoid collision")
             ITE_control_command_dict[veh_id] = {
                 "lateral": "central",
                 "longitudinal": -9.0,
@@ -237,15 +245,13 @@ class SafeTestNADE(SafeTestNDE):
         """
         weight = 1.0
         ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"] for veh_id in ndd_control_command_dict}
-        
-        default_max_IS_prob = 0.1 # epsilon = 0.95 importance sampling
         for veh_id in criticality_dict:
             if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
                 sampled_prob = np.random.uniform(0, 1)
                 ndd_normal_prob = ndd_control_command_dict[veh_id]["ndd"]["normal"]["prob"]
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
-                IS_prob = default_max_IS_prob
+                IS_prob = self.importance_sampling_prob
                 # IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, default_max_IS_prob)
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
@@ -552,8 +558,9 @@ class SafeTestNADE(SafeTestNDE):
         # include the original position
         duration_list = [time_horizon_id*time_resolution for time_horizon_id in range(time_horizon+1)]
         trajectory_dict = {}
+        center_position = sumo_coordinate_to_center_coordinate(veh_info['position'][0], veh_info['position'][1], sumo_heading_to_orientation(veh_info['heading']), veh_info["length"])
         trajectory_dict["initial"] = {
-            "position": veh_info['position'],
+            "position": center_position,
             "velocity": veh_info['velocity'],
             "heading": veh_info['heading'],
         }
