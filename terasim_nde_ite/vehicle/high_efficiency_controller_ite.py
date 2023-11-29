@@ -42,6 +42,7 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
         if self.is_busy:
             assert self.controlled_duration >= 0
             if self.avoid_collision_flag:
+                # print(f"avoid collision: {veh_id}, {self.controlled_duration}, {traci.vehicle.getAcceleration(veh_id)}, {traci.vehicle.getSpeed(veh_id)}")
                 self.change_vehicle_speed(veh_id, -9, 0.1)
             if self.controlled_duration == 0:
                 self.is_busy = False
@@ -112,8 +113,8 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             else:
                 utils.set_vehicle_speedmode(veh_id)
 
-        if avoid_collision_flag:
-            print(f"{veh_id}, acceleration: {control_command['longitudinal']}, duration: {control_command['duration']}, {traci.vehicle.getAcceleration(veh_id)}, {self.controlled_duration}")
+        # if avoid_collision_flag:
+        #     print(f"{veh_id}, acceleration: {control_command['longitudinal']}, {traci.vehicle.getAcceleration(veh_id)}, {self.controlled_duration}")
 
         # Longitudinal control
         if control_command["longitudinal"] == "SUMO":

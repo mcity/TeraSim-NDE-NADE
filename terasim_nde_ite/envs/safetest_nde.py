@@ -5,7 +5,7 @@ from terasim.overlay import traci
 
 class SafeTestNDE(EnvTemplate):
 
-    def __init__(self, vehicle_factory, info_extractor, warmup_time_lb=900, warmup_time_ub=1200, run_time=720):
+    def __init__(self, vehicle_factory, info_extractor, warmup_time_lb=900, warmup_time_ub=1200, run_time=300):
         rng = np.random.default_rng()
         self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub)) # 12 minutes
         self.run_time = run_time # 5 minutes
