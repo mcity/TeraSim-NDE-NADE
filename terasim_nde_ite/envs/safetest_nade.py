@@ -92,6 +92,15 @@ class SafeTestNADE(SafeTestNDE):
             infos[veh_id].pop("obs_dict")
         return infos, obs_dicts
     
+    def get_time_to_collision(self, distance, speed):
+        if distance <= 0:
+            ttc = 0
+        elif speed <= 0:
+            ttc = 100
+        else:
+            ttc = distance / speed
+        return ttc
+    
     def fix_intersection_decisions(self, control_cmds, obs_dicts, trajectory_dicts, focus_id_list=None):
         if focus_id_list:
             control_cmds = {veh_id: control_cmds[veh_id] for veh_id in control_cmds if veh_id in focus_id_list}
@@ -140,7 +149,9 @@ class SafeTestNADE(SafeTestNDE):
                 if collision_check:
                     ego_distance_to_collision = self.calculate_distance(veh_predicted_trajectory_dict["normal"]["position"][collision_timestep],veh_predicted_trajectory_dict["initial"]["position"])
                     surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
-                    if ego_distance_to_collision > surrounding_distance_to_collision:
+                    ego_time_to_collision = self.get_time_to_collision(ego_distance_to_collision, veh_obs_dict["local"].data["Ego"]["velocity"])
+                    surrounding_time_to_collision = self.get_time_to_collision(surrounding_distance_to_collision, surrounding_vehicle_obs_dict["local"].data["Ego"]["velocity"])
+                    if ego_time_to_collision > surrounding_time_to_collision:
                         current_simulation_time = utils.get_time()
 
                         veh_obs_dict["local"].data["Lead"] = surrounding_vehicle_obs_dict["local"].data["Ego"]

@@ -21,7 +21,7 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             "acc_duration": 0.1,  # the acceleration duration will be 0.1 second
             "lc_duration": 1,  # the lane change duration will be 1 second
             "neg_duration": 2, # the negligence duration will be 2 second
-            "avoid_collision_duration": 2, # the duration to avoid collision will be 2 second
+            "avoid_collision_duration": 3, # the duration to avoid collision will be 2 second
         }
     
     def __init__(self, simulator, params=None):
