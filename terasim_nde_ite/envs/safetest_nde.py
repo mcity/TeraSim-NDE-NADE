@@ -9,6 +9,7 @@ class SafeTestNDE(EnvTemplate):
         rng = np.random.default_rng()
         self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub)) # 12 minutes
         self.run_time = run_time # 5 minutes
+        print("warmup_time", self.warmup_time, "run_time", self.run_time)
         super().__init__(vehicle_factory, info_extractor)
 
     def on_start(self, ctx):
