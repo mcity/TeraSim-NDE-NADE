@@ -1,14 +1,15 @@
+import json
 import os, sys
 sys.path.append("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE")
-dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path = "/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE/example/"
 
+from pathlib import Path
 from terasim.simulator import Simulator
 from terasim_nde_ite.envs.env_monitor import EnvMonitor
 from terasim_nde_ite.envs.safetest_nade import SafeTestNADE
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_ite.vehicle.safetest_vehicle_factory import SafetestVehicleFactory
 import argparse
-
 parser = argparse.ArgumentParser(description='Run simulation.')
 parser.add_argument('--dir', type=str, help='output directory', default="output")
 parser.add_argument('--name', type=str, help='experiment name', default="test")
@@ -33,4 +34,26 @@ sim = Simulator(
 )
 monitor.bind_env(env)
 sim.bind_env(env)
-sim.run()
+
+sim.start()
+
+control_cmds = {}
+obs_dicts = {}
+trajectory_dicts = {}
+
+monitor_json_path = Path("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE/example/output/ITE_test_20231128-112921/raw_data/ITE_test_20231128-112921_0/monitor.json")
+
+with open(monitor_json_path, "r") as f:
+    monitor_json = json.load(f)
+
+print(monitor_json.keys())
+
+timestep = list(monitor_json.keys())[-1]
+for veh_id in monitor_json[timestep]:
+    control_cmds[veh_id] = monitor_json[timestep][veh_id]["cmd"]
+    obs_dicts[veh_id] = monitor_json[timestep][veh_id]["obs"]
+    trajectory_dicts[veh_id] = monitor_json[timestep][veh_id]["cmd"]["info"]["trajectory_prediction"]
+
+control_commands = env.fix_intersection_decisions_helper(control_cmds, obs_dicts, trajectory_dicts, focus_id_list=list(control_cmds.keys()))
+
+print("aaa")

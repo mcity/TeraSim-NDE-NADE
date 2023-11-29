@@ -151,3 +151,6 @@ cosim_test_localcomputer/
 demo.py
 *.lprof
 .idea/
+
+example/videos
+example/output

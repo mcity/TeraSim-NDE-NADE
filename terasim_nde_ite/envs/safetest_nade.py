@@ -83,11 +83,7 @@ class SafeTestNADE(SafeTestNDE):
         self.execute_control_commands(ITE_control_cmds)
         self.importance_sampling_weight *= weight # update the importance sampling weight
         # Simulation stop check
-        a = self.should_continue_simulation()
-        # if not a:
-        #     focus_list = traci.simulation.getCollidingVehiclesIDList()
-        #     w = self.fix_intersection_decisions(ITE_control_cmds, obs_dicts, trajectory_dicts, focus_list)
-        return a
+        return self.should_continue_simulation()
     
     def get_observation_dicts(self, infos):
         obs_dicts = {}
@@ -121,6 +117,7 @@ class SafeTestNADE(SafeTestNDE):
             context_info = traci.vehicle.getContextSubscriptionResults(veh_id)
             surrouding_vehicle_id_list = list(context_info.keys())
 
+            available_control_commands = [veh_control_cmd]
             for surrounding_vehicle_id in surrouding_vehicle_id_list:
                 surrounding_vehicle_obs_dict = obs_dicts[surrounding_vehicle_id]
                 surrounding_vehicle_obs_surrounding_veh_ids = [surrounding_vehicle_obs_dict["local"].data[key]["veh_id"] for key in surrounding_vehicle_obs_dict["local"].data if surrounding_vehicle_obs_dict["local"].data[key]]
@@ -135,13 +132,11 @@ class SafeTestNADE(SafeTestNDE):
                 if surrouding_veh_lane_id not in veh_lane_internal_foe_lanes:
                     continue
 
-                # print(f"surrounding vehicle {surrounding_vehicle_id} is in the foe lanes of {veh_id}")
+                print(f"surrounding vehicle {surrounding_vehicle_id} is in the foe lanes of {veh_id}")
 
                 surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
                 collision_check, collision_timestep = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["normal"])
 
-                
-                
                 if collision_check:
                     ego_distance_to_collision = self.calculate_distance(veh_predicted_trajectory_dict["normal"]["position"][collision_timestep],veh_predicted_trajectory_dict["initial"]["position"])
                     surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
@@ -150,11 +145,91 @@ class SafeTestNADE(SafeTestNDE):
 
                         veh_obs_dict["local"].data["Lead"] = surrounding_vehicle_obs_dict["local"].data["Ego"]
                         veh_obs_dict["local"].data["Lead"]["distance"] = ego_distance_to_collision
-                        control_cmds[veh_id], _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                        new_control_command_tmp, _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                        available_control_commands.append(new_control_command_tmp)
                         print(
-                            f"{current_simulation_time}, veh_id: {veh_id}, control_command: {control_cmds[veh_id]}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'].data['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
-                    break
+                            f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'].data['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
+            if len(available_control_commands) > 2:
+                print("aaa")
+            control_cmds[veh_id] = self.select_most_conservative_control_command(available_control_commands)
         return control_cmds
+    
+    def fix_intersection_decisions_helper(self, control_cmds, obs_dicts, trajectory_dicts, focus_id_list=None):
+        if focus_id_list:
+            control_cmds = {veh_id: control_cmds[veh_id] for veh_id in control_cmds if veh_id in focus_id_list}
+            obs_dicts = {veh_id: obs_dicts[veh_id] for veh_id in obs_dicts if veh_id in focus_id_list}
+            trajectory_dicts = {veh_id: trajectory_dicts[veh_id] for veh_id in trajectory_dicts if veh_id in focus_id_list}
+        for veh_id in control_cmds:
+            # only apply to vehicle associated with normal control command
+            if veh_id not in obs_dicts or veh_id not in trajectory_dicts:
+                continue
+            veh_control_cmd = control_cmds[veh_id]
+            if "mode" in veh_control_cmd and (veh_control_cmd["mode"] == "avoid_collision" or veh_control_cmd["mode"] == "negligence"): # do not change the negligence or avoid_collision mode
+                continue
+
+            # get surronding vehicles
+            veh_obs_dict = obs_dicts[veh_id]
+            veh_lane_id = veh_obs_dict["local"][0]["Ego"]["road_id"] + "_" + str(veh_obs_dict["local"][0]["Ego"]["lane_index"])
+            veh_lane_internal_foe_lanes = traci.lane.getInternalFoes(veh_lane_id)
+            if not veh_lane_internal_foe_lanes:
+                continue
+
+            obs_surrounding_veh_ids = [veh_obs_dict["local"][0][key]["veh_id"] for key in veh_obs_dict["local"][0] if veh_obs_dict["local"][0][key]]
+            veh_predicted_trajectory_dict = trajectory_dicts[veh_id]
+            surrouding_vehicle_id_list = focus_id_list
+
+            available_control_commands = [veh_control_cmd]
+            for surrounding_vehicle_id in surrouding_vehicle_id_list:
+                surrounding_vehicle_obs_dict = obs_dicts[surrounding_vehicle_id]
+                surrounding_vehicle_obs_surrounding_veh_ids = [surrounding_vehicle_obs_dict["local"][0][key]["veh_id"] for key in surrounding_vehicle_obs_dict["local"][0] if surrounding_vehicle_obs_dict["local"][0][key]]
+                # no surrounding vehicle information
+                if surrounding_vehicle_id not in obs_dicts or surrounding_vehicle_id not in trajectory_dicts or surrounding_vehicle_id == veh_id:
+                    continue
+                # veh has observed the surrounding vehicle
+                if surrounding_vehicle_id in obs_surrounding_veh_ids or veh_id in surrounding_vehicle_obs_surrounding_veh_ids:
+                    continue
+                # surrounding vehicle is not in the foe lanes
+                surrouding_veh_lane_id = surrounding_vehicle_obs_dict["local"][0]["Ego"]["road_id"] + "_" + str(surrounding_vehicle_obs_dict["local"][0]["Ego"]["lane_index"])
+                
+                if surrouding_veh_lane_id not in veh_lane_internal_foe_lanes:
+                    continue
+
+                print(f"surrounding vehicle {surrounding_vehicle_id} is in the foe lanes of {veh_id}")
+
+                surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
+                collision_check, collision_timestep = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["normal"])
+                collision_check2, collision_timestep2 = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["avoid_collision"])
+                collision_check3, collision_timestep3 = self.is_intersect(veh_predicted_trajectory_dict["avoid_collision"], surrounding_vehicle_predicted_trajectory_dict["normal"])
+
+                if collision_check:
+                    ego_distance_to_collision = self.calculate_distance(veh_predicted_trajectory_dict["normal"]["position"][collision_timestep],veh_predicted_trajectory_dict["initial"]["position"])
+                    surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
+                    if ego_distance_to_collision > surrounding_distance_to_collision:
+                        current_simulation_time = utils.get_time()
+
+                        veh_obs_dict["local"][0]["Lead"] = surrounding_vehicle_obs_dict["local"][0]["Ego"]
+                        veh_obs_dict["local"][0]["Lead"]["distance"] = ego_distance_to_collision
+                        new_control_command_tmp, _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                        available_control_commands.append(new_control_command_tmp)
+                        print(
+                            f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'][0]['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
+                control_cmds[veh_id] = self.select_most_conservative_control_command(available_control_commands)
+        return control_cmds
+
+    def select_most_conservative_control_command(self, control_commands):
+        """Select the most conservative control command from the given control commands.
+
+        Args:
+            control_commands (list): the list of control commands
+
+        Returns:
+            control_command (dict): the most conservative control command
+        """
+        # remove the control command in control_commands which does not have longitudinal
+        control_commands = [control_command for control_command in control_commands if "longitudinal" in control_command]
+        # select the control command with smallest longitudinal acceleration
+        control_commands = sorted(control_commands, key=lambda x: x["longitudinal"])
+        return control_commands[0]
 
     def calculate_distance(self, point1, point2):
         return math.sqrt((point1[0]-point2[0])**2+(point1[1]-point2[1])**2)
@@ -218,7 +293,6 @@ class SafeTestNADE(SafeTestNDE):
                 "lateral": "central",
                 "longitudinal": -9.0,
                 "type": "lon_lat",
-                "duration": 2.0,
                 "mode": "avoid_collision",
             }
         return ITE_control_command_dict
@@ -227,7 +301,7 @@ class SafeTestNADE(SafeTestNDE):
         neglect_pair_list = []
         for veh_id in control_command_dict:
             control_command = control_command_dict[veh_id]
-            if "mode" in control_command: # neglegence happens
+            if "mode" in control_command and control_command["mode"] == "negligence":
                 neglecting_vehicle_id = veh_id
                 neglected_vehicle_id = list(maneuver_challenge_info[neglecting_vehicle_id].keys())[0]
                 neglect_pair_list.append((neglecting_vehicle_id, neglected_vehicle_id))
@@ -501,7 +575,7 @@ class SafeTestNADE(SafeTestNDE):
         # get the displacement of the vehicle in each step
         future_distance_list_delta = np.diff(future_distance_list, prepend=0)
         new_lane_position = veh_info["lane_position"]
-        for lane_position_delta in future_distance_list_delta:
+        for i, lane_position_delta in enumerate(future_distance_list_delta):
             new_lane_position += lane_position_delta
             # find the road id and lane_position of the vehicle after the duration
             while (new_lane_position > current_lane_length) and (veh_info["route_id_list"].index(road_id) < len(veh_info["route_id_list"]) - 1):
@@ -529,6 +603,12 @@ class SafeTestNADE(SafeTestNDE):
             
             # change the lane position and index to global position
             new_position = traci.simulation.convert2D(road_id, new_lane_position, new_lane_index)
+            # if i == 0:
+            #     original_position = veh_info["position"]
+            #     distance = self.calculate_distance(original_position, new_position)
+            #     if new_lane_index == veh_info["lane_index"] and distance > 1:
+            #         print(distance)
+            #         print("aaa")
             new_heading = traci.lane.getAngle(new_lane_id, new_lane_position)
             new_position_center = sumo_coordinate_to_center_coordinate(new_position[0], new_position[1], sumo_heading_to_orientation(new_heading), veh_info["length"])
             new_position_list.append(new_position_center)

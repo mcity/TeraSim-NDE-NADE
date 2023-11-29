@@ -220,7 +220,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
             tmp_acc = self.IDM_acceleration(ego_vehicle=ego_vehicle, front_vehicle=front_vehicle)
         else:
             tmp_acc = self.stochastic_IDM_acceleration(ego_vehicle=ego_vehicle, front_vehicle=front_vehicle)
-        tmp_acc = np.clip(tmp_acc, self.acc_low, self.acc_high)
+        tmp_acc = np.clip(tmp_acc, -9, self.acc_high)
         central_action = {"lateral": "central" if self.MOBIL_lc_flag else "SUMO", "longitudinal": tmp_acc, "type": "lon_lat"}
         
         action_dist = {
