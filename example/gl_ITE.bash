@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=7gb
-#SBATCH --array=0-499 # how many workers you are using
+#SBATCH --array=0-29 # how many workers you are using
 #SBATCH --time=00-02:00:00 # time duration
 #SBATCH --account=henryliu98
 #SBATCH --partition=standard
@@ -18,14 +18,15 @@
 ulimit -c 0
 cd /home/haoweis
 source .bashrc
-cd /home/haoweis/Safe-Test-TeraSim
+cd /home/haoweis/TeraSim-NDE-ITE
 module load python/3.10.4
-source /home/haoweis/Safe-Test-TeraSim/venv/bin/activate
+source /home/haoweis/TeraSim-NDE-ITE/venv/bin/activate
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export HAS_LIBSUMO=1
 
-experiment_name="ITE_calibration_change_2roundabout_out_priority_change_map"
+# add time stamp to experiment name
+experiment_name="ITE_refactor_test" + $(date +%Y%m%d_%H%M%S)
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
