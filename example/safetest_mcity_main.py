@@ -1,5 +1,5 @@
 import os, sys
-sys.path.append("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE")
+sys.path.append("/home/haoweis/TeraSim-NDE-ITE/")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 from terasim.simulator import Simulator
@@ -17,7 +17,7 @@ args = parser.parse_args()
 
 monitor = EnvMonitor(
     log_dir=f"{args.dir}/{args.name}/raw_data",
-    exp_id=f"{args.name}_{args.nth}",
+    exp_id=f"{args.nth}",
 )
 env = SafeTestNADE(
     vehicle_factory = SafetestVehicleFactory(lane_config_path=dir_path+'/maps/Mcity_safetest/lane_config.json'),
@@ -28,7 +28,7 @@ sim = Simulator(
     sumo_config_file_path = dir_path+'/maps/Mcity_safetest/mcity.sumocfg',
     num_tries=10,
     gui_flag=False,
-    output_path=f"{args.dir}/{args.name}/raw_data/{args.name}_{args.nth}",
+    output_path=f"{args.dir}/{args.name}/raw_data/{args.nth}",
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
 monitor.bind_env(env)
