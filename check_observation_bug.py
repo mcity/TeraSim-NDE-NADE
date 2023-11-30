@@ -41,7 +41,7 @@ control_cmds = {}
 obs_dicts = {}
 trajectory_dicts = {}
 
-monitor_json_path = Path("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE/example/output/ITE_test_20231128-112921/raw_data/ITE_test_20231128-112921_0/monitor.json")
+monitor_json_path = Path("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE/example/output/ITE_test_20231129-160821/raw_data/ITE_test_20231129-160821_0/monitor.json")
 
 with open(monitor_json_path, "r") as f:
     monitor_json = json.load(f)

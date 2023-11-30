@@ -62,7 +62,7 @@ class SafeTestNADE(SafeTestNDE):
 
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
-        self.importance_sampling_prob = 0.1
+        self.importance_sampling_prob = 0.01
         return super().on_start(ctx)
 
     # @profile
@@ -151,7 +151,7 @@ class SafeTestNADE(SafeTestNDE):
                     surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
                     ego_time_to_collision = self.get_time_to_collision(ego_distance_to_collision, veh_obs_dict["local"].data["Ego"]["velocity"])
                     surrounding_time_to_collision = self.get_time_to_collision(surrounding_distance_to_collision, surrounding_vehicle_obs_dict["local"].data["Ego"]["velocity"])
-                    if ego_time_to_collision > surrounding_time_to_collision:
+                    if ego_time_to_collision > surrounding_time_to_collision or (ego_time_to_collision == surrounding_time_to_collision and ego_distance_to_collision > surrounding_distance_to_collision):
                         current_simulation_time = utils.get_time()
 
                         veh_obs_dict["local"].data["Lead"] = surrounding_vehicle_obs_dict["local"].data["Ego"]
@@ -162,7 +162,9 @@ class SafeTestNADE(SafeTestNDE):
                             f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'].data['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
             if len(available_control_commands) > 2:
                 print("aaa")
+            info_backup = control_cmds[veh_id].get("info", None)
             control_cmds[veh_id] = self.select_most_conservative_control_command(available_control_commands)
+            control_cmds[veh_id]["info"] = info_backup
         return control_cmds
     
     def fix_intersection_decisions_helper(self, control_cmds, obs_dicts, trajectory_dicts, focus_id_list=None):
@@ -337,7 +339,7 @@ class SafeTestNADE(SafeTestNDE):
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
                 IS_prob = self.importance_sampling_prob
-                # IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, default_max_IS_prob)
+                # IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, self.importance_sampling_prob)
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
