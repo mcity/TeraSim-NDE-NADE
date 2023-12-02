@@ -145,23 +145,34 @@ class SafeTestNADE(SafeTestNDE):
 
                 surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
                 collision_check, collision_timestep = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["normal"])
+                ego_avoid_collision_check, _ = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["avoid_collision"])
+                surrounding_avoid_collision_check, _ = self.is_intersect(veh_predicted_trajectory_dict["avoid_collision"], surrounding_vehicle_predicted_trajectory_dict["normal"])
 
                 if collision_check:
                     ego_distance_to_collision = self.calculate_distance(veh_predicted_trajectory_dict["normal"]["position"][collision_timestep],veh_predicted_trajectory_dict["initial"]["position"])
                     surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
-                    ego_time_to_collision = self.get_time_to_collision(ego_distance_to_collision, veh_obs_dict["local"].data["Ego"]["velocity"])
-                    surrounding_time_to_collision = self.get_time_to_collision(surrounding_distance_to_collision, surrounding_vehicle_obs_dict["local"].data["Ego"]["velocity"])
-                    if ego_time_to_collision > surrounding_time_to_collision or (ego_time_to_collision == surrounding_time_to_collision and ego_distance_to_collision > surrounding_distance_to_collision):
+                    if surrounding_avoid_collision_check and not ego_avoid_collision_check: # ego vehicle cannot avoid collision but surrounding vehicle can avoid collision
+                        continue
+                    if ego_avoid_collision_check and not surrounding_avoid_collision_check: # ego vehicle can avoid collision but surrounding vehicle cannot avoid collision
                         current_simulation_time = utils.get_time()
-
                         veh_obs_dict["local"].data["Lead"] = surrounding_vehicle_obs_dict["local"].data["Ego"]
                         veh_obs_dict["local"].data["Lead"]["distance"] = ego_distance_to_collision
                         new_control_command_tmp, _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
                         available_control_commands.append(new_control_command_tmp)
                         print(
                             f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'].data['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
-            if len(available_control_commands) > 2:
-                print("aaa")
+                    else:
+                        ego_time_to_collision = self.get_time_to_collision(ego_distance_to_collision, veh_obs_dict["local"].data["Ego"]["velocity"])
+                        surrounding_time_to_collision = self.get_time_to_collision(surrounding_distance_to_collision, surrounding_vehicle_obs_dict["local"].data["Ego"]["velocity"])
+                        if ego_time_to_collision > surrounding_time_to_collision or (ego_time_to_collision == surrounding_time_to_collision and ego_distance_to_collision > surrounding_distance_to_collision):
+                            current_simulation_time = utils.get_time()
+                            veh_obs_dict["local"].data["Lead"] = surrounding_vehicle_obs_dict["local"].data["Ego"]
+                            veh_obs_dict["local"].data["Lead"]["distance"] = ego_distance_to_collision
+                            new_control_command_tmp, _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                            available_control_commands.append(new_control_command_tmp)
+                            print(f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'].data['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
+            # if len(available_control_commands) > 2:
+            #     print("aaa")
             info_backup = control_cmds[veh_id].get("info", None)
             control_cmds[veh_id] = self.select_most_conservative_control_command(available_control_commands)
             control_cmds[veh_id]["info"] = info_backup
@@ -189,6 +200,7 @@ class SafeTestNADE(SafeTestNDE):
 
             obs_surrounding_veh_ids = [veh_obs_dict["local"][0][key]["veh_id"] for key in veh_obs_dict["local"][0] if veh_obs_dict["local"][0][key]]
             veh_predicted_trajectory_dict = trajectory_dicts[veh_id]
+            # context_info = traci.vehicle.getContextSubscriptionResults(veh_id)
             surrouding_vehicle_id_list = focus_id_list
 
             available_control_commands = [veh_control_cmd]
@@ -203,7 +215,7 @@ class SafeTestNADE(SafeTestNDE):
                     continue
                 # surrounding vehicle is not in the foe lanes
                 surrouding_veh_lane_id = surrounding_vehicle_obs_dict["local"][0]["Ego"]["road_id"] + "_" + str(surrounding_vehicle_obs_dict["local"][0]["Ego"]["lane_index"])
-                
+
                 if surrouding_veh_lane_id not in veh_lane_internal_foe_lanes:
                     continue
 
@@ -211,23 +223,40 @@ class SafeTestNADE(SafeTestNDE):
 
                 surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
                 collision_check, collision_timestep = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["normal"])
-                collision_check2, collision_timestep2 = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["avoid_collision"])
-                collision_check3, collision_timestep3 = self.is_intersect(veh_predicted_trajectory_dict["avoid_collision"], surrounding_vehicle_predicted_trajectory_dict["normal"])
+                ego_avoid_collision_check, _ = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["avoid_collision"])
+                surrounding_avoid_collision_check, _ = self.is_intersect(veh_predicted_trajectory_dict["avoid_collision"], surrounding_vehicle_predicted_trajectory_dict["normal"])
 
                 if collision_check:
                     ego_distance_to_collision = self.calculate_distance(veh_predicted_trajectory_dict["normal"]["position"][collision_timestep],veh_predicted_trajectory_dict["initial"]["position"])
                     surrounding_distance_to_collision = self.calculate_distance(surrounding_vehicle_predicted_trajectory_dict["normal"]["position"][collision_timestep], surrounding_vehicle_predicted_trajectory_dict["initial"]["position"])
-                    if ego_distance_to_collision > surrounding_distance_to_collision:
+                    if surrounding_avoid_collision_check and not ego_avoid_collision_check: # ego vehicle cannot avoid collision but surrounding vehicle can avoid collision
+                        continue
+                    if ego_avoid_collision_check and not surrounding_avoid_collision_check: # ego vehicle can avoid collision but surrounding vehicle cannot avoid collision
                         current_simulation_time = utils.get_time()
-
                         veh_obs_dict["local"][0]["Lead"] = surrounding_vehicle_obs_dict["local"][0]["Ego"]
                         veh_obs_dict["local"][0]["Lead"]["distance"] = ego_distance_to_collision
-                        new_control_command_tmp, _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                        # new_control_command_tmp, _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                        new_control_command_tmp = None
                         available_control_commands.append(new_control_command_tmp)
                         print(
-                            f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}, acceleration:, {traci.vehicle.getAcceleration(veh_id)}, ego_speed, {veh_obs_dict['local'][0]['Ego']['velocity']}, {self.vehicle_list[veh_id].controller.controlled_duration}")
-                control_cmds[veh_id] = self.select_most_conservative_control_command(available_control_commands)
+                            f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}")
+                    else:
+                        ego_time_to_collision = self.get_time_to_collision(ego_distance_to_collision, veh_obs_dict["local"][0]["Ego"]["velocity"])
+                        surrounding_time_to_collision = self.get_time_to_collision(surrounding_distance_to_collision, surrounding_vehicle_obs_dict["local"][0]["Ego"]["velocity"])
+                        if ego_time_to_collision > surrounding_time_to_collision or (ego_time_to_collision == surrounding_time_to_collision and ego_distance_to_collision > surrounding_distance_to_collision):
+                            current_simulation_time = utils.get_time()
+                            veh_obs_dict["local"][0]["Lead"] = surrounding_vehicle_obs_dict["local"][0]["Ego"]
+                            veh_obs_dict["local"][0]["Lead"]["distance"] = ego_distance_to_collision
+                            # new_control_command_tmp, _, _ = self.vehicle_list[veh_id].decision_model.derive_control_command_from_obs_helper(veh_obs_dict)
+                            new_control_command_tmp = None
+                            available_control_commands.append(new_control_command_tmp)
+                            print(
+                                f"{current_simulation_time}, veh_id: {veh_id}, control_command: {new_control_command_tmp}, surrounding_vehicle_id: {surrounding_vehicle_id}")
+            # info_backup = control_cmds[veh_id].get("info", None)
+            # control_cmds[veh_id] = self.select_most_conservative_control_command(available_control_commands)
+            # control_cmds[veh_id]["info"] = info_backup
         return control_cmds
+    
 
     def select_most_conservative_control_command(self, control_commands):
         """Select the most conservative control command from the given control commands.
