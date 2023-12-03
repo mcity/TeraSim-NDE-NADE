@@ -27,7 +27,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export HAS_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="ITE_refactor_test"
+experiment_name="ITE_refactor_test_v3"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
@@ -41,18 +41,13 @@ for i in {1..200}; do
     mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}
     # test record
     python safetest_mcity_main.py --dir ${DIR_NAME} --name ${experiment_name} --nth ${exp_nth} > ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/res.txt
-    # remove if no collision with del_mode
-    if [ $(grep "collisions" ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/collision.xml -m 1 | wc -l) -eq 0 ]; then
-        echo "Preserve ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}"
-    else
-        if [ $(grep "victim" ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/collision.xml -m 1 | wc -l) -eq 0 ]; then
-            echo "Removing ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}"
-            # if del_mode is verbose, only remove fcd_all.xml
-            if [ "${del_mode}" = "verbose" ]; then
-                rm -f ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/fcd_all.xml
-            else
-                rm -rf ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}
-            fi
+    # remove if no collision happens (no victim) or the victim is in the wrong junction
+    if [ $(grep "victim" ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/collision.xml -m 1 | wc -l) -eq 0 ] || [ $(grep "nd_34_1_6" ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/collision.xml -m 1 | wc -l) -gt 0 ]; then
+        echo "Removing ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}"
+        if [ "${del_mode}" = "verbose" ]; then
+            rm -f ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/fcd_all.xml
+        else
+            rm -rf ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}
         fi
     fi
 done
