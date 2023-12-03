@@ -62,7 +62,7 @@ class SafeTestNADE(SafeTestNDE):
 
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
-        self.importance_sampling_prob = 5e-3
+        self.max_importance_sampling_prob = 5e-3
         return super().on_start(ctx)
 
     # @profile
@@ -367,8 +367,7 @@ class SafeTestNADE(SafeTestNDE):
                 ndd_normal_prob = ndd_control_command_dict[veh_id]["ndd"]["normal"]["prob"]
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
-                # IS_prob = self.importance_sampling_prob
-                IS_prob = np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, self.importance_sampling_prob)
+                IS_prob = self.get_IS_prob(criticality_dict, veh_id)
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
@@ -376,6 +375,12 @@ class SafeTestNADE(SafeTestNDE):
                     weight *= ndd_normal_prob / (1 - IS_prob)
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"]
         return ITE_control_command_dict, weight
+    
+    def get_IS_prob(self, criticality_dict, veh_id):
+        if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
+            return np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, self.max_importance_sampling_prob)
+        else:
+            raise Exception("The vehicle is not in the negligence mode.")
 
     # @profile
     def get_maneuver_challenge_dict(self, trajectory_dict):

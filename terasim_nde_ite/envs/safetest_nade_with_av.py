@@ -41,7 +41,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 ndd_normal_prob = ndd_control_command_dict[veh_id]["ndd"]["normal"]["prob"]
                 ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["prob"]
                 assert ndd_normal_prob + ndd_negligence_prob == 1, "The sum of the probabilities of the normal and negligence control commands should be 1."
-                IS_prob = self.importance_sampling_prob           
+                IS_prob = self.get_IS_prob(criticality_dict, veh_id)          
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
@@ -49,6 +49,9 @@ class SafeTestNADEWithAV(SafeTestNADE):
                     weight *= ndd_normal_prob / (1 - IS_prob)
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"]
         return ITE_control_command_dict, weight
+    
+    def get_IS_prob(self, criticality_dict, veh_id):
+        return self.max_importance_sampling_prob
 
     def predict_future_trajectory_dict(self, veh_id, time_horizon, time_resolution, ndd_decision_dict = None):
         trajectory_dict, veh_info, duration_list = super().predict_future_trajectory_dict(veh_id, time_horizon, time_resolution, ndd_decision_dict)
