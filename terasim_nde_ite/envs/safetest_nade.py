@@ -330,13 +330,13 @@ class SafeTestNADE(SafeTestNDE):
         return ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
-        avoid_collision_IS_prob = 0.1
-        avoid_collision_ndd_prob = 0.01
+        avoid_collision_IS_prob = 0.9
+        avoid_collision_ndd_prob = 0.99
         weight = 1.0
         if len(neglected_vehicle_list) == 0:
             return ITE_control_command_dict, weight
         IS_prob = np.random.uniform(0, 1)
-        if IS_prob < avoid_collision_IS_prob:
+        if IS_prob < avoid_collision_IS_prob: # apply collision aboidance (select NDD)
             weight *= avoid_collision_ndd_prob/avoid_collision_IS_prob
             for veh_id in neglected_vehicle_list:
                 print(f"time: {utils.get_time()}, neglected vehicle: {veh_id} avoid collision")
@@ -346,7 +346,8 @@ class SafeTestNADE(SafeTestNDE):
                     "type": "lon_lat",
                     "mode": "avoid_collision",
                 }
-        else:
+        else: # does not apply collision avoidance
+            print(f"time: {utils.get_time()}, neglected vehicle: {neglected_vehicle_list} accept collision")
             weight *= (1 - avoid_collision_ndd_prob)/(1 - avoid_collision_IS_prob)
         return ITE_control_command_dict, weight
 
@@ -388,6 +389,7 @@ class SafeTestNADE(SafeTestNDE):
         return ITE_control_command_dict, weight
     
     def get_IS_prob(self, criticality_dict, veh_id):
+        return 0.1
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
             return np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, self.max_importance_sampling_prob)
         else:
