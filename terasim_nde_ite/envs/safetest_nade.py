@@ -141,7 +141,7 @@ class SafeTestNADE(SafeTestNDE):
                 if surrouding_veh_lane_id not in veh_lane_internal_foe_lanes:
                     continue
 
-                print(f"surrounding vehicle {surrounding_vehicle_id} is in the foe lanes of {veh_id}")
+                # print(f"surrounding vehicle {surrounding_vehicle_id} is in the foe lanes of {veh_id}")
 
                 surrounding_vehicle_predicted_trajectory_dict = trajectory_dicts[surrounding_vehicle_id]
                 collision_check, collision_timestep = self.is_intersect(veh_predicted_trajectory_dict["normal"], surrounding_vehicle_predicted_trajectory_dict["normal"])
@@ -318,7 +318,8 @@ class SafeTestNADE(SafeTestNDE):
         ITE_control_command_dict, weight = self.ITE_importance_sampling(control_command_dict, criticality_dict)
         neglect_pair_list = self.get_neglecting_vehicle_id(ITE_control_command_dict, maneuver_challenge_info)
         neglected_vehicle_list = [pair[1] for pair in neglect_pair_list]
-        ITE_control_command_dict = self.apply_collision_avoidance(neglected_vehicle_list, ITE_control_command_dict)
+        ITE_control_command_dict, avoid_collision_weight = self.apply_collision_avoidance(neglected_vehicle_list, ITE_control_command_dict)
+        weight *= avoid_collision_weight
         for veh_id in trajectory_dict:
             if veh_id in ITE_control_command_dict:
                 ITE_control_command_dict[veh_id]["info"] = {
@@ -329,15 +330,25 @@ class SafeTestNADE(SafeTestNDE):
         return ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
-        for veh_id in neglected_vehicle_list:
-            print(f"time: {utils.get_time()}, neglected vehicle: {veh_id} avoid collision")
-            ITE_control_command_dict[veh_id] = {
-                "lateral": "central",
-                "longitudinal": -9.0,
-                "type": "lon_lat",
-                "mode": "avoid_collision",
-            }
-        return ITE_control_command_dict
+        avoid_collision_IS_prob = 0.1
+        avoid_collision_ndd_prob = 0.01
+        weight = 1.0
+        if len(neglected_vehicle_list) == 0:
+            return ITE_control_command_dict, weight
+        IS_prob = np.random.uniform(0, 1)
+        if IS_prob < avoid_collision_IS_prob:
+            weight *= avoid_collision_ndd_prob/avoid_collision_IS_prob
+            for veh_id in neglected_vehicle_list:
+                print(f"time: {utils.get_time()}, neglected vehicle: {veh_id} avoid collision")
+                ITE_control_command_dict[veh_id] = {
+                    "lateral": "central",
+                    "longitudinal": -9.0,
+                    "type": "lon_lat",
+                    "mode": "avoid_collision",
+                }
+        else:
+            weight *= (1 - avoid_collision_ndd_prob)/(1 - avoid_collision_IS_prob)
+        return ITE_control_command_dict, weight
 
     def get_neglecting_vehicle_id(self, control_command_dict, maneuver_challenge_info):
         neglect_pair_list = []
