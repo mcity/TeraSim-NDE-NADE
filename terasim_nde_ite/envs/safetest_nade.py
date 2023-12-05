@@ -389,7 +389,6 @@ class SafeTestNADE(SafeTestNDE):
         return ITE_control_command_dict, weight
     
     def get_IS_prob(self, criticality_dict, veh_id):
-        return 0.1
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
             return np.clip(criticality_dict[veh_id]["negligence"] * 2e3, 0, self.max_importance_sampling_prob)
         else:
