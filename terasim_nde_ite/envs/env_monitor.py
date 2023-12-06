@@ -149,6 +149,9 @@ class EnvMonitor:
             json.dump(data, f, indent=4)
         os.replace(file_copy_path, file_path)
 
+        with open(os.path.join(f"{self.log_dir}/{self.exp_id}", suffix), 'w') as f:
+            json.dump(infos, f, indent=4, sort_keys=True)
+
     def export_final_state(self, veh_1_id, veh_2_id, final_state_log, end_reason):
         neg_mode, neg_time, neg_car, neg_info = None, -1.0, None, None
         if veh_1_id is not None and veh_2_id is not None:
