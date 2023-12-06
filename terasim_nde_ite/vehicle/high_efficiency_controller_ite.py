@@ -43,7 +43,7 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             assert self.controlled_duration >= 0
             if self.avoid_collision_flag:
                 # print(f"avoid collision: {veh_id}, {self.controlled_duration}, {traci.vehicle.getAcceleration(veh_id)}, {traci.vehicle.getSpeed(veh_id)}")
-                self.change_vehicle_speed(veh_id, -9, 0.1)
+                self.change_vehicle_speed(veh_id, -7.06, 0.1)
             if self.controlled_duration == 0:
                 self.is_busy = False
                 self.avoid_collision_flag = False

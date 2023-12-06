@@ -11,11 +11,11 @@ from terasim_nde_ite.vehicle.vehicle_utils import get_collision_type_and_prob, g
 
 class IDM_MOBIL_with_negligence(IDMModel):
     
-    def __init__(self, MOBIL_lc_flag=True, stochastic_acc_flag=False, lane_config=None):
+    def __init__(self, MOBIL_lc_flag=True, stochastic_acc_flag=False, lane_config=None, IDM_parameters=None, MOBIL_parameters=None):
         if lane_config is None:
             raise ValueError("lane_config is None")
         self.lane_config = lane_config
-        super().__init__(MOBIL_lc_flag, stochastic_acc_flag)
+        super().__init__(MOBIL_lc_flag, stochastic_acc_flag, IDM_parameters, MOBIL_parameters)
 
     def install(self):
         super().install()
@@ -44,6 +44,8 @@ class IDM_MOBIL_with_negligence(IDMModel):
                 "COMFORT_ACC_MAX": 5.95,
                 "COMFORT_ACC_MIN": -5.96,
                 "DESIRED_VELOCITY": 28.31,
+                "acc_low": -7.06,
+                "acc_high": 2.87,
             }
         elif "intersection" in vehicle_location or "roundabout" in vehicle_location: # urban scenario
             IDM_parameters = {
@@ -52,6 +54,8 @@ class IDM_MOBIL_with_negligence(IDMModel):
                 "COMFORT_ACC_MAX": 1.84,
                 "COMFORT_ACC_MIN": -1.29,
                 "DESIRED_VELOCITY": 10,
+                "acc_low": -7.06,
+                "acc_high": 2.87,
             }
         else:
             raise ValueError(f"location {vehicle_location} not supported")
@@ -220,7 +224,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
             tmp_acc = self.IDM_acceleration(ego_vehicle=ego_vehicle, front_vehicle=front_vehicle)
         else:
             tmp_acc = self.stochastic_IDM_acceleration(ego_vehicle=ego_vehicle, front_vehicle=front_vehicle)
-        tmp_acc = np.clip(tmp_acc, -9, self.acc_high)
+        tmp_acc = np.clip(tmp_acc, self.acc_low, self.acc_high)
         central_action = {"lateral": "central" if self.MOBIL_lc_flag else "SUMO", "longitudinal": tmp_acc, "type": "lon_lat"}
         
         action_dist = {

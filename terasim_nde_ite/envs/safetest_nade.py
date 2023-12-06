@@ -342,7 +342,7 @@ class SafeTestNADE(SafeTestNDE):
                 print(f"time: {utils.get_time()}, neglected vehicle: {veh_id} avoid collision")
                 ITE_control_command_dict[veh_id] = {
                     "lateral": "central",
-                    "longitudinal": -9.0,
+                    "longitudinal": -7.06,
                     "type": "lon_lat",
                     "mode": "avoid_collision",
                 }
