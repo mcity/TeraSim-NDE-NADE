@@ -330,7 +330,7 @@ class SafeTestNADE(SafeTestNDE):
         return ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
-        avoid_collision_IS_prob = 0.9
+        avoid_collision_IS_prob = 0.2
         avoid_collision_ndd_prob = 0.99
         weight = 1.0
         if len(neglected_vehicle_list) == 0:
