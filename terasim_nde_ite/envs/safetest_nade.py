@@ -76,7 +76,7 @@ class SafeTestNADE(SafeTestNDE):
         # ITE_control_cmds = {veh_id: control_cmds[veh_id]["command"] for veh_id in control_cmds} # disable ITE
         # record the negligence mode
         # self.negligence_record(ITE_control_cmds)
-        self.monitor.update_negligence_mode(ITE_control_cmds)
+        self.monitor.update_vehicle_mode(ITE_control_cmds)
         # monitor the environment
         self.monitor.add_observation(ITE_control_cmds, obs_dicts)
         # weight = 1.0 # disable ITE

@@ -21,6 +21,7 @@ class EnvMonitor:
         self.exp_id = exp_id
         self.total_distance = {"before": {}, "after": {}}
         self.negligence_mode = defaultdict(dict)
+        self.avoid_collision_mode = defaultdict(dict)
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
         self.init_cav_infos()
@@ -111,22 +112,23 @@ class EnvMonitor:
                 })
         return observation
     
-    def update_negligence_mode(self, control_cmds):
+    def update_vehicle_mode(self, control_cmds):
         for veh_id, control_cmd in control_cmds.items():
-            if control_cmd and "mode" in control_cmd and control_cmd["mode"] == "negligence":
-                if len(self.car_with_maneuver_challenges[veh_id]) == 0:
-                    print("NegligenceError", veh_id, "", "", utils.get_time(), sep='\t')
-                neg_mode = control_cmd["mode"]
+            if control_cmd and "mode" in control_cmd:
                 obs_dict = self.env.vehicle_list[veh_id].observation
-                self.negligence_mode.update({
-                    veh_id: {
-                        "mode": neg_mode,
-                        "info": control_cmd["info"] if "info" in control_cmd else None,
-                        "time": utils.get_time(),
-                        "lead_veh": obs_dict["local"].data["Lead"]["veh_id"] if obs_dict["local"].data["Lead"] is not None else None,
-                    }
-                })
-    
+                mode_info = {
+                    "mode": control_cmd["mode"],
+                    "info": control_cmd.get("info", None),
+                    "time": utils.get_time(),
+                    "lead_veh": obs_dict["local"].data["Lead"]["veh_id"] if obs_dict["local"].data["Lead"] is not None else None,
+                }
+                if control_cmd["mode"] == "negligence":
+                    if len(self.car_with_maneuver_challenges[veh_id]) == 0:
+                        print("NegligenceError", veh_id, "", "", utils.get_time(), sep='\t')
+                    self.negligence_mode.update({veh_id: mode_info})
+                elif control_cmd["mode"] == "avoid_collision":
+                    self.avoid_collision_mode.update({veh_id: mode_info})
+            
     def add_maneuver_challenges(self, maneuver_challenge_dict, time):
         for veh_id, maneuver_challenge in maneuver_challenge_dict.items():
             if maneuver_challenge.get("negligence", 0) == 1:
@@ -152,31 +154,38 @@ class EnvMonitor:
         with open(os.path.join(f"{self.log_dir}/{self.exp_id}", suffix), 'w') as f:
             json.dump(infos, f, indent=4, sort_keys=True)
 
+    def get_mode_and_info(self, veh_id, mode):
+        if mode == "negligence":
+            mode_dict = self.negligence_mode
+        elif mode == "avoid_collision":
+            mode_dict = self.avoid_collision_mode
+        vehicle_mode = mode_dict.get("mode", None)
+        vehicle_info = mode_dict.get("info", None)
+        mode_time = mode_dict.get("time", -1.0)
+        return vehicle_mode, vehicle_info, mode_time
+
     def export_final_state(self, veh_1_id, veh_2_id, final_state_log, end_reason):
         neg_mode, neg_time, neg_car, neg_info = None, -1.0, None, None
+        avoid_mode, avoid_time, avoid_car, avoid_info = None, -1.0, None, None
         if veh_1_id is not None and veh_2_id is not None:
-            veh_1_negligence_mode = self.negligence_mode[veh_1_id]
-            veh_2_negligence_mode = self.negligence_mode[veh_2_id]
+            vehicles = [veh_1_id, veh_2_id]
+            modes = ["negligence", "avoid_collision"]
 
-            veh_1_mode = veh_1_negligence_mode.get("mode", None)
-            veh_2_mode = veh_2_negligence_mode.get("mode", None)
+            data = {}
 
-            veh_1_neg_info = veh_1_negligence_mode.get("info", None)
-            veh_2_neg_info = veh_2_negligence_mode.get("info", None)
+            for vehicle in vehicles:
+                for mode in modes:
+                    data[(vehicle, mode)] = self.get_mode_and_info(vehicle, mode)
 
-            veh_1_neg_time = veh_1_negligence_mode.get("time", -1.0)
-            veh_2_neg_time = veh_2_negligence_mode.get("time", -1.0)
+            neg_car, neg_mode, neg_info, neg_time = max(
+                ((vehicle, *data[(vehicle, "negligence")]) for vehicle in vehicles),
+                key=lambda x: x[3]
+            ) # the latest vehicle that has the negligence mode is the one that is responsible for the collision
 
-            if veh_1_neg_time > veh_2_neg_time:
-                neg_mode = veh_1_mode
-                neg_time = veh_1_neg_time
-                neg_info = veh_1_neg_info
-                neg_car = veh_1_id
-            else:
-                neg_mode = veh_2_mode
-                neg_time = veh_2_neg_time
-                neg_info = veh_2_neg_info
-                neg_car = veh_2_id
+            avoid_car, avoid_mode, avoid_info, avoid_time = max(
+                ((vehicle, *data[(vehicle, "avoid_collision")]) for vehicle in vehicles),
+                key=lambda x: x[3]
+            ) # the latest vehicle that has the avoid_collision mode is the avoiding vehicle
 
         total_distance = 0
         for veh_id in self.total_distance["after"].keys():
@@ -201,6 +210,10 @@ class EnvMonitor:
             "negligence_info": neg_info,
             "negligence_time": neg_time,
             "negligence_car": neg_car,
+            "avoid_collision_mode": avoid_mode,
+            "avoid_collision_info": avoid_info,
+            "avoid_collision_time": avoid_time,
+            "avoid_collision_car": avoid_car,
             "distance": total_distance,
             "bv_22_distance": bv_22_total_distance,
             "end_reason": end_reason,
