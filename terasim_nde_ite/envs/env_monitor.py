@@ -22,6 +22,7 @@ class EnvMonitor:
         self.total_distance = {"before": {}, "after": {}}
         self.negligence_mode = defaultdict(dict)
         self.avoid_collision_mode = defaultdict(dict)
+        self.accept_collision_mode = defaultdict(dict)
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
         self.init_cav_infos()
@@ -128,6 +129,8 @@ class EnvMonitor:
                     self.negligence_mode.update({veh_id: mode_info})
                 elif control_cmd["mode"] == "avoid_collision":
                     self.avoid_collision_mode.update({veh_id: mode_info})
+                elif control_cmd["mode"] == "accept_collision":
+                    self.accept_collision_mode.update({veh_id: mode_info})
             
     def add_maneuver_challenges(self, maneuver_challenge_dict, time):
         for veh_id, maneuver_challenge in maneuver_challenge_dict.items():
@@ -159,17 +162,23 @@ class EnvMonitor:
             mode_dict = self.negligence_mode
         elif mode == "avoid_collision":
             mode_dict = self.avoid_collision_mode
-        vehicle_mode = mode_dict.get("mode", None)
-        vehicle_info = mode_dict.get("info", None)
-        mode_time = mode_dict.get("time", -1.0)
+        elif mode == "accept_collision":
+            mode_dict = self.accept_collision_mode
+        veh_mode_dict = mode_dict.get(veh_id, None)
+        if veh_mode_dict is None:
+            return None, None, -1.0
+        vehicle_mode = veh_mode_dict.get("mode", None)
+        vehicle_info = veh_mode_dict.get("info", None)
+        mode_time = veh_mode_dict.get("time", -1.0)
         return vehicle_mode, vehicle_info, mode_time
 
     def export_final_state(self, veh_1_id, veh_2_id, final_state_log, end_reason):
         neg_mode, neg_time, neg_car, neg_info = None, -1.0, None, None
         avoid_mode, avoid_time, avoid_car, avoid_info = None, -1.0, None, None
+        accept_mode, accept_time, accept_car, accept_info = None, -1.0, None, None
         if veh_1_id is not None and veh_2_id is not None:
             vehicles = [veh_1_id, veh_2_id]
-            modes = ["negligence", "avoid_collision"]
+            modes = ["negligence", "avoid_collision", "accept_collision"]
 
             data = {}
 
@@ -186,6 +195,11 @@ class EnvMonitor:
                 ((vehicle, *data[(vehicle, "avoid_collision")]) for vehicle in vehicles),
                 key=lambda x: x[3]
             ) # the latest vehicle that has the avoid_collision mode is the avoiding vehicle
+
+            accept_car, accept_mode, accept_info, accept_time = max(
+                ((vehicle, *data[(vehicle, "accept_collision")]) for vehicle in vehicles),
+                key=lambda x: x[3]
+            )
 
         total_distance = 0
         for veh_id in self.total_distance["after"].keys():
@@ -214,6 +228,10 @@ class EnvMonitor:
             "avoid_collision_info": avoid_info,
             "avoid_collision_time": avoid_time,
             "avoid_collision_car": avoid_car,
+            "accept_collision_mode": accept_mode,
+            "accept_collision_info": accept_info,
+            "accept_collision_time": accept_time,
+            "accept_collision_car": accept_car,
             "distance": total_distance,
             "bv_22_distance": bv_22_total_distance,
             "end_reason": end_reason,

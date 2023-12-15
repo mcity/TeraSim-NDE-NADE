@@ -348,6 +348,8 @@ class SafeTestNADE(SafeTestNDE):
                 }
         else: # does not apply collision avoidance
             print(f"time: {utils.get_time()}, neglected vehicle: {neglected_vehicle_list} accept collision")
+            for veh_id in neglected_vehicle_list:
+                ITE_control_command_dict[veh_id]["mode"] = "accept_collision"
             weight *= (1 - avoid_collision_ndd_prob)/(1 - avoid_collision_IS_prob)
         return ITE_control_command_dict, weight
 
