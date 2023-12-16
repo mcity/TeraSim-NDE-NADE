@@ -317,7 +317,9 @@ class SafeTestNADE(SafeTestNDE):
         # TO-DO: return the ITE control command
         ITE_control_command_dict, weight = self.ITE_importance_sampling(control_command_dict, criticality_dict)
         neglect_pair_list = self.get_neglecting_vehicle_id(ITE_control_command_dict, maneuver_challenge_info)
-        neglected_vehicle_list = [pair[1] for pair in neglect_pair_list]
+        neglected_vehicle_list = []
+        for neglect_pair in neglect_pair_list:
+            neglected_vehicle_list.extend(neglect_pair[1])
         ITE_control_command_dict, avoid_collision_weight = self.apply_collision_avoidance(neglected_vehicle_list, ITE_control_command_dict)
         weight *= avoid_collision_weight
         for veh_id in trajectory_dict:
@@ -359,7 +361,7 @@ class SafeTestNADE(SafeTestNDE):
             control_command = control_command_dict[veh_id]
             if "mode" in control_command and control_command["mode"] == "negligence":
                 neglecting_vehicle_id = veh_id
-                neglected_vehicle_id = list(maneuver_challenge_info[neglecting_vehicle_id].keys())[0]
+                neglected_vehicle_id = list(maneuver_challenge_info[neglecting_vehicle_id].keys())
                 neglect_pair_list.append((neglecting_vehicle_id, neglected_vehicle_id))
         return neglect_pair_list
     
