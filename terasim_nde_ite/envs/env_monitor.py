@@ -25,6 +25,7 @@ class EnvMonitor:
         self.accept_collision_mode = defaultdict(dict)
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
+        self.maneuver_challenge_record = {}
         self.init_cav_infos()
 
     def init_cav_infos(self):
@@ -137,6 +138,10 @@ class EnvMonitor:
             if maneuver_challenge.get("negligence", 0) == 1:
                 self.num_maneuver_challenges += 1
                 self.car_with_maneuver_challenges[veh_id].add(time)
+                if time not in self.maneuver_challenge_record:
+                    self.maneuver_challenge_record.update({time: {veh_id: maneuver_challenge}})
+                else:
+                    self.maneuver_challenge_record[time].update({veh_id: maneuver_challenge})
 
     def load_to_json(self, suffix, infos, mode):
         core_id = "_".join(self.exp_id.split("_")[0:-1])
@@ -245,6 +250,7 @@ class EnvMonitor:
         for veh_id, time_set in self.car_with_maneuver_challenges.items():
             self.car_with_maneuver_challenges[veh_id] = list(time_set)        
         self.load_to_json("maneuver_challenges.json", self.car_with_maneuver_challenges, "maneuver_challenges")
+        self.load_to_json("maneuver_challenge_record.json", self.maneuver_challenge_record, "maneuver_challenge_record")
         # self.load_to_json("critical_moment_infos.json", self.critical_moment_infos, "critical_moment_infos")
 
     def update_critical_moment_info(self, infos_dict):

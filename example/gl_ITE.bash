@@ -27,7 +27,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export HAS_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="ITE_refactor_multiple_collision_avoid_with_log_accept_collision"
+experiment_name="ITE_refactor_multiple_collision_avoid_log_maneuver_challenge_dict"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
