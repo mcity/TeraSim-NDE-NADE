@@ -144,21 +144,6 @@ class EnvMonitor:
                     self.maneuver_challenge_record[time].update({veh_id: maneuver_challenge})
 
     def load_to_json(self, suffix, infos, mode):
-        core_id = "_".join(self.exp_id.split("_")[0:-1])
-        file_path = os.path.join(f"{self.log_dir}/{mode}", f"{core_id}_{suffix}")
-        file_copy_path = os.path.join(f"{self.log_dir}/{mode}", f"{core_id}_copy.json")
-
-        try:
-            with open(file_path, "r") as f:
-                data = json.load(f)
-        except:
-            data = {}
-
-        with open(file_copy_path, "w") as f:
-            data.update({self.exp_id: infos})
-            json.dump(data, f, indent=4)
-        os.replace(file_copy_path, file_path)
-
         with open(os.path.join(f"{self.log_dir}/{self.exp_id}", suffix), 'w') as f:
             json.dump(infos, f, indent=4, sort_keys=True)
 
