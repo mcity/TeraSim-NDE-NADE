@@ -311,7 +311,7 @@ class SafeTestNADE(SafeTestNDE):
         trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 5, 0.6, ndd_dict[veh_id])[0] for veh_id in control_command_dict}
         maneuver_challenge_dict, maneuver_challenge_info = self.get_maneuver_challenge_dict(trajectory_dict)
         time = utils.get_time()
-        self.monitor.add_maneuver_challenges(maneuver_challenge_dict, time)
+        self.monitor.add_maneuver_challenges(maneuver_challenge_dict, maneuver_challenge_info, time)
         criticality_dict = {veh_id: self.get_criticality_dict(ndd_dict[veh_id], maneuver_challenge_dict[veh_id]) for veh_id in control_command_dict}
         
         # TO-DO: return the ITE control command

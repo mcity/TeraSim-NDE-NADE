@@ -133,15 +133,19 @@ class EnvMonitor:
                 elif control_cmd["mode"] == "accept_collision":
                     self.accept_collision_mode.update({veh_id: mode_info})
             
-    def add_maneuver_challenges(self, maneuver_challenge_dict, time):
+    def add_maneuver_challenges(self, maneuver_challenge_dict, maneuver_challenge_info, time):
         for veh_id, maneuver_challenge in maneuver_challenge_dict.items():
             if maneuver_challenge.get("negligence", 0) == 1:
                 self.num_maneuver_challenges += 1
                 self.car_with_maneuver_challenges[veh_id].add(time)
+                record_info = {
+                    "maneuver_challenge": maneuver_challenge,
+                    "maneuver_challenge_info": maneuver_challenge_info.get(veh_id, None),
+                }
                 if time not in self.maneuver_challenge_record:
-                    self.maneuver_challenge_record.update({time: {veh_id: maneuver_challenge}})
+                    self.maneuver_challenge_record.update({time: {veh_id: record_info}})
                 else:
-                    self.maneuver_challenge_record[time].update({veh_id: maneuver_challenge})
+                    self.maneuver_challenge_record[time].update({veh_id: record_info})
 
     def load_to_json(self, suffix, infos, mode):
         with open(os.path.join(f"{self.log_dir}/{self.exp_id}", suffix), 'w') as f:
