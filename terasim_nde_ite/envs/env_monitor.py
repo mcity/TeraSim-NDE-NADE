@@ -6,6 +6,8 @@ from collections import defaultdict
 
 from terasim.overlay import traci
 import sumolib
+from pathlib import Path
+import json
 
 class EnvMonitor:
     def __init__(self, log_dir, exp_id):
@@ -148,6 +150,26 @@ class EnvMonitor:
                     self.maneuver_challenge_record[time].update({veh_id: record_info})
 
     def load_to_json(self, suffix, infos, mode):
+        combined_info_folder = Path(self.log_dir) / mode
+        if not combined_info_folder.exists():
+            combined_info_folder.mkdir()
+        core_id = "_".join(self.exp_id.split("_")[0:-1])
+        file_path = combined_info_folder / f"{core_id}_{suffix}"
+        file_copy_path = combined_info_folder / f"{core_id}_copy.json"
+
+        try:
+            with file_path.open("r") as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            data = {}
+
+        data.update({self.exp_id: infos})
+
+        with file_copy_path.open("w") as f:
+            json.dump(data, f, indent=4)
+
+        file_copy_path.replace(file_path)
+
         with open(os.path.join(f"{self.log_dir}/{self.exp_id}", suffix), 'w') as f:
             json.dump(infos, f, indent=4, sort_keys=True)
 
