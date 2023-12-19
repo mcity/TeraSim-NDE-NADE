@@ -63,6 +63,7 @@ class SafeTestNADE(SafeTestNDE):
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
         self.max_importance_sampling_prob = 5e-3
+        self.unavoidable_collision_prob_factor = 1e-2 # the factor to reduce the probability of the anavoidable collision
         return super().on_start(ctx)
 
     # @profile
@@ -309,7 +310,14 @@ class SafeTestNADE(SafeTestNDE):
         }
         ndd_dict = {veh_id: control_command_dict[veh_id]["ndd"] for veh_id in control_command_dict}
         trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 5, 0.6, ndd_dict[veh_id])[0] for veh_id in control_command_dict}
-        maneuver_challenge_dict, maneuver_challenge_info = self.get_maneuver_challenge_dict(trajectory_dict)
+        maneuver_challenge_dict, maneuver_challenge_info, maneuver_challenge_avoidance_dict = self.get_maneuver_challenge_dict(trajectory_dict)
+        modified_ndd_dict = self.get_modified_ndd_dict_according_to_avoidability(ndd_dict, maneuver_challenge_avoidance_dict)
+        control_command_dict = {
+            veh_id: {
+                "command": control_command_dict[veh_id]["command"],
+                "ndd": modified_ndd_dict[veh_id],
+            } for veh_id in control_command_dict
+        } # modify the ndd dict according to the maneuver challenge
         time = utils.get_time()
         self.monitor.add_maneuver_challenges(maneuver_challenge_dict, maneuver_challenge_info, time)
         criticality_dict = {veh_id: self.get_criticality_dict(ndd_dict[veh_id], maneuver_challenge_dict[veh_id]) for veh_id in control_command_dict}
@@ -330,6 +338,15 @@ class SafeTestNADE(SafeTestNDE):
                     "criticality": criticality_dict[veh_id] if veh_id in criticality_dict else None,
                 }
         return ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict
+    
+    def get_modified_ndd_dict_according_to_avoidability(self, ndd_dict, maneuver_challenge_avoidance_dict):
+        modified_ndd_dict = {}
+        for veh_id in ndd_dict:
+            modified_ndd_dict[veh_id] = ndd_dict[veh_id]
+            if veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
+                modified_ndd_dict[veh_id]["negligence"]["prob"] = modified_ndd_dict[veh_id]["negligence"]["prob"] * self.unavoidable_collision_prob_factor
+                modified_ndd_dict[veh_id]["normal"]["prob"] = 1 - modified_ndd_dict[veh_id]["negligence"]["prob"]
+        return modified_ndd_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
         avoid_collision_IS_prob = 0.2
@@ -424,10 +441,10 @@ class SafeTestNADE(SafeTestNDE):
             veh_id: self.get_maneuver_challenge(veh_id, negligence_future_trajectory_dict[veh_id], avoidance_future_trajectory_dict, highlight_flag=False) for veh_id in trajectory_dict
         }
 
-        for veh_id in maneuver_challenges:
-            if maneuver_challenges[veh_id]["maneuver_challenge"] and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
-                maneuver_challenges[veh_id]["maneuver_challenge"] = 0
-                maneuver_challenges[veh_id]["info"] = {}
+        # for veh_id in maneuver_challenges:
+        #     if maneuver_challenges[veh_id]["maneuver_challenge"] and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
+        #         maneuver_challenges[veh_id]["maneuver_challenge"] = 0
+        #         maneuver_challenges[veh_id]["info"] = {}
 
         for veh_id in maneuver_challenges:
             if maneuver_challenges[veh_id]["maneuver_challenge"]:
@@ -445,7 +462,7 @@ class SafeTestNADE(SafeTestNDE):
             if "negligence" in trajectory_dict[veh_id]:
                 maneuver_challenge_dict[veh_id]["negligence"] = maneuver_challenges[veh_id]["maneuver_challenge"]
                 maneuver_challenge_info[veh_id] = maneuver_challenges[veh_id]["info"]
-        return maneuver_challenge_dict, maneuver_challenge_info
+        return maneuver_challenge_dict, maneuver_challenge_info, maneuver_challenge_avoidance_dict
 
     def get_maneuver_challenge_BV_22(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future):
         bv_22_future = {veh_id: all_normal_veh_future[veh_id] for veh_id in all_normal_veh_future if "BV_22." in veh_id}
