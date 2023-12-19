@@ -446,14 +446,7 @@ class SafeTestNADE(SafeTestNDE):
         #         maneuver_challenges[veh_id]["maneuver_challenge"] = 0
         #         maneuver_challenges[veh_id]["info"] = {}
 
-        for veh_id in maneuver_challenges:
-            if maneuver_challenges[veh_id]["maneuver_challenge"]:
-                utils.highlight_vehicle(veh_id, duration=0.1)
-                try:
-                    neglected_veh_id = list(maneuver_challenges[veh_id]["info"].keys())[0]
-                    utils.highlight_vehicle(neglected_veh_id, duration=0.1)
-                except:
-                    print(f"no neglected vehicle for {veh_id}")
+        self.highlight_critical_vehicles(maneuver_challenges, maneuver_challenge_avoidance_dict)
 
         maneuver_challenge_info = {}
         # normalize the maneuver challenge
@@ -463,6 +456,20 @@ class SafeTestNADE(SafeTestNDE):
                 maneuver_challenge_dict[veh_id]["negligence"] = maneuver_challenges[veh_id]["maneuver_challenge"]
                 maneuver_challenge_info[veh_id] = maneuver_challenges[veh_id]["info"]
         return maneuver_challenge_dict, maneuver_challenge_info, maneuver_challenge_avoidance_dict
+    
+    def highlight_critical_vehicles(self, maneuver_challenges, maneuver_challenge_avoidance_dict):
+        for veh_id in maneuver_challenges:
+            if maneuver_challenges[veh_id]["maneuver_challenge"]:
+                if veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
+                    utils.highlight_vehicle(veh_id, duration=0.1, color=(255, 0, 0, 255)) # unaviodable collision, mark the vehicle as red
+                else:
+                    utils.highlight_vehicle(veh_id, duration=0.1, color=(255, 0, 0, 100)) # aviodable collision, mark the vehicle as red with transparency
+                try:
+                    neglected_veh_id_list = list(maneuver_challenges[veh_id]["info"].keys())
+                    for neglected_veh_id in neglected_veh_id_list:
+                        utils.highlight_vehicle(neglected_veh_id, duration=0.1, color=(255, 255, 0, 255)) # mark the neglected vehicle as yellow
+                except:
+                    print(f"no neglected vehicle for {veh_id}")
 
     def get_maneuver_challenge_BV_22(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future):
         bv_22_future = {veh_id: all_normal_veh_future[veh_id] for veh_id in all_normal_veh_future if "BV_22." in veh_id}
