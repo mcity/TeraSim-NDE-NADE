@@ -120,11 +120,13 @@ class EnvMonitor:
         for veh_id, control_cmd in control_cmds.items():
             if control_cmd and "mode" in control_cmd:
                 obs_dict = self.env.vehicle_list[veh_id].observation
+                negligence_type = control_cmd["info"].get("negligence_mode") if "info" in control_cmd and "negligence_mode" in control_cmd["info"] else None
                 mode_info = {
                     "mode": control_cmd["mode"],
+                    "negligence_type": negligence_type,
                     "info": control_cmd.get("info", None),
                     "time": utils.get_time(),
-                    "lead_veh": obs_dict["local"].data["Lead"]["veh_id"] if obs_dict["local"].data["Lead"] is not None else None,
+                    "lead_veh": obs_dict["local"].data["Lead"]["veh_id"] if obs_dict["local"].data["Lead"] else None,
                 }
                 if control_cmd["mode"] == "negligence":
                     if len(self.car_with_maneuver_challenges[veh_id]) == 0:

@@ -332,11 +332,12 @@ class SafeTestNADE(SafeTestNDE):
         weight *= avoid_collision_weight
         for veh_id in trajectory_dict:
             if veh_id in ITE_control_command_dict:
-                ITE_control_command_dict[veh_id]["info"] = {
+                ITE_control_command_dict[veh_id]["info"] = {} if "info" not in ITE_control_command_dict[veh_id] else ITE_control_command_dict[veh_id]["info"]
+                ITE_control_command_dict[veh_id]["info"].update({
                     "trajectory_prediction": trajectory_dict[veh_id] if veh_id in trajectory_dict else None,
                     "maneuver_challenge": maneuver_challenge_dict[veh_id] if veh_id in maneuver_challenge_dict else None,
                     "criticality": criticality_dict[veh_id] if veh_id in criticality_dict else None,
-                }
+                })
         return ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict
     
     def get_modified_ndd_dict_according_to_avoidability(self, ndd_dict, maneuver_challenge_avoidance_dict):
@@ -448,7 +449,8 @@ class SafeTestNADE(SafeTestNDE):
         try:
             self.highlight_critical_vehicles(maneuver_challenges, maneuver_challenge_avoidance_dict)
         except:
-            print("highlight error")
+            # print("highlight error")
+            pass
 
         maneuver_challenge_info = {}
         # normalize the maneuver challenge
@@ -471,7 +473,8 @@ class SafeTestNADE(SafeTestNDE):
                     for neglected_veh_id in neglected_veh_id_list:
                         utils.highlight_vehicle(neglected_veh_id, duration=0.1, color=(128, 128, 128, 255)) # mark the neglected vehicle as yellow
                 except:
-                    print(f"no neglected vehicle for {veh_id}")
+                    # print(f"no neglected vehicle for {veh_id}")
+                    pass
         for veh_id in maneuver_challenge_avoidance_dict:
             if maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
                 if veh_id not in maneuver_challenges or not maneuver_challenges[veh_id]["maneuver_challenge"]:
