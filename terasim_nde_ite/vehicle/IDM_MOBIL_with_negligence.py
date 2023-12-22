@@ -24,8 +24,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         traci.vehicle.setDecel(self.vehicle.id, 9)
         self.vehicle.simulator.set_vehicle_emegency_deceleration(self.vehicle.id, 9)
     
-    def get_negligence_prob(self, obs_dict, negligence_mode):
-        # see here for lane to ["roundabout", "freeway", "intersection"]        
+    def get_negligence_prob(self, obs_dict, negligence_mode):  
         veh_road_id = obs_dict["local"].data["Ego"]["road_id"]
         location = get_location(veh_road_id, self.lane_config)
         neg_veh_road_id, neg_location = None, None
@@ -37,7 +36,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
     
     def change_IDM_MOBIL_parameters_from_location(self, obs_dict):
         vehicle_location = get_location(obs_dict["local"].data["Ego"]["road_id"], self.lane_config)
-        if "freeway" in vehicle_location: # highway/freeway scenario
+        if "highway" in vehicle_location: # highway/freeway scenario
             IDM_parameters = {
                 "TIME_WANTED": 1.72,
                 "DISTANCE_WANTED": 5.92,
@@ -83,7 +82,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         if vehicle_location is None:
             vehicle_location = get_location(obs_dict["local"].data["Ego"]["road_id"], self.lane_config)
         negligence_mode_list_dict = {
-            "freeway": ["Lead", "LeftFoll", "RightFoll"],
+            "highway": ["Lead", "LeftFoll", "RightFoll"],
             "intersection": ["Lead", "LeftFoll", "RightFoll"],
             "roundabout": ["Lead", "LeftFoll", "RightFoll"],
         }

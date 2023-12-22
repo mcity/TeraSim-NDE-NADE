@@ -148,7 +148,7 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
             return roundabout_rearend_prob, "roundabout_rearend"
         else:
             return roundabout_neglect_conflict_lead_prob, "roundabout_neglect_conflict_lead"
-    elif "freeway" in location_region:
+    elif "highway" in location_region:
         if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
             return highway_cutin_prob, "highway_cutin"
         else:
