@@ -120,13 +120,13 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     """
 
     highway_cutin_prob = 7.2e-8 * 0.952 * 0.91 * 1.5 * 0.67 * 0.91 * 1.01 * 0.872 * 100 # some sideswipe, some angle
-    highway_rearend_prob = 8.4e-5 * 0.748 * 0.46 * 1.5 * 1.3 * 1.5 * 0.71 * 0.77 * 0.76 * 1.15
+    highway_rearend_prob = 8.4e-5 * 0.748 * 0.46 * 1.5 * 1.3 * 1.5 * 0.71 * 0.77 * 0.76 * 1.15 * 0.1
 
-    roundabout_rearend_prob = 3.6e-8 * 0.952 * 0.86 * 0.98 * 1.27 * 1.25 * 1.04 * 0.79 * 1.39
+    roundabout_rearend_prob = 3.6e-8 * 0.952 * 0.86 * 0.98 * 1.27 * 1.25 * 1.04 * 0.79 * 1.39 * 0.1
     roundabout_neglect_conflict_lead_prob = 3.6e-7 * 0.5 * 2.27 * 1.5 * 0.6 * 0.76 * 0.85 * 0.73 # ignore conflict
     roundabout_cutin_prob = 8.4e-8 * 1.121 * 0.91 * 1.2 * 0.93 * 1.03 * 1.01 * 0.97 * 100 # mostly sideswipe
 
-    intersection_rearend_prob = 6e-7 * 0.85 * 1.14 * 0.888 * 1.05 * 1.03 * 1.07 * 0.93
+    intersection_rearend_prob = 6e-7 * 0.85 * 1.14 * 0.888 * 1.05 * 1.03 * 1.07 * 0.93 * 0.1
     intersection_cutin_prob = 1.2e-5 * 0.804 * 1.31 * 0.888 * 1.05 * 0.6 * 1.01 * 0.85 * 1.17 # mostly sideswipe
     intersection_neglect_conflict_lead_prob = 1.2e-6 * 0.5 * 0.1 * 0.888 * 1.05 * 1.27 * 1.25 * 0.85 * 1.21 # ignore conflict
     intersection_tfl_prob = 1.2e-5 * 1.026 * 2.02 * 0.888 * 1.05 * 1.16 * 0.937 * 1.046# ignore traffic light
