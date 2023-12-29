@@ -34,7 +34,7 @@ mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/maneuver_challenges
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/critical_moment_infos
 
-del_mode="all"
+del_mode="off" # all verbose off
 
 for i in {1..200}; do
     exp_nth=${SLURM_ARRAY_TASK_ID}_${i}
@@ -42,6 +42,11 @@ for i in {1..200}; do
     # test record
     python safetest_mcity_main.py --dir ${DIR_NAME} --name ${experiment_name} --nth ${exp_nth} > ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/res.txt
     # remove if no collision happens (no victim) or the victim is in the wrong junction
+    if [ "${del_mode}" = "off" ]; then # no deletion
+        continue
+    fi
+
+    # else, check if collision happens and delete related information
     if [ $(grep "victim" ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/collision.xml -m 1 | wc -l) -eq 0 ] || [ $(grep "nd_34_1_6" ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/collision.xml -m 1 | wc -l) -gt 0 ]; then
         echo "Removing ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}"
         if [ "${del_mode}" = "verbose" ]; then
