@@ -3,7 +3,7 @@ import json
 import os
 from collections import defaultdict
 # from vehicle.vehicle_utils import get_collision_type, get_location
-
+from collections import defaultdict
 from terasim.overlay import traci
 import sumolib
 from pathlib import Path
@@ -117,6 +117,7 @@ class EnvMonitor:
         return observation
     
     def update_vehicle_mode(self, control_cmds):
+        time = utils.get_time()
         for veh_id, control_cmd in control_cmds.items():
             if control_cmd and "mode" in control_cmd:
                 obs_dict = self.env.vehicle_list[veh_id].observation
@@ -131,11 +132,11 @@ class EnvMonitor:
                 if control_cmd["mode"] == "negligence":
                     if len(self.car_with_maneuver_challenges[veh_id]) == 0:
                         print("NegligenceError", veh_id, "", "", utils.get_time(), sep='\t')
-                    self.negligence_mode.update({veh_id: mode_info})
+                    self.negligence_mode[time].update({veh_id: mode_info})
                 elif control_cmd["mode"] == "avoid_collision":
-                    self.avoid_collision_mode.update({veh_id: mode_info})
+                    self.avoid_collision_mode[time].update({veh_id: mode_info})
                 elif control_cmd["mode"] == "accept_collision":
-                    self.accept_collision_mode.update({veh_id: mode_info})
+                    self.accept_collision_mode[time].update({veh_id: mode_info})
             
     def add_maneuver_challenges(self, maneuver_challenge_dict, maneuver_challenge_info, time):
         for veh_id, maneuver_challenge in maneuver_challenge_dict.items():
@@ -146,10 +147,7 @@ class EnvMonitor:
                     "maneuver_challenge": maneuver_challenge,
                     "maneuver_challenge_info": maneuver_challenge_info.get(veh_id, None),
                 }
-                if time not in self.maneuver_challenge_record:
-                    self.maneuver_challenge_record.update({time: {veh_id: record_info}})
-                else:
-                    self.maneuver_challenge_record[time].update({veh_id: record_info})
+                self.maneuver_challenge_record[time].update({veh_id: record_info})
 
     def load_to_json(self, suffix, infos, mode):
         combined_info_folder = Path(self.log_dir) / mode
@@ -264,6 +262,9 @@ class EnvMonitor:
             self.car_with_maneuver_challenges[veh_id] = list(time_set)        
         self.load_to_json("maneuver_challenges.json", self.car_with_maneuver_challenges, "maneuver_challenges")
         self.load_to_json("maneuver_challenge_record.json", self.maneuver_challenge_record, "maneuver_challenge_record")
+        self.load_to_json("negligence_mode.json", self.negligence_mode, "negligence_mode")
+        self.load_to_json("avoid_collision_mode.json", self.avoid_collision_mode, "avoid_collision_mode")
+        self.load_to_json("accept_collision_mode.json", self.accept_collision_mode, "accept_collision_mode")
         # self.load_to_json("critical_moment_infos.json", self.critical_moment_infos, "critical_moment_infos")
 
     def update_critical_moment_info(self, infos_dict):
