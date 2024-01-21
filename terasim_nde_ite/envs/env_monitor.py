@@ -27,7 +27,7 @@ class EnvMonitor:
         self.accept_collision_mode = defaultdict(dict)
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
-        self.maneuver_challenge_record = defaultdict(set)
+        self.maneuver_challenge_record = defaultdict(dict)
         self.init_cav_infos()
 
     def init_cav_infos(self):
