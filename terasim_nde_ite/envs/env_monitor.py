@@ -136,10 +136,13 @@ class EnvMonitor:
                     if len(self.car_with_maneuver_challenges[veh_id]) == 0:
                         print("NegligenceError", veh_id, "", "", utils.get_time(), sep='\t')
                     self.negligence_mode[time].update({veh_id: mode_info})
+                    self.negligence_mode_record_trimmed.update({veh_id: mode_info})
                 elif control_cmd["mode"] == "avoid_collision":
                     self.avoid_collision_mode[time].update({veh_id: mode_info})
+                    self.avoid_collision_mode_record_trimmed.update({veh_id: mode_info})
                 elif control_cmd["mode"] == "accept_collision":
                     self.accept_collision_mode[time].update({veh_id: mode_info})
+                    self.accept_collision_mode_record_trimmed.update({veh_id: mode_info})
             
     def add_maneuver_challenges(self, maneuver_challenge_dict, maneuver_challenge_info, time):
         for veh_id, maneuver_challenge in maneuver_challenge_dict.items():
