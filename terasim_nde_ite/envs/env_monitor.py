@@ -23,8 +23,11 @@ class EnvMonitor:
         self.exp_id = exp_id
         self.total_distance = {"before": {}, "after": {}}
         self.negligence_mode = defaultdict(dict)
+        self.negligence_mode_record_trimmed = defaultdict(dict)
         self.avoid_collision_mode = defaultdict(dict)
+        self.avoid_collision_mode_record_trimmed = defaultdict(dict)
         self.accept_collision_mode = defaultdict(dict)
+        self.accept_collision_mode_record_trimmed = defaultdict(dict)
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
         self.maneuver_challenge_record = defaultdict(dict)
@@ -175,11 +178,11 @@ class EnvMonitor:
 
     def get_mode_and_info(self, veh_id, mode):
         if mode == "negligence":
-            mode_dict = self.negligence_mode
+            mode_dict = self.negligence_mode_record_trimmed
         elif mode == "avoid_collision":
-            mode_dict = self.avoid_collision_mode
+            mode_dict = self.avoid_collision_mode_record_trimmed
         elif mode == "accept_collision":
-            mode_dict = self.accept_collision_mode
+            mode_dict = self.accept_collision_mode_record_trimmed
         veh_mode_dict = mode_dict.get(veh_id, None)
         if veh_mode_dict is None:
             return None, None, -1.0
