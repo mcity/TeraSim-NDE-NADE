@@ -31,6 +31,7 @@ class EnvMonitor:
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
         self.maneuver_challenge_record = defaultdict(dict)
+        self.weight_record = {}
         self.init_cav_infos()
 
     def init_cav_infos(self):
@@ -119,8 +120,9 @@ class EnvMonitor:
                 })
         return observation
     
-    def update_vehicle_mode(self, control_cmds):
+    def update_vehicle_mode(self, control_cmds, importance_sampling_weight):
         time = utils.get_time()
+        self.weight_record.update({time: importance_sampling_weight})
         for veh_id, control_cmd in control_cmds.items():
             if control_cmd and "mode" in control_cmd:
                 obs_dict = self.env.vehicle_list[veh_id].observation
@@ -144,13 +146,14 @@ class EnvMonitor:
                     self.accept_collision_mode[time].update({veh_id: mode_info})
                     self.accept_collision_mode_record_trimmed.update({veh_id: mode_info})
             
-    def add_maneuver_challenges(self, maneuver_challenge_dict, maneuver_challenge_info, time):
+    def add_maneuver_challenges(self, maneuver_challenge_dict, maneuver_challenge_avoidance_dict, maneuver_challenge_info, time):
         for veh_id, maneuver_challenge in maneuver_challenge_dict.items():
             if maneuver_challenge.get("negligence", 0) == 1:
                 self.num_maneuver_challenges += 1
                 self.car_with_maneuver_challenges[veh_id].add(time)
                 record_info = {
                     "maneuver_challenge": maneuver_challenge,
+                    "maneuver_challenge_avoidance": maneuver_challenge_avoidance_dict.get(veh_id, None),
                     "maneuver_challenge_info": maneuver_challenge_info.get(veh_id, None),
                 }
                 self.maneuver_challenge_record[time].update({veh_id: record_info})
@@ -271,6 +274,7 @@ class EnvMonitor:
         self.load_to_json("negligence_mode.json", self.negligence_mode, "negligence_mode")
         self.load_to_json("avoid_collision_mode.json", self.avoid_collision_mode, "avoid_collision_mode")
         self.load_to_json("accept_collision_mode.json", self.accept_collision_mode, "accept_collision_mode")
+        self.load_to_json("weight_record.json", self.weight_record, "weight_record")
         # self.load_to_json("critical_moment_infos.json", self.critical_moment_infos, "critical_moment_infos")
 
     def update_critical_moment_info(self, infos_dict):

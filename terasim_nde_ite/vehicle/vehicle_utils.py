@@ -119,18 +119,18 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     Given current observation and the negligence mode, detect what type of collisions will be generated
     """
 
-    highway_cutin_prob = 7.2e-8 * 0.952 * 0.91 * 1.5 * 0.67 * 0.91 * 1.01 * 0.872 * 100 # some sideswipe, some angle
-    highway_rearend_prob = 8.4e-5 * 0.748 * 0.46 * 1.5 * 1.3 * 1.5 * 0.71 * 0.77 * 0.76 * 1.15 * 0.1 * 0.5
+    highway_cutin_prob = 5.024075415899904e-06 # some sideswipe, some angle
+    highway_rearend_prob = 2.01973828080024e-06
 
-    roundabout_rearend_prob = 3.6e-8 * 0.952 * 0.86 * 0.98 * 1.27 * 1.25 * 1.04 * 0.79 * 1.39 * 0.5
-    roundabout_neglect_conflict_lead_prob = 3.6e-7 * 0.5 * 2.27 * 1.5 * 0.6 * 0.76 * 0.85 * 0.73 # ignore conflict
-    roundabout_cutin_prob = 8.4e-8 * 1.121 * 0.91 * 1.2 * 0.93 * 1.03 * 1.01 * 0.97 * 100 # mostly sideswipe
+    roundabout_rearend_prob = 2.618321339245248e-08
+    roundabout_neglect_conflict_lead_prob = 1.7341882919999998e-07 
+    roundabout_cutin_prob = 9.649855682301743e-06 # mostly sideswipe
 
-    intersection_rearend_prob = 6e-7 * 0.85 * 1.14 * 0.888 * 1.05 * 1.03 * 1.07 * 0.93 * 0.2
-    intersection_cutin_prob = 1.2e-5 * 0.804 * 1.31 * 0.888 * 1.05 * 0.6 * 1.01 * 0.85 * 1.17 # mostly sideswipe
-    intersection_neglect_conflict_lead_prob = 1.2e-6 * 0.5 * 0.1 * 0.888 * 1.05 * 1.27 * 1.25 * 0.85 * 1.21 # ignore conflict
-    intersection_tfl_prob = 1.2e-5 * 1.026 * 2.02 * 0.888 * 1.05 * 1.16 * 0.937 * 1.046 * 0.8# ignore traffic light
-    intersection_headon_prob = 1.2e-7 * 1.388 * 0.888 * 1.05 * 0.74 * 0.97 * 1.76 * 0.726 * 2# head on
+    intersection_rearend_prob = 1.1112486308481602e-07
+    intersection_cutin_prob = 7.1021242665959045e-06 # mostly sideswipe
+    intersection_neglect_conflict_lead_prob = 9.134221635e-08
+    intersection_tfl_prob = 2.109120984866411e-05
+    intersection_headon_prob = 2.848759032444272e-07
 
     local_observation = observation["local"].data
     ego_veh_obs = local_observation["Ego"]

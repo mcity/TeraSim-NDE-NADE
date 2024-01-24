@@ -77,7 +77,7 @@ class SafeTestNADE(SafeTestNDE):
         # ITE_control_cmds = {veh_id: control_cmds[veh_id]["command"] for veh_id in control_cmds} # disable ITE
         # record the negligence mode
         # self.negligence_record(ITE_control_cmds)
-        self.monitor.update_vehicle_mode(ITE_control_cmds)
+        self.monitor.update_vehicle_mode(ITE_control_cmds, self.importance_sampling_weight)
         # monitor the environment
         self.monitor.add_observation(ITE_control_cmds, obs_dicts)
         # weight = 1.0 # disable ITE
@@ -311,7 +311,7 @@ class SafeTestNADE(SafeTestNDE):
         ndd_dict = {veh_id: control_command_dict[veh_id]["ndd"] for veh_id in control_command_dict}
         trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 5, 0.6, ndd_dict[veh_id])[0] for veh_id in control_command_dict}
         maneuver_challenge_dict, maneuver_challenge_info, maneuver_challenge_avoidance_dict = self.get_maneuver_challenge_dict(trajectory_dict)
-        modified_ndd_dict = self.get_modified_ndd_dict_according_to_avoidability(ndd_dict, maneuver_challenge_avoidance_dict)
+        modified_ndd_dict, new_ndd_dict_for_record = self.get_modified_ndd_dict_according_to_avoidability(ndd_dict, maneuver_challenge_avoidance_dict)
         control_command_dict = {
             veh_id: {
                 "command": control_command_dict[veh_id]["command"],
@@ -319,8 +319,8 @@ class SafeTestNADE(SafeTestNDE):
             } for veh_id in control_command_dict
         } # modify the ndd dict according to the maneuver challenge
         time = utils.get_time()
-        self.monitor.add_maneuver_challenges(maneuver_challenge_dict, maneuver_challenge_info, time)
-        criticality_dict = {veh_id: self.get_criticality_dict(ndd_dict[veh_id], maneuver_challenge_dict[veh_id]) for veh_id in control_command_dict}
+        self.monitor.add_maneuver_challenges(maneuver_challenge_dict, maneuver_challenge_avoidance_dict, maneuver_challenge_info, time)
+        criticality_dict = {veh_id: self.get_criticality_dict(modified_ndd_dict[veh_id], maneuver_challenge_dict[veh_id]) for veh_id in control_command_dict}
         
         # TO-DO: return the ITE control command
         ITE_control_command_dict, weight = self.ITE_importance_sampling(control_command_dict, criticality_dict)
@@ -342,12 +342,15 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_modified_ndd_dict_according_to_avoidability(self, ndd_dict, maneuver_challenge_avoidance_dict):
         modified_ndd_dict = {}
+        # record the newly updated ndd dict, which is modified according to the maneuver challenge
+        new_ndd_dict = {}
         for veh_id in ndd_dict:
             modified_ndd_dict[veh_id] = ndd_dict[veh_id]
             if veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
                 modified_ndd_dict[veh_id]["negligence"]["prob"] = modified_ndd_dict[veh_id]["negligence"]["prob"] * self.unavoidable_collision_prob_factor
                 modified_ndd_dict[veh_id]["normal"]["prob"] = 1 - modified_ndd_dict[veh_id]["negligence"]["prob"]
-        return modified_ndd_dict
+                new_ndd_dict[veh_id] = modified_ndd_dict[veh_id]
+        return modified_ndd_dict, new_ndd_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
         avoid_collision_IS_prob = 0.2
@@ -412,7 +415,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            return np.clip(criticality_dict[veh_id]["negligence"] * 100, 0, self.max_importance_sampling_prob)
+            return np.clip(criticality_dict[veh_id]["negligence"] * 100, 5e-6, self.max_importance_sampling_prob)
         else:
             raise Exception("The vehicle is not in the negligence mode.")
 
