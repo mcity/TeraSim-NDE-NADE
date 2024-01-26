@@ -27,14 +27,14 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export HAS_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="ITE_check_collision"
+experiment_name="ITE_check_collision_new"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/maneuver_challenges
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/critical_moment_infos
 
-del_mode="verbose" # all verbose off
+del_mode="off" # all verbose off
 
 for i in {1..200}; do
     exp_nth=${SLURM_ARRAY_TASK_ID}_${i}
