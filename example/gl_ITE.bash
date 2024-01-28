@@ -24,10 +24,10 @@ source /home/haoweis/TeraSim-NDE-ITE/venv/bin/activate
 cd /home/haoweis/TeraSim-NDE-ITE/example
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
-export HAS_LIBSUMO=1
+export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="ITE_check_collision_new"
+experiment_name="ITE_balance_cutin_collision"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state

@@ -1,5 +1,6 @@
 import os, sys
-sys.path.append("/home/haoweis/TeraSim-NDE-ITE/") # /media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE /home/haoweis/TeraSim-NDE-ITE
+sys.path.append("/home/haoweis/TeraSim-NDE-ITE/")
+sys.path.append("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE/")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 from terasim.simulator import Simulator
