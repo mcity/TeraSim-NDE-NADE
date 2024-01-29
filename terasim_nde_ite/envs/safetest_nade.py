@@ -415,7 +415,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            return np.clip(criticality_dict[veh_id]["negligence"] * 100, 5e-6, self.max_importance_sampling_prob)
+            return np.clip(criticality_dict[veh_id]["negligence"] * 1000, 5e-6, self.max_importance_sampling_prob)
         else:
             raise Exception("The vehicle is not in the negligence mode.")
 
