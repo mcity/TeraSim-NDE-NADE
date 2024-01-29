@@ -127,9 +127,9 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     roundabout_cutin_prob = 9.649855682301743e-08 # mostly sideswipe
 
     intersection_rearend_prob = 1.1112486308481602e-07
-    intersection_cutin_prob = 7.1021242665959045e-06 # mostly sideswipe
+    intersection_cutin_prob = 7.1021242665959045e-07 # mostly sideswipe
     intersection_neglect_conflict_lead_prob = 9.134221635e-08
-    intersection_tfl_prob = 2.109120984866411e-05
+    intersection_tfl_prob = 2.109120984866411e-06
     intersection_headon_prob = 2.848759032444272e-07
 
     local_observation = observation["local"].data
