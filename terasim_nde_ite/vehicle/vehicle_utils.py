@@ -119,18 +119,18 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     Given current observation and the negligence mode, detect what type of collisions will be generated
     """
 
-    intersection_cutin_prob = 7.1021242665959045e-08 * 2
-    intersection_neglect_conflict_lead_prob = 9.134221635e-08 * 5.27 * 2
-    intersection_rearend_prob = 1.1112486308481602e-07 * 0.91 
-    intersection_tfl_prob = 2.109120984866411e-06 * 5.27 * 1.88
-    intersection_headon_prob = 2.848759032444272e-07 * 1.42 * 0.5
+    intersection_cutin_prob = 7.1021242665959045e-08 * 2 * 0.5
+    intersection_neglect_conflict_lead_prob = 9.134221635e-08 * 5.27 * 2 * 0.5
+    intersection_rearend_prob = 1.1112486308481602e-07 * 0.91 * 0.749
+    intersection_tfl_prob = 2.109120984866411e-06 * 5.27 * 1.88 * 0.5
+    intersection_headon_prob = 2.848759032444272e-07 * 1.42 * 0.5 * 0.5
 
-    roundabout_cutin_prob = 9.649855682301743e-08 * 0.37 * 2
-    roundabout_neglect_conflict_lead_prob = 1.7341882919999998e-06 * 0.5
-    roundabout_rearend_prob = 2.618321339245248e-08 * 0.37 * 0.5
+    roundabout_cutin_prob = 9.649855682301743e-08 * 0.37 * 2 * 2
+    roundabout_neglect_conflict_lead_prob = 1.7341882919999998e-06 * 0.5 * 0.5
+    roundabout_rearend_prob = 2.618321339245248e-08 * 0.37 * 0.5 * 1.91
     
-    highway_cutin_prob = 5.024075415899904e-07 * 2
-    highway_rearend_prob = 2.01973828080024e-06 * 2.68 * 0.5
+    highway_cutin_prob = 5.024075415899904e-07 * 2 * 0.5
+    highway_rearend_prob = 2.01973828080024e-06 * 2.68 * 0.5 * 1.16
 
     
     local_observation = observation["local"].data
