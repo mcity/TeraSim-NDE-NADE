@@ -424,7 +424,7 @@ class SafeTestNADE(SafeTestNDE):
             except Exception as e:
                 print(e)
 
-            return np.clip(criticality_dict[veh_id]["negligence"] * IS_magnitude, 5e-6, self.max_importance_sampling_prob)
+            return np.clip(criticality_dict[veh_id]["negligence"] * IS_magnitude, 0, self.max_importance_sampling_prob)
         else:
             raise Exception("The vehicle is not in the negligence mode.")
 

@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=7gb
 #SBATCH --array=0-499 # how many workers you are using
-#SBATCH --time=00-02:00:00 # time duration
+#SBATCH --time=00-10:00:00 # time duration
 #SBATCH --account=henryliu98
 #SBATCH --partition=standard
 #SBATCH --output=/home/haoweis/safe_test.log # change to your directory
@@ -27,7 +27,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="ITE_balance_cutin_collision_1000_IS_calibrate7"
+experiment_name="ITE_balance_cutin_collision_1000_IS_calibrate8"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
