@@ -415,11 +415,11 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            IS_magnitude = 50
+            IS_magnitude = 20
             try:
                 predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
                 if "intersection" not in predicted_collision_type:
-                    IS_magnitude = 500
+                    IS_magnitude = 100
                     print(f"The predicted collision type is not intersection, the IS magnitude is set to {IS_magnitude}")
             except Exception as e:
                 print(e)
