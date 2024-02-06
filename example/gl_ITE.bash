@@ -27,7 +27,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="ITE_balance_cutin_collision_1000_IS_calibrate9_fix_NADE_v3_IS_20_100"
+experiment_name="ITE_balance_cutin_collision_1000_IS_calibrate9_fix_NADE_IS_20_100_rerun_experiment"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
