@@ -61,10 +61,10 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
     
     def execute_urban_lanechange(self, veh_id, control_command, obs_dict):
         self.allow_lane_change = False # disable urban lane change after 1 lane change
-        vehicle_lane_id = obs_dict["local"].data["Ego"]["road_id"] + "_" + str(obs_dict["local"].data["Ego"]["lane_index"])
+        vehicle_lane_id = obs_dict["ego"].data["lane_id"]
         neighbour_lane = get_neighbour_lane(self.simulator.sumo_net, vehicle_lane_id, direction = control_command["lateral"])
         if neighbour_lane is not None:
-            current_edge_id = obs_dict["local"].data["Ego"]["road_id"]
+            current_edge_id = obs_dict["local"].data["Ego"]["edge_id"]
             new_target_lane, new_target_edge = get_next_lane_edge(self.simulator.sumo_net, neighbour_lane)
             all_route_edges = get_all_route_edges()
             perfect_new_route_index = None
@@ -122,7 +122,7 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             controlled_acc = None
         else:
             controlled_acc = control_command["longitudinal"]
-            current_velocity = obs_dict["ego"].data["speed"]
+            current_velocity = obs_dict["ego"].data["velocity"]
             if current_velocity + controlled_acc > self.params["v_high"]:
                 controlled_acc = self.params["v_high"] - current_velocity
             # elif current_velocity + controlled_acc < self.params["v_low"]:
@@ -138,7 +138,6 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             if controlled_acc is not None:
                 self.change_vehicle_speed(veh_id, controlled_acc, duration)
         else:
-            
             if control_command["lateral"] == "central":
                 utils.set_vehicle_lanechangemode(veh_id, 512) # disable lane change in central mode
                 if controlled_acc is not None:
@@ -152,7 +151,7 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
                     self.change_vehicle_speed(veh_id, controlled_acc, self.params["lc_duration"])
                 self.controlled_duration = self.lc_step_num + random.randint(5, 10) # begin counting the lane change maneuver timesteps
                 self.is_busy = True
-                vehicle_edge_id = obs_dict["local"].data["Ego"]["road_id"]
+                vehicle_edge_id = obs_dict["local"].data["Ego"]["edge_id"]
                 if self.is_urban_lanechange(vehicle_edge_id):
                     self.execute_urban_lanechange(veh_id, control_command, obs_dict)
 

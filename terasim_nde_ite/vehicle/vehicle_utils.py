@@ -49,8 +49,8 @@ def is_rear_end(observation):
     local_observation = observation["local"].data
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
-    ego_veh_road_id = ego_veh_obs['road_id'] if ego_veh_obs else None
-    lead_veh_road_id = lead_veh_obs['road_id'] if lead_veh_obs else None
+    ego_veh_road_id = ego_veh_obs["road_id"] if ego_veh_obs else None
+    lead_veh_road_id = lead_veh_obs["road_id"] if lead_veh_obs else None
     ego_veh_route_id = traci.vehicle.getRouteID(ego_veh_obs['veh_id']) if ego_veh_obs else None
     lead_veh_route_id = traci.vehicle.getRouteID(lead_veh_obs['veh_id']) if lead_veh_obs else None
     ego_veh_route = traci.vehicle.getRoute(ego_veh_obs['veh_id']) if ego_veh_obs else []
@@ -92,8 +92,8 @@ def is_head_on(observation):
     local_observation = observation["local"].data
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
-    ego_veh_lane_id = ego_veh_obs['road_id'] + "_" + str(ego_veh_obs['lane_index']) if ego_veh_obs else None
-    lead_veh_lane_id = lead_veh_obs['road_id'] + "_" + str(lead_veh_obs['lane_index']) if lead_veh_obs else None
+    ego_veh_lane_id = ego_veh_obs["lane_id"] if ego_veh_obs else None
+    lead_veh_lane_id = lead_veh_obs["lane_id"] if lead_veh_obs else None
     
     ego_veh_lane_start_angle = get_lane_angle(ego_veh_lane_id)
     lead_veh_lane_start_angle = get_lane_angle(lead_veh_lane_id)
@@ -136,12 +136,10 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     local_observation = observation["local"].data
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
-    ego_veh_lane_id = ego_veh_obs['road_id'] + "_" + str(ego_veh_obs['lane_index']) if ego_veh_obs else None
-    lead_veh_lane_id = lead_veh_obs['road_id'] + "_" + str(lead_veh_obs['lane_index']) if lead_veh_obs else None
+    ego_veh_lane_id = ego_veh_obs["lane_id"] if ego_veh_obs else None
+    lead_veh_lane_id = lead_veh_obs["lane_id"] if lead_veh_obs else None
 
     rear_end = is_rear_end(observation)
-
-
     if "roundabout" in location_region or (neg_location_region is not None and "roundabout" in neg_location_region):
         if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
             return roundabout_cutin_prob, "roundabout_cutin"

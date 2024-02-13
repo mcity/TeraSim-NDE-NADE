@@ -25,17 +25,17 @@ class IDM_MOBIL_with_negligence(IDMModel):
         self.vehicle.simulator.set_vehicle_emegency_deceleration(self.vehicle.id, 9)
     
     def get_negligence_prob(self, obs_dict, negligence_mode):  
-        veh_road_id = obs_dict["local"].data["Ego"]["road_id"]
+        veh_road_id = obs_dict["local"].data["Ego"]["edge_id"]
         location = get_location(veh_road_id, self.lane_config)
         neg_veh_road_id, neg_location = None, None
         if obs_dict["local"].data.get(negligence_mode, None) is not None:
-            neg_veh_road_id = obs_dict["local"].data[negligence_mode].get("road_id", None)
+            neg_veh_road_id = obs_dict["local"].data[negligence_mode].get("edge_id", None)
             neg_location = get_location(neg_veh_road_id, self.lane_config)
         collision_prob, collision_type = get_collision_type_and_prob(obs_dict, negligence_mode, location, neg_location)
         return collision_prob, collision_type
     
     def change_IDM_MOBIL_parameters_from_location(self, obs_dict):
-        vehicle_location = get_location(obs_dict["local"].data["Ego"]["road_id"], self.lane_config)
+        vehicle_location = get_location(obs_dict["local"].data["Ego"]["edge_id"], self.lane_config)
         if "highway" in vehicle_location: # highway/freeway scenario
             IDM_parameters = {
                 "TIME_WANTED": 1.72,
@@ -80,7 +80,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
 
     def get_negligence_modes(self, obs_dict, vehicle_location=None):
         if vehicle_location is None:
-            vehicle_location = get_location(obs_dict["local"].data["Ego"]["road_id"], self.lane_config)
+            vehicle_location = get_location(obs_dict["local"].data["Ego"]["edge_id"], self.lane_config)
         negligence_mode_list_dict = {
             "highway": ["Lead", "LeftFoll", "RightFoll"],
             "intersection": ["Lead", "LeftFoll", "RightFoll"],

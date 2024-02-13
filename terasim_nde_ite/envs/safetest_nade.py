@@ -117,7 +117,7 @@ class SafeTestNADE(SafeTestNDE):
 
             # get surronding vehicles
             veh_obs_dict = obs_dicts[veh_id]
-            veh_lane_id = veh_obs_dict["local"].data["Ego"]["road_id"] + "_" + str(veh_obs_dict["local"].data["Ego"]["lane_index"])
+            veh_lane_id = veh_obs_dict["ego"].data["lane_id"]
             veh_lane_internal_foe_lanes = traci.lane.getInternalFoes(veh_lane_id)
             if not veh_lane_internal_foe_lanes:
                 continue
@@ -194,7 +194,7 @@ class SafeTestNADE(SafeTestNDE):
 
             # get surronding vehicles
             veh_obs_dict = obs_dicts[veh_id]
-            veh_lane_id = veh_obs_dict["local"][0]["Ego"]["road_id"] + "_" + str(veh_obs_dict["local"][0]["Ego"]["lane_index"])
+            veh_lane_id = veh_obs_dict["ego"].data["lane_id"]
             veh_lane_internal_foe_lanes = traci.lane.getInternalFoes(veh_lane_id)
             if not veh_lane_internal_foe_lanes:
                 continue
@@ -215,7 +215,7 @@ class SafeTestNADE(SafeTestNDE):
                 if surrounding_vehicle_id in obs_surrounding_veh_ids or veh_id in surrounding_vehicle_obs_surrounding_veh_ids:
                     continue
                 # surrounding vehicle is not in the foe lanes
-                surrouding_veh_lane_id = surrounding_vehicle_obs_dict["local"][0]["Ego"]["road_id"] + "_" + str(surrounding_vehicle_obs_dict["local"][0]["Ego"]["lane_index"])
+                surrouding_veh_lane_id = surrounding_vehicle_obs_dict["ego"].data["lane_id"]
 
                 if surrouding_veh_lane_id not in veh_lane_internal_foe_lanes:
                     continue
@@ -674,7 +674,7 @@ class SafeTestNADE(SafeTestNDE):
         Returns:
             future_position_list (list): the list of future position
         """
-        road_id = veh_info["road_id"]
+        road_id = veh_info["edge_id"]
         future_distance_list = self.predict_future_distance(veh_info["velocity"], control_command["longitudinal"], duration_list)
         current_lane_length = traci.lane.getLength(veh_info["lane_id"])
         current_route_index = veh_info["route_id_list"].index(road_id)
@@ -779,7 +779,7 @@ class SafeTestNADE(SafeTestNDE):
             "id": veh_id,
             "route": traci.vehicle.getRoute(veh_id),
             "route_index": traci.vehicle.getRouteIndex(veh_id),
-            "road_id": traci.vehicle.getRoadID(veh_id),
+            "edge_id": traci.vehicle.getRoadID(veh_id),
             "lane_id": traci.vehicle.getLaneID(veh_id),
             "lane_index": traci.vehicle.getLaneIndex(veh_id),
             "position": traci.vehicle.getPosition(veh_id),
