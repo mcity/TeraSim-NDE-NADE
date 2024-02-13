@@ -180,6 +180,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         mode = None
         action_dist = {}
         ego_vehicle = observation["Ego"]
+        ego_vehicle_lane_id = ego_vehicle["lane_id"]
         front_vehicle = observation["Lead"]
         # Lateral: MOBIL
         mode = "MOBIL"
@@ -209,7 +210,11 @@ class IDM_MOBIL_with_negligence(IDMModel):
         else:
             tmp_acc = self.stochastic_IDM_acceleration(ego_vehicle=ego_vehicle, front_vehicle=front_vehicle)
         tmp_acc = np.clip(tmp_acc, self.acc_low, self.acc_high)
-        central_action = {"lateral": "central" if self.MOBIL_lc_flag else "SUMO", "longitudinal": tmp_acc, "type": "lon_lat"}
+        if not self.MOBIL_lc_flag or ego_vehicle_lane_id == "EG_1_3_1.61_0": 
+            # if the MOBIL_lc_flag is False, or the vehicle is on the merge lane, SUMO will take over the lane change maneuver
+            central_action = {"lateral": "SUMO", "longitudinal": tmp_acc, "type": "lon_lat"}
+        else:
+            central_action = {"lateral": "central", "longitudinal": tmp_acc, "type": "lon_lat"}
         
         action_dist = {
             "left": {"command": left_action, "prob": 0},
