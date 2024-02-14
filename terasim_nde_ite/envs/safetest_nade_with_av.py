@@ -10,7 +10,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
         # initialize the surrogate model and add AV to env
         # self.surrogate_model = IDM_MOBIL_with_negligence(MOBIL_lc_flag=True, stochastic_acc_flag=False, lane_config=)
         super().on_start(ctx)
-        self.add_vehicle(veh_id="CAV", route="r_CAV", lane="best", lane_id="EG_35_1_14_0", position=0, speed=0)
+        self.add_vehicle(veh_id="CAV", route="cav_route", lane="best", lane_id="EG_2_1_1_0", position=0, speed=0)
         traci.vehicle.setColor("CAV", (255, 0, 0, 255))
 
     def ITE_decision(self, control_command_dict, control_info_dict):
