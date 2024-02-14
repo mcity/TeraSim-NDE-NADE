@@ -8,7 +8,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
     def on_start(self, ctx):
         # initialize the surrogate model and add AV to env
-        # self.surrogate_model = IDM_MOBIL_with_negligence(MOBIL_lc_flag=True, stochastic_acc_flag=False, lane_config=)
+        self.surrogate_model = IDM_MOBIL_with_negligence(MOBIL_lc_flag=True, stochastic_acc_flag=False)
         super().on_start(ctx)
         self.add_vehicle(veh_id="CAV", route="cav_route", lane="best", lane_id="EG_2_1_1_0", position=0, speed=0)
         traci.vehicle.setColor("CAV", (255, 0, 0, 255))
@@ -17,10 +17,10 @@ class SafeTestNADEWithAV(SafeTestNADE):
         # track CAV at each timestep using traci GUI track
         if "CAV" in control_command_dict and self.simulator.gui_flag:
             traci.gui.trackVehicle(viewID='View #0', vehID="CAV")
-        ITE_control_command_dict, weight = super().ITE_decision(control_command_dict, control_info_dict)
+        ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict = super().ITE_decision(control_command_dict, control_info_dict)
         if "CAV" in control_command_dict:
             ITE_control_command_dict["CAV"] = control_command_dict["CAV"]
-        return ITE_control_command_dict, weight
+        return ITE_control_command_dict, weight, trajectory_dict, maneuver_challenge_dict, criticality_dict
 
     def ITE_importance_sampling(self, ndd_control_command_dict, criticality_dict):
         """Importance sampling for NADE.

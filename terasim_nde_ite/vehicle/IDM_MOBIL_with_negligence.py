@@ -11,10 +11,10 @@ from terasim_nde_ite.vehicle.vehicle_utils import get_collision_type_and_prob, g
 
 class IDM_MOBIL_with_negligence(IDMModel):
     
-    def __init__(self, MOBIL_lc_flag=True, stochastic_acc_flag=False, lane_config=None, IDM_parameters=None, MOBIL_parameters=None):
-        if lane_config is None:
-            raise ValueError("lane_config is None")
-        self.lane_config = lane_config
+    def __init__(self, MOBIL_lc_flag=True, stochastic_acc_flag=False, IDM_parameters=None, MOBIL_parameters=None):
+        current_path = os.path.dirname(os.path.abspath(__file__))
+        lane_config_path = os.path.join(current_path, "lane_config.json")
+        self.lane_config = json.load(open(lane_config_path, 'r'))
         super().__init__(MOBIL_lc_flag, stochastic_acc_flag, IDM_parameters, MOBIL_parameters)
 
     def install(self):
@@ -75,7 +75,6 @@ class IDM_MOBIL_with_negligence(IDMModel):
 
     def derive_control_command_from_observation(self, obs_dict):
         commands, control_info, negligence_info = self.derive_control_command_from_observation_detailed(obs_dict)
-        control_info["obs_dict"] = obs_dict
         return commands, control_info
 
     def get_negligence_modes(self, obs_dict, vehicle_location=None):
