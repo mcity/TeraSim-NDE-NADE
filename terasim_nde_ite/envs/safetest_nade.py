@@ -70,8 +70,8 @@ class SafeTestNADE(SafeTestNDE):
     def on_step(self, ctx):
         self._vehicle_in_env_distance("after")
         # Make decisions and execute commands
-        control_cmds, infos = self.make_decisions()
-        infos, obs_dicts = self.get_observation_dicts(infos)
+        control_cmds, infos = self.make_decisions(ctx)
+        obs_dicts = self.get_observation_dicts()
         ITE_control_cmds, weight, trajectory_dicts, maneuver_challenge_dicts, criticality_dicts = self.ITE_decision(control_cmds, infos) # enable ITE
         ITE_control_cmds = self.fix_intersection_decisions(ITE_control_cmds, obs_dicts, trajectory_dicts)
         # ITE_control_cmds = {veh_id: control_cmds[veh_id]["command"] for veh_id in control_cmds} # disable ITE
@@ -86,12 +86,11 @@ class SafeTestNADE(SafeTestNDE):
         # Simulation stop check
         return self.should_continue_simulation()
     
-    def get_observation_dicts(self, infos):
-        obs_dicts = {}
-        for veh_id in infos:
-            obs_dicts[veh_id] = infos[veh_id]["obs_dict"]
-            infos[veh_id].pop("obs_dict")
-        return infos, obs_dicts
+    def get_observation_dicts(self):
+        obs_dicts = {
+            vehicle.id: vehicle.observation for vehicle in self.vehicle_list.values()
+        }
+        return obs_dicts
     
     def get_time_to_collision(self, distance, speed):
         if distance <= 0:
@@ -109,7 +108,7 @@ class SafeTestNADE(SafeTestNDE):
             trajectory_dicts = {veh_id: trajectory_dicts[veh_id] for veh_id in trajectory_dicts if veh_id in focus_id_list}
         for veh_id in control_cmds:
             # only apply to vehicle associated with normal control command
-            if veh_id not in obs_dicts or veh_id not in trajectory_dicts:
+            if veh_id not in obs_dicts or veh_id not in trajectory_dicts or veh_id == "CAV":
                 continue
             veh_control_cmd = control_cmds[veh_id]
             if "mode" in veh_control_cmd and (veh_control_cmd["mode"] == "avoid_collision" or veh_control_cmd["mode"] == "negligence"): # do not change the negligence or avoid_collision mode

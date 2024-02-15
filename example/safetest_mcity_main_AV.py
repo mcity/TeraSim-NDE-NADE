@@ -1,7 +1,6 @@
 import sys
 import os
-file_path = os.path.dirname(os.path.abspath(__file__))
-
+dir_path = os.path.dirname(os.path.abspath(__file__))
 from terasim.simulator import Simulator
 from terasim_nde_ite.envs.env_monitor import EnvMonitor
 from terasim_nde_ite.envs.safetest_nade_with_av import SafeTestNADEWithAV
@@ -21,12 +20,12 @@ monitor = EnvMonitor(
     exp_id=f"{args.exp_name}_{args.nth}",
 )
 env = SafeTestNADEWithAV(
-    vehicle_factory = SafetestVehicleFactory(),
+    vehicle_factory = SafetestVehicleFactory(lane_config_path=dir_path+'/maps/Mcity_safetest/lane_config.json'),
     info_extractor=InfoExtractor,
 )
 sim = Simulator(
-    sumo_net_file_path = file_path + '/maps/Mcity_safetest/mcity.net.xml',
-    sumo_config_file_path = file_path + '/maps/Mcity_safetest/mcity.sumocfg',
+    sumo_net_file_path = dir_path + '/maps/Mcity_safetest/mcity.net.xml',
+    sumo_config_file_path = dir_path + '/maps/Mcity_safetest/mcity.sumocfg',
     num_tries=10,
     gui_flag=True,
     output_path=f"{args.dir}/{args.exp_name}/raw_data/{args.exp_name}_{args.nth}",
