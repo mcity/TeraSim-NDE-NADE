@@ -44,8 +44,8 @@ class EnvMonitor:
             "real_epsilon_step_info": {},
         }
 
-    def update_comprehensive_info(self, time, info_dict):
-        self.comprehensive_info[time].update(info_dict)
+    def update_comprehensive_info(self, timestamp, info_dict):
+        self.comprehensive_info[timestamp].update(info_dict)
     
     def bind_env(self, env):
         self.env = env
@@ -279,6 +279,7 @@ class EnvMonitor:
         self.load_to_json("avoid_collision_mode.json", self.avoid_collision_mode, "avoid_collision_mode")
         self.load_to_json("accept_collision_mode.json", self.accept_collision_mode, "accept_collision_mode")
         self.load_to_json("weight_record.json", self.weight_record, "weight_record")
+        self.load_to_json("comprehensive_info.json", self.comprehensive_info, "comprehensive_info")
         # self.load_to_json("critical_moment_infos.json", self.critical_moment_infos, "critical_moment_infos")
 
     def update_critical_moment_info(self, infos_dict):

@@ -348,6 +348,7 @@ class SafeTestNADE(SafeTestNDE):
             modified_ndd_dict[veh_id] = ndd_dict[veh_id]
             if veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
                 modified_ndd_dict[veh_id]["negligence"]["prob"] = modified_ndd_dict[veh_id]["negligence"]["prob"] * self.unavoidable_collision_prob_factor
+                modified_ndd_dict[veh_id]["negligence"]["command"]["info"]["avoidable"] = False
                 modified_ndd_dict[veh_id]["normal"]["prob"] = 1 - modified_ndd_dict[veh_id]["negligence"]["prob"]
                 new_ndd_dict[veh_id] = modified_ndd_dict[veh_id]
         return modified_ndd_dict, new_ndd_dict
@@ -356,23 +357,26 @@ class SafeTestNADE(SafeTestNDE):
         avoid_collision_IS_prob = 0.2
         avoid_collision_ndd_prob = 0.99
         weight = 1.0
+        timestamp = utils.get_time()
         if len(neglected_vehicle_list) == 0:
             return ITE_control_command_dict, weight
         IS_prob = np.random.uniform(0, 1)
         if IS_prob < avoid_collision_IS_prob: # apply collision aboidance (select NDD)
             weight *= avoid_collision_ndd_prob/avoid_collision_IS_prob
             for veh_id in neglected_vehicle_list:
-                print(f"time: {utils.get_time()}, neglected vehicle: {veh_id} avoid collision")
+                print(f"time: {timestamp}, neglected vehicle: {veh_id} avoid collision")
                 ITE_control_command_dict[veh_id] = {
                     "lateral": "central",
                     "longitudinal": -7.06,
                     "type": "lon_lat",
                     "mode": "avoid_collision",
                 }
+                self.monitor.update_comprehensive_info(timestamp, {"avoid_collision" + veh_id: {"avoid_collision_prob": avoid_collision_ndd_prob, "IS_prob": IS_prob, "weight": self.importance_sampling_weight, "onestep_weight": avoid_collision_ndd_prob/avoid_collision_IS_prob}})
         else: # does not apply collision avoidance
-            print(f"time: {utils.get_time()}, neglected vehicle: {neglected_vehicle_list} accept collision")
+            print(f"time: {timestamp}, neglected vehicle: {neglected_vehicle_list} accept collision")
             for veh_id in neglected_vehicle_list:
                 ITE_control_command_dict[veh_id]["mode"] = "accept_collision"
+                self.monitor.update_comprehensive_info(timestamp, {"accept_collision" + veh_id: {"avoid_collision_prob": avoid_collision_ndd_prob, "IS_prob": IS_prob, "weight": self.importance_sampling_weight, "onestep_weight": (1 - avoid_collision_ndd_prob)/(1 - avoid_collision_IS_prob)}})
             weight *= (1 - avoid_collision_ndd_prob)/(1 - avoid_collision_IS_prob)
         return ITE_control_command_dict, weight
 
@@ -398,6 +402,7 @@ class SafeTestNADE(SafeTestNDE):
         """
         weight = 1.0
         ITE_control_command_dict = {veh_id: ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"] for veh_id in ndd_control_command_dict}
+        time = utils.get_time()
         for veh_id in criticality_dict:
             if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
                 sampled_prob = np.random.uniform(0, 1)
@@ -408,6 +413,7 @@ class SafeTestNADE(SafeTestNDE):
                 if sampled_prob < IS_prob: # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]
+                    self.monitor.update_comprehensive_info(time, {"negligence" + veh_id : {"negligence_prob": ndd_negligence_prob, "IS_prob": IS_prob, "weight": self.importance_sampling_weight, "avoidable": ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["avoidable"], "onestep_weight": ndd_negligence_prob / IS_prob, "negligence_info": ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]}})
                 else:
                     weight *= ndd_normal_prob / (1 - IS_prob)
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"]
@@ -415,7 +421,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            IS_magnitude = 10
+            IS_magnitude = 1000
             # try:
             #     predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
             #     if "intersection" not in predicted_collision_type:

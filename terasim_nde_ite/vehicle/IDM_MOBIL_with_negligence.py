@@ -156,6 +156,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
                 "negligence_prob": negligence_prob,
                 "negligece_mode": neg_mode,
                 "location": vehicle_location,
+                "avoidable": True,
             }
             control_info['negligence'] = {"command": control_command_negligence, "prob": negligence_prob, "location": vehicle_location}
             control_info['normal'] = {"command": control_command_nde, "prob": 1 - negligence_prob, "location": vehicle_location}
