@@ -31,6 +31,7 @@ class EnvMonitor:
         self.num_maneuver_challenges = 0
         self.car_with_maneuver_challenges = defaultdict(set)
         self.maneuver_challenge_record = defaultdict(dict)
+        self.comprehensive_info = defaultdict(dict)
         self.weight_record = {}
         self.init_cav_infos()
 
@@ -42,6 +43,9 @@ class EnvMonitor:
             "drl_epsilon_step_info": {},
             "real_epsilon_step_info": {},
         }
+
+    def update_comprehensive_info(self, time, info_dict):
+        self.comprehensive_info[time].update(info_dict)
     
     def bind_env(self, env):
         self.env = env
