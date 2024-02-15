@@ -69,9 +69,10 @@ class SafeTestNADE(SafeTestNDE):
     # @profile
     def on_step(self, ctx):
         self._vehicle_in_env_distance("after")
-        # Make decisions and execute commands
+        # Make NDE decisions for all vehicles
         control_cmds, infos = self.make_decisions(ctx)
         obs_dicts = self.get_observation_dicts()
+        # Make ITE decision, includes the modification of NDD distribution according to avoidability
         ITE_control_cmds, weight, trajectory_dicts, maneuver_challenge_dicts, criticality_dicts = self.ITE_decision(control_cmds, infos) # enable ITE
         ITE_control_cmds = self.fix_intersection_decisions(ITE_control_cmds, obs_dicts, trajectory_dicts)
         # ITE_control_cmds = {veh_id: control_cmds[veh_id]["command"] for veh_id in control_cmds} # disable ITE
@@ -414,7 +415,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            IS_magnitude = 1
+            IS_magnitude = 10
             # try:
             #     predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
             #     if "intersection" not in predicted_collision_type:
