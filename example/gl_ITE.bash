@@ -27,7 +27,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_10_fixbug"
+experiment_name="NADE_50_04_avoid_prob_log_comprehensive_info"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
