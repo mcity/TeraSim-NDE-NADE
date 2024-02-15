@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=7gb
-#SBATCH --array=0-499 # how many workers you are using
+#SBATCH --array=0-999 # how many workers you are using
 #SBATCH --time=00-04:00:00 # time duration
 #SBATCH --account=henryliu98
 #SBATCH --partition=standard
@@ -27,7 +27,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_20_add_merge_fixbug"
+experiment_name="NDE_merge_fixbug"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
