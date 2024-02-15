@@ -49,8 +49,8 @@ def is_rear_end(observation):
     local_observation = observation["local"].data
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
-    ego_veh_road_id = ego_veh_obs["road_id"] if ego_veh_obs else None
-    lead_veh_road_id = lead_veh_obs["road_id"] if lead_veh_obs else None
+    ego_veh_road_id = ego_veh_obs["edge_id"] if ego_veh_obs else None
+    lead_veh_road_id = lead_veh_obs["edge_id"] if lead_veh_obs else None
     ego_veh_route_id = traci.vehicle.getRouteID(ego_veh_obs['veh_id']) if ego_veh_obs else None
     lead_veh_route_id = traci.vehicle.getRouteID(lead_veh_obs['veh_id']) if lead_veh_obs else None
     ego_veh_route = traci.vehicle.getRoute(ego_veh_obs['veh_id']) if ego_veh_obs else []

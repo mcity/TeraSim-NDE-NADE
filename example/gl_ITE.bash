@@ -18,10 +18,10 @@
 ulimit -c 0
 cd /home/haoweis
 source .bashrc
-cd /home/haoweis/TeraSim-NDE-ITE
+cd /home/haoweis/ASAP/TeraSim-NDE-ITE
 module load python/3.10.4
-source /home/haoweis/TeraSim-NDE-ITE/venv/bin/activate
-cd /home/haoweis/TeraSim-NDE-ITE/example
+source /home/haoweis/ASAP/TeraSim-NDE-ITE/venv/bin/activate
+cd /home/haoweis/ASAP/TeraSim-NDE-ITE/example
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
