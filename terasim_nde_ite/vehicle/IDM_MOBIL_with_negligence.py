@@ -219,7 +219,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
 
         # use traci to detect if the vehicle is stopping in front of the stop line, if so, set the longitudinal acceleration to 0.1, to match the vehicle actual behavior in front of the intersection or roundabout
         if traci.vehicle.getSpeedWithoutTraCI(ego_vehicle_id)  == 0:
-            print(f"vehicle {ego_vehicle_id} is stopped in front of the stop line")
+            # print(f"vehicle {ego_vehicle_id} is stopped in front of the stop line")
             central_action["longitudinal"] = 0.1
 
         # if not is_neglect_flag and "NODE" in ego_vehicle_lane_id: # is not in neglecting and in the intersection, use SUMO
