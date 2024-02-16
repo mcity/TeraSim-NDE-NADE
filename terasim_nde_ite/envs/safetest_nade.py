@@ -357,7 +357,7 @@ class SafeTestNADE(SafeTestNDE):
         return modified_ndd_dict, new_ndd_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
-        avoid_collision_IS_prob = os.getenv('AVOID_COLLISION_IS_PROB', 0.2)
+        avoid_collision_IS_prob = float(os.getenv('AVOID_COLLISION_IS_PROB', 0.2))
         avoid_collision_ndd_prob = 0.99
         weight = 1.0
         timestamp = utils.get_time()
@@ -424,7 +424,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            IS_magnitude = os.getenv('IS_MAGNITUDE', 10)
+            IS_magnitude = float(os.getenv('IS_MAGNITUDE', 10))
             # try:
             #     predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
             #     if "intersection" not in predicted_collision_type:
