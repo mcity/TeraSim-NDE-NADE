@@ -23,13 +23,13 @@ module load python/3.10.4
 source /home/haoweis/ASAP/TeraSim-NDE-ITE/venv/bin/activate
 cd /home/haoweis/ASAP/TeraSim-NDE-ITE/example
 export IS_MAGNITUDE=10
-export AVOID_COLLISION_IS_PROB=0.6
+export AVOID_COLLISION_IS_PROB=0.9
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_10_avoid_06"
+experiment_name="NADE_IS_10_avoid_09"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
