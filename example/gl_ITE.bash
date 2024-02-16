@@ -7,8 +7,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=7gb
-#SBATCH --array=0-999 # how many workers you are using
-#SBATCH --time=00-01:00:00 # time duration
+#SBATCH --array=0-499 # how many workers you are using
+#SBATCH --time=00-08:00:00 # time duration
 #SBATCH --account=henryliu98
 #SBATCH --partition=standard
 #SBATCH --output=/home/haoweis/safe_test.log # change to your directory
@@ -27,7 +27,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_10_fix_intersection_stop_and_3circle_bug"
+experiment_name="NADE_10_fix_intersection_stop_and_3circle_bug2"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
