@@ -66,11 +66,11 @@ class IDM_MOBIL_with_negligence(IDMModel):
         self.load_parameters(IDM_parameters, MOBIL_parameters)
         return IDM_parameters, MOBIL_parameters, vehicle_location
 
-    def derive_control_command_from_obs_helper(self, obs_dict):
+    def derive_control_command_from_obs_helper(self, obs_dict, is_neglect_flag=False):
         if "local" not in obs_dict:
             raise ValueError("No local observation")
         # obs_dict = self.fix_observation(obs_dict)
-        control_command, action_dist, mode = self.decision(obs_dict["local"].data)
+        control_command, action_dist, mode = self.decision(obs_dict["local"].data, is_neglect_flag)
         return control_command, action_dist, None
 
     def derive_control_command_from_observation(self, obs_dict):
@@ -122,7 +122,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
             "veh_tfl": veh_tfl,
         }
         # compute the control command without negligence
-        _, control_command_nde_distribution, _ = self.derive_control_command_from_obs_helper(obs_dict)
+        _, control_command_nde_distribution, _ = self.derive_control_command_from_obs_helper(obs_dict, is_neglect_flag=False)
         
         # choose the normal control command based on the probability
         control_command_nde = self.sample_nde_control_command(control_command_nde_distribution)
@@ -167,7 +167,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
                 commands = control_command_negligence
         return commands, control_info, negligence_info
     
-    def decision(self, observation):
+    def decision(self, observation, is_neglect_flag=False):
         """Vehicle decides next action based on IDM model.
 
         Args:
@@ -180,6 +180,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         mode = None
         action_dist = {}
         ego_vehicle = observation["Ego"]
+        ego_vehicle_id = ego_vehicle["veh_id"]
         ego_vehicle_lane_id = ego_vehicle["lane_id"]
         front_vehicle = observation["Lead"]
         # Lateral: MOBIL
@@ -215,7 +216,15 @@ class IDM_MOBIL_with_negligence(IDMModel):
             central_action = {"lateral": "SUMO", "longitudinal": tmp_acc, "type": "lon_lat"}
         else:
             central_action = {"lateral": "central", "longitudinal": tmp_acc, "type": "lon_lat"}
-        
+
+        # use traci to detect if the vehicle is stopping in front of the stop line, if so, set the longitudinal acceleration to 0.1, to match the vehicle actual behavior in front of the intersection or roundabout
+        if traci.vehicle.getSpeedWithoutTraCI(ego_vehicle_id)  == 0:
+            print(f"vehicle {ego_vehicle_id} is stopped in front of the stop line")
+            central_action["longitudinal"] = 0.1
+
+        # if not is_neglect_flag and "NODE" in ego_vehicle_lane_id: # is not in neglecting and in the intersection, use SUMO
+        #     central_action["longitudinal"] = "SUMO"
+
         action_dist = {
             "left": {"command": left_action, "prob": 0},
             "right": {"command": right_action, "prob": 0},
@@ -284,11 +293,11 @@ class IDM_MOBIL_with_negligence(IDMModel):
         mingap = traci.vehicle.getMinGap(veh_id)
         car_negligence_command = None
         if veh_distance_from_departure >= 10:
-            neg_obs_dict = obs_dict["local"].data[negligence_mode]
+            neg_obs_dict = obs_dict["local"].data[negligence_mode] # neglected vehicle observation
             if neg_obs_dict is not None:
-                if neg_obs_dict["velocity"] < 0.5 and obs_dict['local'].data['Ego']['velocity'] < 0.5:
+                if neg_obs_dict["velocity"] < 0.5 and obs_dict['local'].data['Ego']['velocity'] < 0.5: # both vehicles are stopped
                     return car_negligence_command
-                if neg_obs_dict["distance"] < -2:
+                if neg_obs_dict["distance"] < -2: # the vehicle is behind the ego vehicle, especially for the cutin scenario
                     return car_negligence_command
                 elif negligence_mode == "Lead" and neg_obs_dict["distance"] > mingap and veh_speed < 2:
                     return car_negligence_command
@@ -296,7 +305,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
                 # prepare the observation for negligence
                 tmp = obs_dict["local"].data[negligence_mode]
                 obs_dict["local"].data[negligence_mode] = None
-                car_negligence_command, _, _ = self.derive_control_command_from_obs_helper(obs_dict)
+                car_negligence_command, _, _ = self.derive_control_command_from_obs_helper(obs_dict, is_neglect_flag=True)
                 car_negligence_command['car_negligence'] = 1
                 car_negligence_command["mode"] = "negligence"
                 # restore the observation
@@ -323,7 +332,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         if control_command_after is not None:
             lateral_flag = control_command_after['lateral'] != control_command_before['lateral']
             # calculate the longitudinal acceleration difference with normalization
-            longitudinal_acc = np.abs(control_command_after['longitudinal'] - control_command_before['longitudinal']) / 10
+            longitudinal_acc = np.abs(get_longitudinal(control_command_after) - get_longitudinal(control_command_before)) / 10
             # judge the negligence mode corresponds to the movement of the vehicle when changing lane
             lane_change_flag = (control_command_after['lateral'] == "left" and negligence_mode in ["LeftLead", "LeftFoll"]) \
                 or (control_command_after['lateral'] == "right" and negligence_mode in ["RightLead", "RightFoll"])
@@ -336,3 +345,17 @@ class IDM_MOBIL_with_negligence(IDMModel):
             # 2. lane unchange and significant speed difference
             is_significant = (lane_change_flag and (lateral_flag or speed_flag)) or (lane_unchange_flag and speed_flag) 
         return is_significant
+
+
+def get_longitudinal(control_command):
+    """Get the longitudinal control command
+
+    Args:
+        control_command (dict): control command
+
+    Returns:
+        longitudinal (float): longitudinal control command
+    """
+    if control_command['longitudinal'] == "SUMO":
+        return 0
+    return control_command['longitudinal']

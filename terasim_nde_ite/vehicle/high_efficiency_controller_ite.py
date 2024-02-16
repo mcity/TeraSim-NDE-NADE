@@ -94,12 +94,16 @@ class HighEfficiencyControllerITE(HighEfficiencyController):
             action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
         """ 
         # Set Safe Mode from SUMO
+        # if control_command["longitudinal"] == "SUMO":
+        #     # utils.set_vehicle_speedmode(veh_id)
+        #     return
+
         negligence_flag = "mode" in control_command and control_command["mode"] == "negligence"
         avoid_collision_flag = "mode" in control_command and control_command["mode"] == "avoid_collision"
 
         # # disable MOBIL lane change
         # control_command["lateral"] = "central"
-        utils.set_vehicle_speedmode(veh_id, 0)
+        # utils.set_vehicle_speedmode(veh_id, 0)
         if not self.is_busy:    
             if negligence_flag or avoid_collision_flag:
                 utils.set_vehicle_speedmode(veh_id, 0)

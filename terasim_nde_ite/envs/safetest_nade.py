@@ -5,7 +5,7 @@ import terasim.utils as utils
 import numpy as np
 import math
 veh_length = 5.0
-veh_width = 2.0
+veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2-(veh_width/2)**2)
 from terasim.utils import sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation
@@ -421,7 +421,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            IS_magnitude = 1000
+            IS_magnitude = 50
             # try:
             #     predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
             #     if "intersection" not in predicted_collision_type:
@@ -493,10 +493,10 @@ class SafeTestNADE(SafeTestNDE):
                 except:
                     # print(f"no neglected vehicle for {veh_id}")
                     pass
-        for veh_id in maneuver_challenge_avoidance_dict:
-            if maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
-                if veh_id not in maneuver_challenges or not maneuver_challenges[veh_id]["maneuver_challenge"]:
-                    utils.highlight_vehicle(veh_id, duration=0.1, color=(255, 255, 0, 255))
+        # for veh_id in maneuver_challenge_avoidance_dict:
+        #     if maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
+        #         if veh_id not in maneuver_challenges or not maneuver_challenges[veh_id]["maneuver_challenge"]:
+        #             utils.highlight_vehicle(veh_id, duration=0.1, color=(255, 255, 0, 255))
 
     def get_maneuver_challenge_BV_22(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future):
         bv_22_future = {veh_id: all_normal_veh_future[veh_id] for veh_id in all_normal_veh_future if "BV_22." in veh_id}
@@ -681,7 +681,7 @@ class SafeTestNADE(SafeTestNDE):
             future_position_list (list): the list of future position
         """
         road_id = veh_info["edge_id"]
-        future_distance_list = self.predict_future_distance(veh_info["velocity"], control_command["longitudinal"], duration_list)
+        future_distance_list = self.predict_future_distance(veh_info["velocity"], get_longitudinal(control_command), duration_list)
         current_lane_length = traci.lane.getLength(veh_info["lane_id"])
         current_route_index = veh_info["route_id_list"].index(road_id)
 
@@ -798,3 +798,16 @@ class SafeTestNADE(SafeTestNDE):
         veh_info["route_id_list"] = [route._id for route in route_with_internal]
         veh_info["route_length_list"] = [route._length for route in route_with_internal]
         return veh_info
+    
+def get_longitudinal(control_command):
+    """Get the longitudinal control command
+
+    Args:
+        control_command (dict): control command
+
+    Returns:
+        longitudinal (float): longitudinal control command
+    """
+    if control_command['longitudinal'] == "SUMO":
+        return 0
+    return control_command['longitudinal']
