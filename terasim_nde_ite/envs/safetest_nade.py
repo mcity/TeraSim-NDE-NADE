@@ -4,11 +4,14 @@ from terasim.overlay import traci
 import terasim.utils as utils
 import numpy as np
 import math
+import os
+from terasim.utils import sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation
+
 veh_length = 5.0
 veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2-(veh_width/2)**2)
-from terasim.utils import sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation
+
 
 class Point:
     def __init__(self, position_tuple):
@@ -354,7 +357,7 @@ class SafeTestNADE(SafeTestNDE):
         return modified_ndd_dict, new_ndd_dict
     
     def apply_collision_avoidance(self, neglected_vehicle_list, ITE_control_command_dict):
-        avoid_collision_IS_prob = 0.2
+        avoid_collision_IS_prob = os.getenv('AVOID_COLLISION_IS_PROB', 0.2)
         avoid_collision_ndd_prob = 0.99
         weight = 1.0
         timestamp = utils.get_time()
@@ -421,7 +424,7 @@ class SafeTestNADE(SafeTestNDE):
     
     def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
         if "negligence" in criticality_dict[veh_id] and criticality_dict[veh_id]["negligence"]:
-            IS_magnitude = 10
+            IS_magnitude = os.getenv('IS_MAGNITUDE', 10)
             # try:
             #     predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
             #     if "intersection" not in predicted_collision_type:
