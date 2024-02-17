@@ -7,8 +7,8 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=7gb
-#SBATCH --array=0-799 # how many workers you are using
-#SBATCH --time=00-10:00:00 # time duration
+#SBATCH --array=0-499 # how many workers you are using
+#SBATCH --time=00-2:00:00 # time duration
 #SBATCH --account=henryliu98
 #SBATCH --partition=standard
 #SBATCH --output=/home/haoweis/safe_test.log # change to your directory
@@ -23,13 +23,13 @@ module load python/3.10.4
 source /home/haoweis/ASAP/TeraSim-NDE-ITE/venv/bin/activate
 cd /home/haoweis/ASAP/TeraSim-NDE-ITE/example
 export IS_MAGNITUDE=10
-export AVOID_COLLISION_IS_PROB=0.99
+export AVOID_COLLISION_IS_PROB=0.6
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_10_avoid_099"
+experiment_name="NADE_IS_10_avoid_06_3_07_predict"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state

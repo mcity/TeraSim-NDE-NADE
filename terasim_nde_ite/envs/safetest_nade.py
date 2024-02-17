@@ -320,7 +320,7 @@ class SafeTestNADE(SafeTestNDE):
             } for veh_id in control_command_dict
         }
         ndd_dict = {veh_id: control_command_dict[veh_id]["ndd"] for veh_id in control_command_dict}
-        trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 5, 0.6, ndd_dict[veh_id])[0] for veh_id in control_command_dict}
+        trajectory_dict = {veh_id: self.predict_future_trajectory_dict(veh_id, 3, 0.7, ndd_dict[veh_id])[0] for veh_id in control_command_dict}
         maneuver_challenge_dict, maneuver_challenge_info, maneuver_challenge_avoidance_dict = self.get_maneuver_challenge_dict(trajectory_dict)
         modified_ndd_dict, new_ndd_dict_for_record = self.get_modified_ndd_dict_according_to_avoidability(ndd_dict, maneuver_challenge_avoidance_dict)
         control_command_dict = {
