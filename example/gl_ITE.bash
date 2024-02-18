@@ -25,14 +25,16 @@ module load python3.10-anaconda/2023.03
 conda activate mcity_nade
 
 cd /home/haoweis/ASAP/TeraSim-NDE-ITE/example
-export IS_MAGNITUDE=20
+export IS_MAGNITUDE_INTERSECTION=50
+export IS_MAGNITUDE_ROUNDABOUT_HIGHWAY=100
 export AVOID_COLLISION_IS_PROB=0.6
+
 
 DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_20_avoid_06_3_07_predict"
+experiment_name="NADE_IS_I_50_RH_100_P_0_6"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/final_state
