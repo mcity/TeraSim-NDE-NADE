@@ -126,6 +126,7 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     intersection_headon_prob = 1.0113094565177164e-06 * 4.71 * 0.1 * 2.57 * 0.25
 
     roundabout_cutin_prob = 4.570171651138106e-05 * 0.35 * 0.6
+    roundabout_fail_to_yield_prob = 1e-2
     roundabout_neglect_conflict_lead_prob = 2.3721857594970477e-05 * 0.1 * 0.33 * 0.2 * 5
     roundabout_rearend_prob = 4.884970702773788e-07 * 0.2 * 5
     
@@ -143,6 +144,8 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     if "roundabout" in location_region or (neg_location_region is not None and "roundabout" in neg_location_region):
         if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
             return roundabout_cutin_prob, "roundabout_cutin"
+        elif negligence_mode == "RDBT_FAIL_TO_YIELD":
+            return roundabout_fail_to_yield_prob, "roundabout_fail_to_yield"
         elif rear_end:
             return roundabout_rearend_prob, "roundabout_rearend"
         else:

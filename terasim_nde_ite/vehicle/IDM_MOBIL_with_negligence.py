@@ -139,9 +139,9 @@ class IDM_MOBIL_with_negligence(IDMModel):
         control_command_negligence_tfl = self.tfl_negligence(control_command_nde, veh_info)
         if control_command_negligence_tfl is not None:
             control_command_and_mode_list.append((control_command_negligence_tfl, "TFL"))
-        control_command_negligence_roundabout = self.rdbt_negligence(control_command_nde, veh_info)
+        control_command_negligence_roundabout = self.rdbt_fail_to_yield_negligence(control_command_nde, veh_info, obs_dict)
         if control_command_negligence_roundabout is not None:
-            control_command_and_mode_list.append((control_command_negligence_roundabout, "RDBT"))
+            control_command_and_mode_list.append((control_command_negligence_roundabout, "RDBT_FAIL_TO_YIELD"))
         for car_negligence_mode in negligence_mode_list:
             control_command_negligence_vehicle = self.car_negligence(obs_dict, car_negligence_mode, control_command_nde, veh_info)
             if control_command_negligence_vehicle is not None:
@@ -255,7 +255,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         action["type"] = "lon_lat"
         return action, action_dist, mode
     
-    def rdbt_negligence(self, control_command_nde, veh_info, obs_dict):
+    def rdbt_fail_to_yield_negligence(self, control_command_nde, veh_info, obs_dict):
         veh_distance_from_departure = veh_info["veh_distance_from_departure"]
         
         rdbt_negligence_command = None
@@ -275,7 +275,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
         roundabout_incoming_edge_set = set(["EG_20_1_1", "EG_22_1_1", "EG_9_1_1", "EG_19_1_1", "EG_23_2_1", "EG_10_1_1", "EG_16_1_5"])
         if veh_edge_id in roundabout_incoming_edge_set and no_lead_flag and veh_speed < 0.5:
             # traci set vehicle color to green
-            traci.vehicle.setColor(veh_info["veh_id"], (0, 255, 0, 255))
+            # traci.vehicle.setColor(veh_info["veh_id"], (0, 255, 0, 255))
             return True
         return False
     
@@ -302,7 +302,7 @@ class IDM_MOBIL_with_negligence(IDMModel):
                 tfl_negligence_command["tfl_red"] = 1
                 tfl_negligence_command["mode"] = "negligence"
                 # set the vehicle color to blue
-                traci.vehicle.setColor(veh_info["veh_id"], (0, 0, 255, 255))
+                # traci.vehicle.setColor(veh_info["veh_id"], (0, 0, 255, 255))
         return tfl_negligence_command
 
     def car_negligence(self, obs_dict, negligence_mode, control_command_nde, veh_info):

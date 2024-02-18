@@ -67,7 +67,7 @@ class SafeTestNADE(SafeTestNDE):
         self.importance_sampling_weight = 1.0
         self.max_importance_sampling_prob = 5e-2
         self.unavoidable_collision_prob_factor = 1e-2 # the factor to reduce the probability of the anavoidable collision
-        self.early_termination_weight_threshold = 1e-4
+        self.early_termination_weight_threshold = 1e-5
         return super().on_start(ctx)
 
     # @profile
