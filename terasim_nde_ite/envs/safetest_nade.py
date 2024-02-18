@@ -435,9 +435,14 @@ class SafeTestNADE(SafeTestNDE):
             IS_magnitude = float(os.getenv('IS_MAGNITUDE_INTERSECTION', 10))
             try:
                 predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
-                if "intersection" not in predicted_collision_type:
-                    IS_magnitude = float(os.getenv('IS_MAGNITUDE_ROUNDABOUT_HIGHWAY', 10))
+                if "roundabout" in predicted_collision_type:
+                    IS_magnitude = float(os.getenv('IS_MAGNITUDE_ROUNDABOUT', 10))
                     print(f"The predicted collision type is not intersection, the IS magnitude is set to {IS_magnitude}")
+                elif "highway" in predicted_collision_type:
+                    IS_magnitude = float(os.getenv('IS_MAGNITUDE_HIGHWAY', 10))
+                    print(f"The predicted collision type is highway, the IS magnitude is set to {IS_magnitude}")
+                else:
+                    print(f"The predicted collision type is intersection, the IS magnitude is set to {IS_magnitude}")
             except Exception as e:
                 print(e)
 
