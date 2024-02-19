@@ -358,7 +358,7 @@ class SafeTestNADE(SafeTestNDE):
         for veh_id in ndd_dict:
             modified_ndd_dict[veh_id] = ndd_dict[veh_id]
             if "negligence" in ndd_dict[veh_id] and "command" in ndd_dict[veh_id]["negligence"]:
-                if ("rear_end" in modified_ndd_dict[veh_id]["negligence"]["command"]["info"]["predicted_collision_type"]) or (veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]):
+                if ("rearend" in modified_ndd_dict[veh_id]["negligence"]["command"]["info"]["predicted_collision_type"]) or (veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]):
                     modified_ndd_dict[veh_id]["negligence"]["prob"] = modified_ndd_dict[veh_id]["negligence"]["prob"] * self.unavoidable_collision_prob_factor
                     modified_ndd_dict[veh_id]["negligence"]["command"]["info"]["avoidable"] = False
                     modified_ndd_dict[veh_id]["normal"]["prob"] = 1 - modified_ndd_dict[veh_id]["negligence"]["prob"]
