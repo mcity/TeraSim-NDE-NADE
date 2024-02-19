@@ -78,6 +78,9 @@ class IDM_MOBIL_with_negligence(IDMModel):
         return commands, control_info
 
     def get_negligence_modes(self, obs_dict, vehicle_location=None):
+        if self.vehicle.controller.is_busy:
+            return None
+
         if vehicle_location is None:
             vehicle_location = get_location(obs_dict["local"].data["Ego"]["edge_id"], self.lane_config)
         negligence_mode_list_dict = {
