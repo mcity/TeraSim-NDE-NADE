@@ -78,8 +78,6 @@ class IDM_MOBIL_with_negligence(IDMModel):
         return commands, control_info
 
     def get_negligence_modes(self, obs_dict, vehicle_location=None):
-        if self.vehicle.controller.is_busy:
-            return None
 
         if vehicle_location is None:
             vehicle_location = get_location(obs_dict["local"].data["Ego"]["edge_id"], self.lane_config)
@@ -136,6 +134,9 @@ class IDM_MOBIL_with_negligence(IDMModel):
         control_info = {}
         control_info['normal'] = {"command": control_command_nde, "prob": 1, "location": vehicle_location}
         control_command_negligence, neg_mode = None, None
+
+        if self.vehicle.controller.is_busy:
+            return commands, control_info, {}
 
         # compute the control command with negligence, including TFL and car negligence
         control_command_and_mode_list = []
