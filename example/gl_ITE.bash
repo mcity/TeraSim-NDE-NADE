@@ -7,7 +7,7 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=7gb
-#SBATCH --array=0-499 # how many workers you are using
+#SBATCH --array=0-799 # how many workers you are using
 #SBATCH --time=00-8:00:00 # time duration
 #SBATCH --account=henryliu98
 #SBATCH --partition=standard

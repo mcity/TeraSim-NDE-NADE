@@ -51,8 +51,8 @@
     <flow id="BV_7" type="IDM_waymo_motion" begin="0.00" departLane="best" route="r_7" vehsPerHour="55" />
     <flow id="BV_8" type="IDM_waymo_motion" begin="0.00" departLane="best" route="r_8" vehsPerHour="230" />
     <flow id="BV_9" type="IDM_waymo_motion" begin="0.00" departLane="best" route="r_9" vehsPerHour="91" />
-    <flow id="BV_22" type="IDM_waymo_motion" begin="0.00" departLane="best" route="r_21" vehsPerHour="40" />
+    <flow id="BV_22" type="IDM_waymo_motion" begin="0.00" departLane="best" route="cav_route" vehsPerHour="40" />
     <flow id="BV_23" type="IDM_waymo_motion" begin="0.00" departLane="best" route="r_22" vehsPerHour="173" />
-    <flow id="BV_24" type="IDM_waymo_motion" begin="0.00" departLane="best" route="cav_route" vehsPerHour="70" /> 
+    <!-- <flow id="BV_24" type="IDM_waymo_motion" begin="0.00" departLane="best" route="cav_route" vehsPerHour="70" />  -->
 
 </routes>
