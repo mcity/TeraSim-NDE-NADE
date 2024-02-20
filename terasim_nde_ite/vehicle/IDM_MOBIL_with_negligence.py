@@ -135,8 +135,12 @@ class IDM_MOBIL_with_negligence(IDMModel):
         control_info['normal'] = {"command": control_command_nde, "prob": 1, "location": vehicle_location}
         control_command_negligence, neg_mode = None, None
 
-        if self.vehicle.controller.is_busy:
-            return commands, control_info, {}
+        try:
+            if self.vehicle.controller.is_busy:
+                return commands, control_info, {}
+        except Exception as e:
+            # print(f"Error: {e}")
+            pass
 
         # compute the control command with negligence, including TFL and car negligence
         control_command_and_mode_list = []
