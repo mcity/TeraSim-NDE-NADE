@@ -439,7 +439,7 @@ class SafeTestNADE(SafeTestNDE):
                 if "roundabout" in predicted_collision_type:
                     IS_magnitude = float(os.getenv('IS_MAGNITUDE_ROUNDABOUT', 20))
                     if not ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["avoidable"]:
-                        IS_magnitude = IS_magnitude / self.unavoidable_collision_prob_factor
+                        IS_magnitude = IS_magnitude * 10
                         # print(f"The predicted collision type is roundabout and unavoidable, the IS magnitude is set to {IS_magnitude}")
                     # print(f"The predicted collision type is roundabout, the IS magnitude is set to {IS_magnitude}")
                 elif "highway" in predicted_collision_type:
