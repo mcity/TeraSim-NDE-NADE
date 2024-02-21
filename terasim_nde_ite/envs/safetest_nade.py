@@ -91,12 +91,12 @@ class SafeTestNADE(SafeTestNDE):
         # Simulation stop check
         return self.should_continue_simulation()
     
-    def should_continue_simulation(self):
-        should_continue_simulation = super().should_continue_simulation()
-        if self.importance_sampling_weight < self.early_termination_weight_threshold:
-            self.monitor.export_final_state(None, None, self.final_state_log(), "early_termination")
-            should_continue_simulation = False
-        return should_continue_simulation
+    # def should_continue_simulation(self):
+    #     should_continue_simulation = super().should_continue_simulation()
+    #     if self.importance_sampling_weight < self.early_termination_weight_threshold:
+    #         self.monitor.export_final_state(None, None, self.final_state_log(), "early_termination")
+    #         should_continue_simulation = False
+    #     return should_continue_simulation
     
     def get_observation_dicts(self):
         obs_dicts = {
@@ -438,9 +438,9 @@ class SafeTestNADE(SafeTestNDE):
                 predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["predicted_collision_type"]
                 if "roundabout" in predicted_collision_type:
                     IS_magnitude = float(os.getenv('IS_MAGNITUDE_ROUNDABOUT', 20))
-                    if ndd_control_command_dict[veh_id]["negligence"]["command"]["info"]["avoidable"]:
+                    if not ndd_control_command_dict[veh_id]["ndd"]["negligence"]["command"]["info"]["avoidable"]:
                         IS_magnitude = IS_magnitude / self.unavoidable_collision_prob_factor
-                        print(f"The predicted collision type is roundabout and unavoidable, the IS magnitude is set to {IS_magnitude}")
+                        # print(f"The predicted collision type is roundabout and unavoidable, the IS magnitude is set to {IS_magnitude}")
                     # print(f"The predicted collision type is roundabout, the IS magnitude is set to {IS_magnitude}")
                 elif "highway" in predicted_collision_type:
                     IS_magnitude = float(os.getenv('IS_MAGNITUDE_HIGHWAY', 20))
