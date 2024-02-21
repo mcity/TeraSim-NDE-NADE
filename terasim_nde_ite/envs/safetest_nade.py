@@ -447,8 +447,10 @@ class SafeTestNADE(SafeTestNDE):
                     # print(f"The predicted collision type is highway, the IS magnitude is set to {IS_magnitude}")
                 else:
                     # print(f"The predicted collision type is intersection, the IS magnitude is set to {IS_magnitude}")
+                    pass
             except Exception as e:
-                print(e)
+                print(f"Error: {e}")
+                pass
 
             return np.clip(criticality_dict[veh_id]["negligence"] * IS_magnitude, 0, self.max_importance_sampling_prob)
         else:
