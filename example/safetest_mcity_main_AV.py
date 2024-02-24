@@ -2,10 +2,10 @@ import sys
 import os
 dir_path = os.path.dirname(os.path.abspath(__file__))
 from terasim.simulator import Simulator
-from terasim_nde_ite.envs.env_monitor import EnvMonitor
-from terasim_nde_ite.envs.safetest_nade_with_av import SafeTestNADEWithAV
+from terasim_nde_nade.envs.env_monitor import EnvMonitor
+from terasim_nde_nade.envs.safetest_nade_with_av import SafeTestNADEWithAV
 from terasim.logger.infoextractor import InfoExtractor
-from terasim_nde_ite.vehicle.safetest_vehicle_factory import SafetestVehicleFactory
+from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 
 import argparse
 
@@ -20,7 +20,7 @@ monitor = EnvMonitor(
     exp_id=f"{args.exp_name}_{args.nth}",
 )
 env = SafeTestNADEWithAV(
-    vehicle_factory = SafetestVehicleFactory(lane_config_path=dir_path+'/maps/Mcity_safetest/lane_config.json'),
+    vehicle_factory = NDEVehicleFactory(lane_config_path=dir_path+'/maps/Mcity_safetest/lane_config.json'),
     info_extractor=InfoExtractor,
 )
 sim = Simulator(

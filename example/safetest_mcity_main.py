@@ -4,10 +4,10 @@ sys.path.append("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE/")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 from terasim.simulator import Simulator
-from terasim_nde_ite.envs.env_monitor import EnvMonitor
-from terasim_nde_ite.envs.safetest_nade import SafeTestNADE
+from terasim_nde_nade.envs.env_monitor import EnvMonitor
+from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
 from terasim.logger.infoextractor import InfoExtractor
-from terasim_nde_ite.vehicle.safetest_vehicle_factory import SafetestVehicleFactory
+from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 import argparse
 
 parser = argparse.ArgumentParser(description='Run simulation.')
@@ -21,7 +21,7 @@ monitor = EnvMonitor(
     exp_id=f"{args.nth}",
 )
 env = SafeTestNADE(
-    vehicle_factory = SafetestVehicleFactory(lane_config_path=dir_path+'/maps/Mcity_safetest/lane_config.json'),
+    vehicle_factory = NDEVehicleFactory(lane_config_path=dir_path+'/maps/Mcity_safetest/lane_config.json'),
     info_extractor=InfoExtractor,
     run_time=60,
 )
