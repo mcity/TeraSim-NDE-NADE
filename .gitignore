@@ -125,6 +125,9 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# redis
+dump.drb
+
 # Pyre type checker
 .pyre/
 output/
@@ -139,5 +142,17 @@ analysis/videos/*
 check_demo.py
 collision_type_debug/
 split_files/
-mtlsp_arxiv/
-mtlsp/
+terasim_arxiv/
+terasim/
+ITE_negligence_calibrate_0812/
+cosim_test_localcomputer/
+*.zip
+*.rdb
+demo.py
+*.lprof
+.idea/
+
+example/videos
+example/output
+monitor_1.json
+monitor.json
