@@ -25,17 +25,17 @@ class NDEDecisionModel(IDMModel):
         self.vehicle.simulator.set_vehicle_emegency_deceleration(self.vehicle.id, 9)
     
     def get_negligence_prob(self, obs_dict, negligence_mode):  
-        veh_road_id = obs_dict["local"].data["Ego"]["edge_id"]
+        veh_road_id = obs_dict["local"]["Ego"]["edge_id"]
         location = get_location(veh_road_id, self.lane_config)
         neg_veh_road_id, neg_location = None, None
-        if obs_dict["local"].data.get(negligence_mode, None) is not None:
-            neg_veh_road_id = obs_dict["local"].data[negligence_mode].get("edge_id", None)
+        if obs_dict["local"].get(negligence_mode, None) is not None:
+            neg_veh_road_id = obs_dict["local"][negligence_mode].get("edge_id", None)
             neg_location = get_location(neg_veh_road_id, self.lane_config)
         collision_prob, collision_type = get_collision_type_and_prob(obs_dict, negligence_mode, location, neg_location)
         return collision_prob, collision_type
     
     def change_IDM_MOBIL_parameters_from_location(self, obs_dict):
-        vehicle_location = get_location(obs_dict["local"].data["Ego"]["edge_id"], self.lane_config)
+        vehicle_location = get_location(obs_dict["local"]["Ego"]["edge_id"], self.lane_config)
         if "highway" in vehicle_location: # highway/freeway scenario
             IDM_parameters = {
                 "TIME_WANTED": 1.72,
@@ -70,7 +70,7 @@ class NDEDecisionModel(IDMModel):
         if "local" not in obs_dict:
             raise ValueError("No local observation")
         # obs_dict = self.fix_observation(obs_dict)
-        control_command, action_dist, mode = self.decision(obs_dict["local"].data, is_neglect_flag)
+        control_command, action_dist, mode = self.decision(obs_dict["local"], is_neglect_flag)
         return control_command, action_dist, None
 
     def derive_control_command_from_observation(self, obs_dict):
@@ -80,7 +80,7 @@ class NDEDecisionModel(IDMModel):
     def get_negligence_modes(self, obs_dict, vehicle_location=None):
 
         if vehicle_location is None:
-            vehicle_location = get_location(obs_dict["local"].data["Ego"]["edge_id"], self.lane_config)
+            vehicle_location = get_location(obs_dict["local"]["Ego"]["edge_id"], self.lane_config)
         negligence_mode_list_dict = {
             "highway": ["Lead", "LeftFoll", "RightFoll"],
             "intersection": ["Lead", "LeftFoll", "RightFoll"],
@@ -94,8 +94,8 @@ class NDEDecisionModel(IDMModel):
         return negligence_mode_list
 
     def get_vehicle_info(self, obs_dict):
-        veh_id = obs_dict['local'].data['Ego']['veh_id']
-        veh_speed = obs_dict['local'].data['Ego']['velocity']
+        veh_id = obs_dict['local']['Ego']['veh_id']
+        veh_speed = obs_dict['local']['Ego']['velocity']
         veh_distance_from_departure = utils.get_distance(veh_id)
         veh_tfl = utils.get_next_traffic_light(veh_id)
         return veh_id, veh_speed, veh_distance_from_departure, veh_tfl
@@ -109,8 +109,8 @@ class NDEDecisionModel(IDMModel):
     
     def derive_control_command_from_observation_detailed(self, obs_dict):
         # change the IDM and MOBIL parameters based on the location
-        IDM_parameters, MOBIL_parameters, vehicle_location = self.change_IDM_MOBIL_parameters_from_location(obs_dict)
-
+        # IDM_parameters, MOBIL_parameters, vehicle_location = self.change_IDM_MOBIL_parameters_from_location(obs_dict)
+        vehicle_location = "intersection"
         # negligence mode list in different locations
         negligence_mode_list = self.get_negligence_modes(obs_dict, vehicle_location)
 
@@ -278,8 +278,8 @@ class NDEDecisionModel(IDMModel):
     
     def is_stopping_in_front_of_stop_line_rdbt(self, veh_info, obs_dict):
         veh_speed = veh_info["veh_speed"] # check if the vehicle is stopping in front of the stop line
-        no_lead_flag = (obs_dict["local"].data["Lead"] is None) # vehicle has no leading vehicle
-        veh_edge_id = obs_dict["ego"].data["edge_id"]
+        no_lead_flag = (obs_dict["local"]["Lead"] is None) # vehicle has no leading vehicle
+        veh_edge_id = obs_dict["ego"]["edge_id"]
         roundabout_incoming_edge_set = set(["EG_20_1_1", "EG_22_1_1", "EG_9_1_1", "EG_19_1_1", "EG_23_2_1", "EG_10_1_1", "EG_16_1_5"])
         if veh_edge_id in roundabout_incoming_edge_set and no_lead_flag and veh_speed < 0.5:
             # traci set vehicle color to green
@@ -330,9 +330,9 @@ class NDEDecisionModel(IDMModel):
         mingap = traci.vehicle.getMinGap(veh_id)
         car_negligence_command = None
         if veh_distance_from_departure >= 10:
-            neg_obs_dict = obs_dict["local"].data[negligence_mode] # neglected vehicle observation
+            neg_obs_dict = obs_dict["local"][negligence_mode] # neglected vehicle observation
             if neg_obs_dict is not None:
-                if neg_obs_dict["velocity"] < 0.5 and obs_dict['local'].data['Ego']['velocity'] < 0.5: # both vehicles are stopped
+                if neg_obs_dict["velocity"] < 0.5 and obs_dict['local']['Ego']['velocity'] < 0.5: # both vehicles are stopped
                     return car_negligence_command
                 if neg_obs_dict["distance"] < -2: # the vehicle is behind the ego vehicle, especially for the cutin scenario
                     return car_negligence_command
@@ -340,13 +340,13 @@ class NDEDecisionModel(IDMModel):
                     return car_negligence_command
 
                 # prepare the observation for negligence
-                tmp = obs_dict["local"].data[negligence_mode]
-                obs_dict["local"].data[negligence_mode] = None
+                tmp = obs_dict["local"][negligence_mode]
+                obs_dict["local"][negligence_mode] = None
                 car_negligence_command, _, _ = self.derive_control_command_from_obs_helper(obs_dict, is_neglect_flag=True)
                 car_negligence_command['car_negligence'] = 1
                 car_negligence_command["mode"] = "negligence"
                 # restore the observation
-                obs_dict["local"].data[negligence_mode] = tmp
+                obs_dict["local"][negligence_mode] = tmp
                 # judge the significance of negligence
                 if not self.has_siginificance(negligence_mode, control_command_nde, car_negligence_command):
                     car_negligence_command = None

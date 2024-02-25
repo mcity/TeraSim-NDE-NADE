@@ -61,10 +61,10 @@ class NDEController(HighEfficiencyController):
     
     def execute_urban_lanechange(self, veh_id, control_command, obs_dict):
         self.allow_lane_change = False # disable urban lane change after 1 lane change
-        vehicle_lane_id = obs_dict["ego"].data["lane_id"]
+        vehicle_lane_id = obs_dict["ego"]["lane_id"]
         neighbour_lane = get_neighbour_lane(self.simulator.sumo_net, vehicle_lane_id, direction = control_command["lateral"])
         if neighbour_lane is not None:
-            current_edge_id = obs_dict["local"].data["Ego"]["edge_id"]
+            current_edge_id = obs_dict["local"]["Ego"]["edge_id"]
             new_target_lane, new_target_edge = get_next_lane_edge(self.simulator.sumo_net, neighbour_lane)
             all_route_edges = get_all_route_edges()
             perfect_new_route_index = None
@@ -93,17 +93,10 @@ class NDEController(HighEfficiencyController):
         Args:
             action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
         """ 
-        # Set Safe Mode from SUMO
-        # if control_command["longitudinal"] == "SUMO":
-        #     # utils.set_vehicle_speedmode(veh_id)
-        #     return
 
         negligence_flag = "mode" in control_command and control_command["mode"] == "negligence"
         avoid_collision_flag = "mode" in control_command and control_command["mode"] == "avoid_collision"
 
-        # # disable MOBIL lane change
-        # control_command["lateral"] = "central"
-        # utils.set_vehicle_speedmode(veh_id, 0)
         if not self.is_busy:    
             if negligence_flag or avoid_collision_flag:
                 utils.set_vehicle_speedmode(veh_id, 0)
@@ -117,16 +110,13 @@ class NDEController(HighEfficiencyController):
             else:
                 utils.set_vehicle_speedmode(veh_id)
 
-        # if avoid_collision_flag:
-        #     print(f"{veh_id}, acceleration: {control_command['longitudinal']}, {traci.vehicle.getAcceleration(veh_id)}, {self.controlled_duration}")
-
         # Longitudinal control
         if control_command["longitudinal"] == "SUMO":
             utils.set_vehicle_speedmode(veh_id)
             controlled_acc = None
         else:
             controlled_acc = control_command["longitudinal"]
-            current_velocity = obs_dict["ego"].data["velocity"]
+            current_velocity = obs_dict["ego"]["velocity"]
             if current_velocity + controlled_acc > self.params["v_high"]:
                 controlled_acc = self.params["v_high"] - current_velocity
             # elif current_velocity + controlled_acc < self.params["v_low"]:
@@ -155,7 +145,7 @@ class NDEController(HighEfficiencyController):
                     self.change_vehicle_speed(veh_id, controlled_acc, self.params["lc_duration"])
                 self.controlled_duration = self.lc_step_num + random.randint(5, 10) # begin counting the lane change maneuver timesteps
                 self.is_busy = True
-                vehicle_edge_id = obs_dict["local"].data["Ego"]["edge_id"]
+                vehicle_edge_id = obs_dict["local"]["Ego"]["edge_id"]
                 if self.is_urban_lanechange(vehicle_edge_id):
                     self.execute_urban_lanechange(veh_id, control_command, obs_dict)
 

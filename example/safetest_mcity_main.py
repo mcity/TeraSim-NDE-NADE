@@ -1,6 +1,4 @@
 import os, sys
-sys.path.append("/home/haoweis/ASAP/TeraSim-NDE-ITE/")
-sys.path.append("/media/mtl/2TB/ITE-refactor/TeraSim-NDE-ITE/")
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 from terasim.simulator import Simulator
@@ -29,7 +27,7 @@ sim = Simulator(
     sumo_net_file_path = dir_path+'/maps/Mcity_safetest/mcity.net.xml',
     sumo_config_file_path = dir_path+'/maps/Mcity_safetest/mcity.sumocfg',
     num_tries=10,
-    gui_flag=False,
+    gui_flag=True,
     output_path=f"{args.dir}/{args.name}/raw_data/{args.nth}",
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )

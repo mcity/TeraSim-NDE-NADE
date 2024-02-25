@@ -136,7 +136,7 @@ class EnvMonitor:
                     "negligence_type": negligence_type,
                     "info": control_cmd.get("info", None),
                     "time": utils.get_time(),
-                    "lead_veh": obs_dict["local"].data["Lead"]["veh_id"] if obs_dict["local"].data["Lead"] else None,
+                    "lead_veh": obs_dict["local"]["Lead"]["veh_id"] if obs_dict["local"]["Lead"] else None,
                 }
                 if control_cmd["mode"] == "negligence":
                     if len(self.car_with_maneuver_challenges[veh_id]) == 0:

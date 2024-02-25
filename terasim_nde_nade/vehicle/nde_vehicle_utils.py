@@ -46,7 +46,7 @@ def get_location(lane_id, lane_config):
 
 def is_rear_end(observation):
     from terasim.overlay import traci
-    local_observation = observation["local"].data
+    local_observation = observation["local"]
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
     ego_veh_road_id = ego_veh_obs["edge_id"] if ego_veh_obs else None
@@ -89,7 +89,7 @@ def get_lane_angle(lane_id, mode="start"):
 
 
 def is_head_on(observation):
-    local_observation = observation["local"].data
+    local_observation = observation["local"]
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
     ego_veh_lane_id = ego_veh_obs["lane_id"] if ego_veh_obs else None
@@ -107,8 +107,7 @@ def is_head_on(observation):
         start_angle = abs(ego_veh_lane_start_angle - lead_veh_lane_start_angle)
     if (ego_veh_lane_end_angle is not None) and (lead_veh_lane_end_angle is not None):
         end_angle = abs(ego_veh_lane_end_angle - lead_veh_lane_end_angle)
-    
-    
+        
     if (start_angle is not None) and (end_angle is not None) and (120 < start_angle < 240) and (120 < end_angle < 240):
         return True
     return False
@@ -134,7 +133,7 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     highway_rearend_prob = 1.0327637301820217e-04 * 3.64 * 1.21 * 1.63 * 2 * 2 * 2 * 0.5 * 0.5 * 1.4 * 0.83 * 0.81 * 0.92 * 1.15
 
     
-    local_observation = observation["local"].data
+    local_observation = observation["local"]
     ego_veh_obs = local_observation["Ego"]
     lead_veh_obs = local_observation["Lead"]
     ego_veh_lane_id = ego_veh_obs["lane_id"] if ego_veh_obs else None
