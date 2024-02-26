@@ -30,7 +30,7 @@ class SafeTestNDE(EnvTemplate):
         self.execute_control_commands(control_cmds)
         # self.monitor.add_observation(control_cmds)
         return self.should_continue_simulation()
-    
+
     def final_state_log(self):
         return {
             "warmup_time": self.warmup_time,

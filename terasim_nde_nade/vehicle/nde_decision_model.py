@@ -17,13 +17,6 @@ class NDEDecisionModel(IDMModel):
         self.lane_config = json.load(open(lane_config_path, 'r'))
         super().__init__(MOBIL_lc_flag, stochastic_acc_flag, IDM_parameters, MOBIL_parameters)
 
-    def install(self):
-        super().install()
-        utils.set_vehicle_speedmode(self.vehicle.id)
-        utils.set_vehicle_lanechangemode(self.vehicle.id)
-        traci.vehicle.setDecel(self.vehicle.id, 9)
-        self.vehicle.simulator.set_vehicle_emegency_deceleration(self.vehicle.id, 9)
-    
     def get_negligence_prob(self, obs_dict, negligence_mode):  
         veh_road_id = obs_dict["local"]["Ego"]["edge_id"]
         location = get_location(veh_road_id, self.lane_config)
@@ -34,38 +27,14 @@ class NDEDecisionModel(IDMModel):
         collision_prob, collision_type = get_collision_type_and_prob(obs_dict, negligence_mode, location, neg_location)
         return collision_prob, collision_type
     
-    def change_IDM_MOBIL_parameters_from_location(self, obs_dict):
-        vehicle_location = get_location(obs_dict["local"]["Ego"]["edge_id"], self.lane_config)
+    def change_vehicle_type_according_to_location(self, veh_id, vehicle_location):
         if "highway" in vehicle_location: # highway/freeway scenario
-            IDM_parameters = {
-                "TIME_WANTED": 1.72,
-                "DISTANCE_WANTED": 5.92,
-                "COMFORT_ACC_MAX": 5.95,
-                "COMFORT_ACC_MIN": -5.96,
-                "DESIRED_VELOCITY": 28.31,
-                "acc_low": -7.06,
-                "acc_high": 2.87,
-            }
+            traci.vehicle.setType(veh_id, "NDE_HIGHWAY")
         elif "intersection" in vehicle_location or "roundabout" in vehicle_location: # urban scenario
-            IDM_parameters = {
-                "TIME_WANTED": 1.17,
-                "DISTANCE_WANTED": 3.28,
-                "COMFORT_ACC_MAX": 1.84,
-                "COMFORT_ACC_MIN": -1.29,
-                "DESIRED_VELOCITY": 10,
-                "acc_low": -7.06,
-                "acc_high": 2.87,
-            }
+            traci.vehicle.setType(veh_id, "NDE_URBAN")
         else:
             raise ValueError(f"location {vehicle_location} not supported")
-        MOBIL_parameters = {
-            "POLITENESS": 0.1,
-            "LANE_CHANGE_MIN_ACC_GAIN": 0.2,
-            "LANE_CHANGE_MAX_BRAKING_IMPOSED": 3.0,
-        }
-        self.load_parameters(IDM_parameters, MOBIL_parameters)
-        return IDM_parameters, MOBIL_parameters, vehicle_location
-
+        
     def derive_control_command_from_obs_helper(self, obs_dict, is_neglect_flag=False):
         if "local" not in obs_dict:
             raise ValueError("No local observation")
@@ -73,195 +42,34 @@ class NDEDecisionModel(IDMModel):
         control_command, action_dist, mode = self.decision(obs_dict["local"], is_neglect_flag)
         return control_command, action_dist, None
 
-    def derive_control_command_from_observation(self, obs_dict):
-        commands, control_info, negligence_info = self.derive_control_command_from_observation_detailed(obs_dict)
-        return commands, control_info
-
     def get_negligence_modes(self, obs_dict, vehicle_location=None):
-
         if vehicle_location is None:
-            vehicle_location = get_location(obs_dict["local"]["Ego"]["edge_id"], self.lane_config)
-        negligence_mode_list_dict = {
-            "highway": ["Lead", "LeftFoll", "RightFoll"],
-            "intersection": ["Lead", "LeftFoll", "RightFoll"],
-            "roundabout": ["Lead", "LeftFoll", "RightFoll"],
-        }
-        negligence_mode_list = None
-        for key in negligence_mode_list_dict.keys():
-            if key in vehicle_location:
-                negligence_mode_list = negligence_mode_list_dict[key]
-                break
+            vehicle_location = get_location(obs_dict["ego"]["edge_id"], self.lane_config)
+
+        # car negligence mode list
+        car_negligence_mode_set = set(["Lead"])
+        if obs_dict["ego"]["could_drive_adjacent_lane_right"]:
+            car_negligence_mode_set.add("RightFoll")
+        if obs_dict["ego"]["could_drive_adjacent_lane_left"]:
+            car_negligence_mode_set.add("LeftFoll")
+        # traffic light negligence mode
+        tfl_negligence_mode_set = set()
+        # roundabout negligence mode
+        rdbt_negligence_mode_set = set()
         return negligence_mode_list
-
-    def get_vehicle_info(self, obs_dict):
-        veh_id = obs_dict['local']['Ego']['veh_id']
-        veh_speed = obs_dict['local']['Ego']['velocity']
-        veh_distance_from_departure = utils.get_distance(veh_id)
-        veh_tfl = utils.get_next_traffic_light(veh_id)
-        return veh_id, veh_speed, veh_distance_from_departure, veh_tfl
-
-    def sample_nde_control_command(self, control_command_distribution_dict):
-        choice_list = list(control_command_distribution_dict.keys())
-        p_list = [control_command_distribution_dict[key]["prob"] for key in choice_list]
-        command_key = np.random.choice(choice_list, p=p_list)
-        control_command_before = control_command_distribution_dict[command_key]["command"]
-        return control_command_before
     
-    def derive_control_command_from_observation_detailed(self, obs_dict):
+    def derive_control_command_from_observation(self, obs_dict):
         # change the IDM and MOBIL parameters based on the location
-        # IDM_parameters, MOBIL_parameters, vehicle_location = self.change_IDM_MOBIL_parameters_from_location(obs_dict)
-        vehicle_location = "intersection"
+        vehicle_location = get_location(obs_dict["ego"]["edge_id"], self.lane_config)
+        # self.change_vehicle_type_according_to_location(obs_dict["ego"]["veh_id"], vehicle_location)
+
         # negligence mode list in different locations
-        negligence_mode_list = self.get_negligence_modes(obs_dict, vehicle_location)
-
-        # vehicle basic info
-        veh_id, veh_speed, veh_distance_from_departure, veh_tfl = self.get_vehicle_info(obs_dict)
-        veh_info = {
-            "veh_id": veh_id,
-            "veh_speed": veh_speed,
-            "veh_distance_from_departure": veh_distance_from_departure,
-            "veh_tfl": veh_tfl,
-        }
-        # compute the control command without negligence
-        _, control_command_nde_distribution, _ = self.derive_control_command_from_obs_helper(obs_dict, is_neglect_flag=False)
-        
-        # choose the normal control command based on the probability
-        control_command_nde = self.sample_nde_control_command(control_command_nde_distribution)
-        
-        commands = control_command_nde
-
-        # vehicle commands and info with basic settings
-        control_info = {}
-        control_info['normal'] = {"command": control_command_nde, "prob": 1, "location": vehicle_location}
-        control_command_negligence, neg_mode = None, None
-
-        try:
-            if self.vehicle.controller.is_busy:
-                return commands, control_info, {}
-        except Exception as e:
-            # print(f"Error: {e}")
-            pass
-
-        # compute the control command with negligence, including TFL and car negligence
-        control_command_and_mode_list = []
-        control_command_negligence_tfl = self.tfl_negligence(control_command_nde, veh_info)
-        if control_command_negligence_tfl is not None:
-            control_command_and_mode_list.append((control_command_negligence_tfl, "TFL"))
-        control_command_negligence_roundabout = self.rdbt_fail_to_yield_negligence(control_command_nde, veh_info, obs_dict)
-        if control_command_negligence_roundabout is not None:
-            control_command_and_mode_list.append((control_command_negligence_roundabout, "RDBT_FAIL_TO_YIELD"))
-        for car_negligence_mode in negligence_mode_list:
-            control_command_negligence_vehicle = self.car_negligence(obs_dict, car_negligence_mode, control_command_nde, veh_info)
-            if control_command_negligence_vehicle is not None:
-                control_command_and_mode_list.append((control_command_negligence_vehicle, car_negligence_mode))
-
-        negligence_info = {}
-        # assign the negligence command to control command
-        if len(control_command_and_mode_list) > 0:
-            control_command_negligence, neg_mode = control_command_and_mode_list[0]
-        if control_command_negligence is not None:
-            negligence_prob, predicted_collision_type = self.get_negligence_prob(obs_dict, neg_mode)
-            control_command_negligence["mode"] = "negligence"
-            control_command_negligence["info"] = {
-                "predicted_collision_type": predicted_collision_type,
-                "negligence_prob": negligence_prob,
-                "negligece_mode": neg_mode,
-                "location": vehicle_location,
-                "avoidable": True,
-            }
-            control_info['negligence'] = {"command": control_command_negligence, "prob": negligence_prob, "location": vehicle_location}
-            control_info['normal'] = {"command": control_command_nde, "prob": 1 - negligence_prob, "location": vehicle_location}
-            negligence_info = {neg_mode: {"command": control_command_after, "prob": 0, "location": vehicle_location} for control_command_after, neg_mode in control_command_and_mode_list}
-            # select the control command based on the probability
-            prob = np.random.uniform(0, 1)
-            if prob < negligence_prob:
-                commands = control_command_negligence
-        return commands, control_info, negligence_info
+        # negligence_mode_set = self.get_negligence_modes(obs_dict, vehicle_location)
+        # lanechange_state = traci.vehicle.getLaneChangeState(obs_dict["ego"]["veh_id"], -1)
+        # print(traci.vehicle.getAcceleration(obs_dict["ego"]["veh_id"]))
+        control_command, info = None, None
+        return control_command, info
     
-    def decision(self, observation, is_neglect_flag=False):
-        """Vehicle decides next action based on IDM model.
-
-        Args:
-            observation (dict): Observation of the vehicle.
-
-        Returns:
-            float: Action index. 0 represents left turn and 1 represents right turn. If the output is larger than 2, it is equal to the longitudinal acceleration plus 6.
-        """
-        action = None
-        mode = None
-        action_dist = {}
-        ego_vehicle = observation["Ego"]
-        ego_vehicle_id = ego_vehicle["veh_id"]
-        ego_vehicle_lane_id = ego_vehicle["lane_id"]
-        front_vehicle = observation["Lead"]
-        # Lateral: MOBIL
-        mode = "MOBIL"
-        left_gain, right_gain = 0, 0
-        left_LC_flag, right_LC_flag = False, False 
-
-        if self.MOBIL_lc_flag:
-
-            # see if the vehicle can change lane
-            possible_lane_change = []
-            possible_lane_change.append(-1) if observation["Ego"]["could_drive_adjacent_lane_right"] else None
-            possible_lane_change.append(1) if observation["Ego"]["could_drive_adjacent_lane_left"] else None
-            # calculate the gain of changing lane and the lane change flag
-            for lane_index in possible_lane_change:
-                LC_flag, gain = self.mobil_gain(lane_index, observation)
-                if LC_flag and gain:
-                    if lane_index < 0: 
-                        right_gain, right_LC_flag = np.clip(gain, 0., None), LC_flag
-                    elif lane_index > 0: 
-                        left_gain, left_LC_flag = np.clip(gain, 0., None), LC_flag
-                        
-        left_action = {"lateral": "left", "longitudinal": 0, "type": "lon_lat"}
-        right_action = {"lateral": "right", "longitudinal": 0, "type": "lon_lat"}
-        tmp_acc = 0
-        if not self.stochastic_acc_flag:
-            tmp_acc = self.IDM_acceleration(ego_vehicle=ego_vehicle, front_vehicle=front_vehicle)
-        else:
-            tmp_acc = self.stochastic_IDM_acceleration(ego_vehicle=ego_vehicle, front_vehicle=front_vehicle)
-        tmp_acc = np.clip(tmp_acc, self.acc_low, self.acc_high)
-        if not self.MOBIL_lc_flag or ego_vehicle_lane_id == "EG_1_3_1.61_0": 
-            # if the MOBIL_lc_flag is False, or the vehicle is on the merge lane, SUMO will take over the lane change maneuver
-            central_action = {"lateral": "SUMO", "longitudinal": tmp_acc, "type": "lon_lat"}
-        else:
-            central_action = {"lateral": "central", "longitudinal": tmp_acc, "type": "lon_lat"}
-
-        # use traci to detect if the vehicle is stopping in front of the stop line, if so, set the longitudinal acceleration to 0.1, to match the vehicle actual behavior in front of the intersection or roundabout
-        if traci.vehicle.getSpeedWithoutTraCI(ego_vehicle_id)  == 0:
-            # print(f"vehicle {ego_vehicle_id} is stopped in front of the stop line")
-            central_action["longitudinal"] = min(0.1, tmp_acc)
-
-        # if not is_neglect_flag and "NODE" in ego_vehicle_lane_id: # is not in neglecting and in the intersection, use SUMO
-        #     central_action["longitudinal"] = "SUMO"
-
-        action_dist = {
-            "left": {"command": left_action, "prob": 0},
-            "right": {"command": right_action, "prob": 0},
-            "central": {"command": central_action, "prob": 0},
-        }
-        
-        p = 1e-4
-        
-        if left_LC_flag or right_LC_flag:
-            if right_gain > left_gain:
-                action = right_action
-                assert(right_gain >= self.LANE_CHANGE_MIN_ACC_GAIN)
-                action_dist["right"]["prob"] = p
-                action_dist["central"]["prob"] = 1 - p
-            else:
-                action = left_action
-                assert(left_gain >= self.LANE_CHANGE_MIN_ACC_GAIN)
-                action_dist["left"]["prob"] = p
-                action_dist["central"]["prob"] = 1 - p
-        # Longitudinal: IDM
-        else:
-            mode = "IDM"
-            action = central_action
-            action_dist["central"]["prob"] = 1
-        action["type"] = "lon_lat"
-        return action, action_dist, mode
     
     def rdbt_fail_to_yield_negligence(self, control_command_nde, veh_info, obs_dict):
         veh_distance_from_departure = veh_info["veh_distance_from_departure"]
@@ -382,17 +190,3 @@ class NDEDecisionModel(IDMModel):
             # 2. lane unchange and significant speed difference
             is_significant = (lane_change_flag and (lateral_flag or speed_flag)) or (lane_unchange_flag and speed_flag) 
         return is_significant
-
-
-def get_longitudinal(control_command):
-    """Get the longitudinal control command
-
-    Args:
-        control_command (dict): control command
-
-    Returns:
-        longitudinal (float): longitudinal control command
-    """
-    if control_command['longitudinal'] == "SUMO":
-        return 0
-    return control_command['longitudinal']
