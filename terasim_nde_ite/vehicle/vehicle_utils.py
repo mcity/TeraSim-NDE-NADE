@@ -119,7 +119,7 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
     Given current observation and the negligence mode, detect what type of collisions will be generated
     """
 
-    intersection_cutin_prob = 1.0648925125333899e-04 * 0.10 * 0.61 * 1.5 * 2.9 * 0.5 * 0.73 * 1.38 * 1.05 * 0.86 * 0.87 * 0.8 * 1.5
+    intersection_cutin_prob = 1.0648925125333899e-04 * 0.10 * 0.61 * 1.5 * 2.9 * 0.5 * 0.73 * 1.38 * 1.05 * 0.86 * 0.87 * 0.8 * 1.2
     intersection_neglect_conflict_lead_prob = 5.5069126130818786e-05 * 2.67 * 0.61 * 1.39 * 0.89 * 1.57 * 0.7 * 1.48 * 0.82 * 0.8 * 2.35 * 0.6 * 0.8 * 0.5
     intersection_rearend_prob = 1.0149373787617288e-06 * 2.78 * 0.44 * 0.29 * 0.62 * 2 * 2 * 1.56 * 0.67 * 2 * 0.5 * 1.5 * 1.5 * 1.5 * 0.7 * 1.2
     intersection_tfl_prob = 8.797353696327892e-04 * 0.37 * 0.13 * 2.67 * 0.75 * 1.17 * 0.5 * 0.5 * 2 * 2 * 0.5 * 0.5 * 10 * 5 * 1.23 * 1.2
