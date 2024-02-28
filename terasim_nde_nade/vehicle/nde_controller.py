@@ -16,9 +16,6 @@ def get_all_route_edges():
 
 class NDEController(HighEfficiencyController):
     params = {
-            "v_high": 20,
-            "v_low": 0,
-            "acc_duration": 0.1,  # the acceleration duration will be 0.1 second
             "lc_duration": 1,  # the lane change duration will be 1 second
             "neg_duration": 2, # the negligence duration will be 2 second
             "avoid_collision_duration": 3, # the duration to avoid collision will be 2 second

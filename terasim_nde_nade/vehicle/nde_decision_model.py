@@ -7,7 +7,10 @@ from terasim.overlay import traci
 import os
 import json
 
-from terasim_nde_nade.vehicle.nde_vehicle_utils import get_collision_type_and_prob, get_location
+from terasim_nde_nade.vehicle.nde_vehicle_utils import get_collision_type_and_prob
+
+def get_location(veh_road_id, lane_config):
+    return "intersection"
 
 class NDEDecisionModel(IDMModel):
     
@@ -35,37 +38,13 @@ class NDEDecisionModel(IDMModel):
         else:
             raise ValueError(f"location {vehicle_location} not supported")
         
-    def derive_control_command_from_obs_helper(self, obs_dict, is_neglect_flag=False):
-        if "local" not in obs_dict:
-            raise ValueError("No local observation")
-        # obs_dict = self.fix_observation(obs_dict)
-        control_command, action_dist, mode = self.decision(obs_dict["local"], is_neglect_flag)
-        return control_command, action_dist, None
-
-    def get_negligence_modes(self, obs_dict, vehicle_location=None):
-        if vehicle_location is None:
-            vehicle_location = get_location(obs_dict["ego"]["edge_id"], self.lane_config)
-
-        # car negligence mode list
-        car_negligence_mode_set = set(["Lead"])
-        if obs_dict["ego"]["could_drive_adjacent_lane_right"]:
-            car_negligence_mode_set.add("RightFoll")
-        if obs_dict["ego"]["could_drive_adjacent_lane_left"]:
-            car_negligence_mode_set.add("LeftFoll")
-        # traffic light negligence mode
-        tfl_negligence_mode_set = set()
-        # roundabout negligence mode
-        rdbt_negligence_mode_set = set()
-        return negligence_mode_list
-    
     def derive_control_command_from_observation(self, obs_dict):
         # change the IDM and MOBIL parameters based on the location
         vehicle_location = get_location(obs_dict["ego"]["edge_id"], self.lane_config)
-        self.change_vehicle_type_according_to_location(obs_dict["ego"]["veh_id"], vehicle_location)
+        # self.change_vehicle_type_according_to_location(obs_dict["ego"]["veh_id"], vehicle_location)
 
         negligence_mode_set = set()
         # negligence mode list in different locations
-        # negligence_mode_set = self.get_negligence_modes(obs_dict, vehicle_location)
         left_lc_state = traci.vehicle.getLaneChangeStatePretty(obs_dict["ego"]["veh_id"], 1)[1]
         right_lc_state = traci.vehicle.getLaneChangeStatePretty(obs_dict["ego"]["veh_id"], -1)[1]
 
