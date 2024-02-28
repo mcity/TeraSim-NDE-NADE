@@ -21,7 +21,7 @@ monitor = EnvMonitor(
 env = SafeTestNADE(
     vehicle_factory = NDEVehicleFactory(lane_config_path=dir_path+'/maps/Mcity_safetest/lane_config.json'),
     info_extractor=InfoExtractor,
-    run_time=60,
+    run_time=300,
 )
 sim = Simulator(
     sumo_net_file_path = dir_path+'/maps/Mcity_safetest/mcity.net.xml',

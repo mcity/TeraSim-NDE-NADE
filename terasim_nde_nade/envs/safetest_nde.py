@@ -27,7 +27,7 @@ class SafeTestNDE(EnvTemplate):
         traci.simulation.executeMove()
         self._maintain_all_vehicles(ctx)
         control_cmds, infos = self.make_decisions(ctx)
-        self.execute_control_commands(control_cmds)
+        # self.execute_control_commands(control_cmds)
         # self.monitor.add_observation(control_cmds)
         return self.should_continue_simulation()
 

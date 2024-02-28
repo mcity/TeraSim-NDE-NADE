@@ -12,7 +12,7 @@ class NDEVehicleFactory(VehicleFactory):
         super().__init__()
 
     def create_vehicle(self, veh_id, simulator):
-        sensor_list = [EgoSensor(), LocalSensor(obs_range=120)]
+        sensor_list = [EgoSensor()]
         decision_model = NDEDecisionModel(MOBIL_lc_flag=True, stochastic_acc_flag=False)
         # decision_model = IDMModel(MOBIL_lc_flag=True, stochastic_acc_flag=True)
         control_params = {
