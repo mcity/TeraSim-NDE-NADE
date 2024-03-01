@@ -5,6 +5,32 @@ import attr
 import sumolib
 from terasim.utils import sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation
 from typing import List, Tuple, Optional
+from enum import Enum
+from collections import namedtuple
+# Define the TrajectoryPoint named tuple
+TrajectoryPoint = namedtuple('TrajectoryPoint', ['timestep', 'position', 'heading'])
+
+class Command(Enum):
+    DEFAULT = "default"
+    LEFT = "left"
+    RIGHT = "right"
+    TRAJECTORY = "trajectory"
+    ACC = "acceleration"
+
+@attr.s
+class NDECommand:
+    """
+    Represents a command for a vehicle in a Non-Deterministic Environment (NDE).
+    if the command is "default", the vehicle will follow the SUMO controlled model, other elements will be ignored
+    if the command is "left" or "right", the vehicle will change lane to the left or right, other elements will be ignored
+    if the command is "trajectory", the vehicle will follow the future trajectory, which will be predicted according to the current acceleration, other elements will be ignored
+    if the command is "acceleration", the vehicle will decelerate to stop using the acceleration element
+    """
+    command: Command = attr.ib(default=Command.DEFAULT, converter=Command)
+    acceleration: float = attr.ib(default=0.0)
+    future_trajectory: List[Tuple[float, float]] = attr.ib(factory=list)
+    prob: float = attr.ib(default=1.0)
+    duration: float = attr.ib(default=0.1)
 
 def get_next_lane_edge(net, lane_id):
     origin_lane = net.getLane(lane_id)
@@ -321,7 +347,7 @@ def get_vehicle_info(veh_id, obs_dict, sumo_net):
         lane_position=ego_obs["lane_position"],
         length=traci.vehicle.getLength(veh_id)
     )
-    route_with_internal = sumolib.route.addInternal(sumo_net, veh_info['route'])
+    route_with_internal = sumolib.route.addInternal(sumo_net, veh_info.route)
     veh_info.route_id_list = [route._id for route in route_with_internal]
     veh_info.route_length_list = [route._length for route in route_with_internal]
     return veh_info

@@ -1,8 +1,9 @@
-from terasim.vehicle.controllers.high_efficiency_controller import HighEfficiencyController
+from terasim.agent.agent_controller import AgentController
 import terasim.utils as utils
 import random
-from .nde_vehicle_utils import get_location, get_next_lane_edge, get_neighbour_lane
+from .nde_vehicle_utils import get_next_lane_edge, get_neighbour_lane, Command, NDECommand, TrajectoryPoint
 from terasim.overlay import traci
+from addict import Dict
 
 def get_all_routes():
     return traci.route.getIDList()
@@ -14,47 +15,32 @@ def get_all_route_edges():
         all_route_edges[route] = traci.route.getEdges(route)
     return all_route_edges
 
-class NDEController(HighEfficiencyController):
-    params = {
-            "lc_duration": 1,  # the lane change duration will be 1 second
-            "neg_duration": 2, # the negligence duration will be 2 second
-            "avoid_collision_duration": 3, # the duration to avoid collision will be 2 second
-        }
+class NDEController(AgentController):
+
+    def __init__(self, simulator, params):
+        self.is_busy = False
+        self.cached_control_command = None # this is a dict, containing the control command for the vehicle with the timestep information
+        return super().__init__(simulator, params)
     
-    def __init__(self, simulator, params=None):
-        super().__init__(simulator, params)
-        self.neg_step_num = int(self.params["neg_duration"]/self.step_size)
-        self.avoid_collision_step_num = int(self.params["avoid_collision_duration"]/self.step_size)
-        self.allow_lane_change = True
-        self.avoid_collision_flag = False
+    def _update_controller_status(self, veh_id, current_time=None):
+        """Refresh the state of the controller. This function will be called at each timestep as far as vehicle is still in the simulator, even if the vehicle is not controlled.
+        """
+        # if the controller is busy, detect if the current simulation time - the time of the cached control command is greater than the duration of the control command, then the controller is not busy anymore
+        if self.is_busy:
+            current_time = traci.simulation.getTime() if current_time is None else current_time
+            if current_time - self.cached_control_command.timestep > self.cached_control_command.command.duration:
+                self.is_busy = False
+                self.cached_control_command = None
+                all_checks_on(veh_id)
     
     def _is_command_legal(self, veh_id, control_command):
         """Check if the control command is legal.
         """
-        if control_command["lateral"] != "central" and not self.allow_lane_change:
-            return False
-        if control_command["type"] != "lon_lat" or "longitudinal" not in control_command or "lateral" not in control_command:
-            raise ValueError("The control command should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.")
-        
-        if self.is_busy:
-            assert self.controlled_duration >= 0
-            if self.avoid_collision_flag:
-                # print(f"avoid collision: {veh_id}, {self.controlled_duration}, {traci.vehicle.getAcceleration(veh_id)}, {traci.vehicle.getSpeed(veh_id)}")
-                self.change_vehicle_speed(veh_id, -7.06, 0.1)
-            if self.controlled_duration == 0:
-                self.is_busy = False
-                self.avoid_collision_flag = False
-            else:
-                self.controlled_duration -= 1
-                self.controlled_duration = max(self.controlled_duration, 0)
-                
-            return False
-        else:
-            if control_command["lateral"] == "left" and not self.simulator.get_vehicle_lane_adjacent(veh_id, 1):
-                return False
-            if control_command["lateral"] == "right" and not self.simulator.get_vehicle_lane_adjacent(veh_id, -1):
-                return False
-            return True
+        # check if the control command is legal
+
+        # check if the vehicle is currently in a lane change process
+
+        return True 
     
     def execute_urban_lanechange(self, veh_id, control_command, obs_dict):
         self.allow_lane_change = False # disable urban lane change after 1 lane change
@@ -90,91 +76,56 @@ class NDEController(HighEfficiencyController):
         Args:
             action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
         """ 
-
-        negligence_flag = "mode" in control_command and control_command["mode"] == "negligence"
-        avoid_collision_flag = "mode" in control_command and control_command["mode"] == "avoid_collision"
-
-        if not self.is_busy:    
-            if negligence_flag or avoid_collision_flag:
-                utils.set_vehicle_speedmode(veh_id, 0)
-                if not self.is_busy:
-                    self.is_busy = True
-                    if negligence_flag:
-                        self.controlled_duration = self.neg_step_num  # begin counting the negligence timesteps
-                    elif avoid_collision_flag:
-                        self.avoid_collision_flag = True
-                        self.controlled_duration = self.avoid_collision_step_num
+        if not self.is_busy:
+            if control_command.command == Command.DEFAULT:
+                # all_checks_on(veh_id)
+                return
             else:
-                utils.set_vehicle_speedmode(veh_id)
-
-        # Longitudinal control
-        if control_command["longitudinal"] == "SUMO":
-            utils.set_vehicle_speedmode(veh_id)
-            controlled_acc = None
-        else:
-            controlled_acc = control_command["longitudinal"]
-            current_velocity = obs_dict["ego"]["velocity"]
-            if current_velocity + controlled_acc > self.params["v_high"]:
-                controlled_acc = self.params["v_high"] - current_velocity
-            # elif current_velocity + controlled_acc < self.params["v_low"]:
-            #     controlled_acc = self.params["v_low"] - current_velocity
-        if negligence_flag:
-            duration = self.params["neg_duration"]
-        elif "duration" in control_command:
-            duration = control_command["duration"]
-        else:
-            duration = self.params["acc_duration"]
-        if control_command["lateral"] == "SUMO":
-            utils.set_vehicle_lanechangemode(veh_id)
-            if controlled_acc is not None:
-                self.change_vehicle_speed(veh_id, controlled_acc, duration)
-        else:
-            if control_command["lateral"] == "central":
-                utils.set_vehicle_lanechangemode(veh_id, 512) # disable lane change in central mode
-                if controlled_acc is not None:
-                    self.change_vehicle_speed(veh_id, controlled_acc, duration)
-            else:
-                lane_change_mode = 0 if utils.get_distance(veh_id) > 10 else 512
-                utils.set_vehicle_lanechangemode(veh_id, lane_change_mode)
-                utils.set_vehicle_speedmode(veh_id)
-                self.simulator.change_vehicle_lane(veh_id, control_command["lateral"], self.params["lc_duration"])
-                if controlled_acc is not None:
-                    self.change_vehicle_speed(veh_id, controlled_acc, self.params["lc_duration"])
-                self.controlled_duration = self.lc_step_num + random.randint(5, 10) # begin counting the lane change maneuver timesteps
+                all_checks_off(veh_id)
+                # other commands will have duration, which will keep the controller busy
                 self.is_busy = True
-                vehicle_edge_id = obs_dict["local"]["Ego"]["edge_id"]
-                if self.is_urban_lanechange(vehicle_edge_id):
-                    self.execute_urban_lanechange(veh_id, control_command, obs_dict)
-
-    def calculate_decelerate_duration(self, veh_id, deceleration):
-        """Calculate the duration to decelerate to a certain speed.
-
-        Args:
-            veh_id (str): Vehicle ID
-            deceleration (float): Specified deceleration of vehicle.
-
-        Returns:
-            float: The duration to decelerate to a certain speed.
-        """        
-        current_speed = traci.vehicle.getSpeed(veh_id)
-        if deceleration >= 0:
-            return 1
+                self.cached_control_command = Dict({
+                    "timestep": traci.simulation.getTime(),
+                    "command": control_command,
+                })
+        if control_command.command == Command.TRAJECTORY:
+            self.execute_trajectory_command(veh_id, control_command, obs_dict)
+        elif control_command.command == Command.LEFT or control_command.command == Command.RIGHT:
+            self.execute_lane_change_command(veh_id, control_command, obs_dict)
+        elif control_command.command == Command.ACC:
+            self.execute_acceleration_command(veh_id, control_command, obs_dict)
         else:
-            return max(1, int(-current_speed/deceleration * 10)+1)
+            pass
+        return
+    
+    @staticmethod
+    def execute_trajectory_command(veh_id, control_command, obs_dict):
+        assert control_command.command == Command.TRAJECTORY
+        # get the closest timestep trajectory point in control_command.trajectory to current timestep
+        trajectory_list = control_command.trajectory
+        current_timestep = traci.simulation.getTime()
+        closest_timestep_trajectory = min(trajectory_list, key=lambda x: abs(x.timestep - current_timestep))
+        # set the position of the vehicle to the closest timestep trajectory point
+        traci.vehicle.moveToXY(veh_id, closest_timestep_trajectory.x, closest_timestep_trajectory.y, 0)        
 
-    def change_vehicle_speed(self, vehID, acceleration, duration=1.0):
-        """Fix the acceleration of a vehicle to be a specified value in the specified duration.
+    @staticmethod
+    def execute_lane_change_command(veh_id, control_command, obs_dict):
+        assert control_command.command == Command.LEFT or control_command.command == Command.RIGHT
+        indexOffset = 1 if control_command.command == Command.LEFT else -1
+        traci.vehicle.changeLaneRelative(veh_id, indexOffset, utils.get_step_size())
 
-        Args:
-            vehID (str): Vehicle ID
-            acceleration (float): Specified acceleration of vehicle.
-            duration (float, optional): Specified time interval to fix the acceleration in s. Defaults to 1.0.
-        """
-        init_speed = traci.vehicle.getSpeed(vehID)
-        final_speed = init_speed + acceleration * duration
-        if final_speed < 0:
-            final_speed = 0
-        if duration == utils.get_step_size():
-            traci.vehicle.setSpeed(vehID, final_speed)
-        else:
-            traci.vehicle.slowDown(vehID, final_speed, duration)
+    @staticmethod
+    def execute_acceleration_command(veh_id, control_command, obs_dict):
+        assert control_command.command == Command.ACC
+        acceleration = control_command.acceleration
+        final_speed = obs_dict["ego"]["velocity"] + acceleration * utils.get_step_size()
+        final_speed = 0 if final_speed < 0 else final_speed
+        traci.vehicle.setSpeed(veh_id, final_speed)
+
+def all_checks_on(veh_id):
+    traci.vehicle.setSpeedMode(veh_id, 31)
+    traci.vehicle.setLaneChangeMode(veh_id, 1621)
+
+def all_checks_off(veh_id):
+    traci.vehicle.setSpeedMode(veh_id, 0)
+    traci.vehicle.setLaneChangeMode(veh_id, 0)

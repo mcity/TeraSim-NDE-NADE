@@ -27,9 +27,15 @@ class SafeTestNDE(EnvTemplate):
         traci.simulation.executeMove()
         self._maintain_all_vehicles(ctx)
         control_cmds, infos = self.make_decisions(ctx)
-        # self.execute_control_commands(control_cmds)
+        self.refresh_control_commands_state()
+        self.execute_control_commands(control_cmds)
         # self.monitor.add_observation(control_cmds)
         return self.should_continue_simulation()
+    
+    def refresh_control_commands_state(self):
+        current_time = traci.simulation.getTime()
+        for veh_id in self.vehicle_list.keys():
+            self.vehicle_list[veh_id].controller._update_controller_status(veh_id, current_time)
 
     def final_state_log(self):
         return {
