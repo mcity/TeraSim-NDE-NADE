@@ -102,11 +102,11 @@ class NDEController(AgentController):
     def execute_trajectory_command(veh_id, control_command, obs_dict):
         assert control_command.command == Command.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
-        trajectory_list = control_command.trajectory
+        trajectory_list = control_command.future_trajectory
         current_timestep = traci.simulation.getTime()
         closest_timestep_trajectory = min(trajectory_list, key=lambda x: abs(x.timestep - current_timestep))
         # set the position of the vehicle to the closest timestep trajectory point
-        traci.vehicle.moveToXY(veh_id, closest_timestep_trajectory.x, closest_timestep_trajectory.y, 0)        
+        traci.vehicle.moveToXY(veh_id, closest_timestep_trajectory.x, closest_timestep_trajectory.y, 0) # ! add keeproute
 
     @staticmethod
     def execute_lane_change_command(veh_id, control_command, obs_dict):

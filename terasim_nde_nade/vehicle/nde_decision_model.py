@@ -61,7 +61,7 @@ class NDEDecisionModel(IDMModel):
         if len(negligence_command_dict) > 0 and random.random() < 0.0001:
             # final command will be the first negligence command
             final_command = list(negligence_command_dict.values())[0]
-            traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (255, 0, 0, 255), 0.5)
+            # traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (255, 0, 0, 255), 0.5)
         else:
             final_command = NDECommand(command=Command.DEFAULT)
         return final_command, None
@@ -96,11 +96,12 @@ class NDEDecisionModel(IDMModel):
             #     "Lead": NDECommand(command=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
             # }))
             negligence_command_dict.update(Dict({
-                "Lead": NDECommand(command=Command.ACC, duration=2.0, acceleration=ff_acceleration)
+                "Lead": NDECommand(command=Command.TRAJECTORY, duration=2.0)
             }))
-            # egligence_command_dict["Lead"].future_trajectory = nde_utils.predict_future_trajectory(obs_dict["ego"]["veh_id"], obs_dict, negligence_command_dict["Lead"], self.vehicle.simulator.sumo_net, time_horizon_step=20, time_resolution=0.1)
             # highlight the vehicle with green
-            # traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (0, 255, 0, 255), 0.5, duration=0.3)
+            traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (0, 255, 0, 255), 0.5, duration=0.3)
+            negligence_command_dict["Lead"].future_trajectory = nde_utils.predict_future_trajectory(obs_dict["ego"]["veh_id"], obs_dict, negligence_command_dict["Lead"], self.vehicle.simulator.sumo_net, time_horizon_step=4, time_resolution=0.5)
+            
         return negligence_command_dict
 
     @staticmethod
