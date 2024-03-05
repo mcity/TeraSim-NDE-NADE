@@ -8,6 +8,7 @@ from terasim.utils import sumo_coordinate_to_center_coordinate, sumo_heading_to_
 from typing import List, Tuple, Optional
 from enum import Enum
 from collections import namedtuple
+from scipy.interpolate import interp1d
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple('TrajectoryPoint', ['timestep', 'position', 'heading'])
 
@@ -217,7 +218,7 @@ def predict_future_distance(velocity: float, acceleration: float, duration_array
     future_distance_array = np.maximum.accumulate(future_distance_array.clip(min=0))
     return future_distance_array
 
-def predict_future_trajectory(veh_id, obs_dict, control_command, sumo_net, time_horizon_step=4, time_resolution=0.5, current_time = None, lanechange_duration=1.0):
+def predict_future_trajectory(veh_id, obs_dict, control_command, sumo_net, time_horizon_step=4, time_resolution=0.5, interpolate_resolution=0.1, current_time = None, veh_info=None):
     """Predict the future trajectory of the vehicle.
     all position and heading in this function stays the same definition with sumo, which is (x, y) and angle in degree (north is 0, east is 90, south is 180, west is 270)
 
@@ -230,54 +231,66 @@ def predict_future_trajectory(veh_id, obs_dict, control_command, sumo_net, time_
         future_trajectory_dict (dict): the future trajectory of the vehicle
     """
     current_time = current_time if current_time is not None else traci.simulation.getTime()
-    veh_info = get_vehicle_info(veh_id, obs_dict, sumo_net)
+    veh_info = veh_info if veh_info is not None else get_vehicle_info(veh_id, obs_dict, sumo_net)
     # include the original position
     duration_array = np.array([time_horizon_id*time_resolution for time_horizon_id in range(time_horizon_step+1)])
-    acceleration = control_command.acceleration if control_command.command == "acceleration" else veh_info["acceleration"]
-    future_distance_array = predict_future_distance(veh_info["velocity"], veh_info["acceleration"], duration_array)
+    acceleration = control_command.acceleration if control_command.command == Command.ACC else veh_info["acceleration"]
+    future_distance_array = predict_future_distance(veh_info["velocity"], acceleration, duration_array)
     lateral_offset = 0
-    if control_command.command == "LEFT":
+    if control_command.command == Command.LEFT:
         lateral_offset = 1
-    elif control_command.command == "RIGHT":
+    elif control_command.command == Command.RIGHT:
         lateral_offset = -1
 
-    trajectory_array = np.array(veh_info.position[0], veh_info.position[1], veh_info.heading, 0)
-
-    for duration, distance in zip(duration_array, future_distance_array):
-        future_position, future_heading = get_future_position_on_route(veh_info["edge_id"], veh_info["lane_position"], veh_info["lane_index"], veh_info["lane_id"], veh_info["route_id_list"], veh_info["route_length_list"], distance, lateral_offset)
-        future_trajectory_array = np.array(future_position[0], future_position[1], future_heading, duration)
-        trajectory_array = np.vstack((trajectory_array, future_trajectory_array))
-
-    # predict the final_position of the vehicle
-    final_position, final_heading = get_future_position_on_route(veh_info["edge_id"], veh_info["lane_position"], veh_info["lane_index"], veh_info["lane_id"], veh_info["route_id_list"], veh_info["route_length_list"], future_distance_array[-1], lateral_offset)
-    final_trajectory_array = np.array(final_position[0], final_position[1], final_heading, duration_array[-1])
+    trajectory_array = np.array([veh_info.position[0], veh_info.position[1], veh_info.heading, 0])
 
     lanechange_finish_trajectory_point = None
-    if control_command.command == "LEFT" or control_command.command == "RIGHT":
-        lanechange_finish_timestep = np.argmin(np.abs(duration_array - control_command["duration"]))
-        lane_change_finished_distance = future_distance_array[lanechange_finish_timestep]
-        lanechange_finish_position, lanechange_finish_final_heading = get_future_position_on_route(veh_info["edge_id"], veh_info["lane_position"], veh_info["lane_index"], veh_info["lane_id"], veh_info["route_id_list"], veh_info["route_length_list"], lane_change_finished_distance, lateral_offset)
-        lanechange_finish_trajectory_array = np.array(lanechange_finish_position[0], lanechange_finish_position[1], lanechange_finish_final_heading, control_command["duration"])
+    if control_command.command == Command.LEFT or control_command.command == Command.RIGHT:
+        lanechange_finish_timestep = np.argmin(np.abs(duration_array - control_command.duration))
+        lanechange_finish_position, lanechange_finish_final_heading = get_future_position_on_route(veh_info["edge_id"], veh_info["lane_position"], veh_info["lane_index"], veh_info["lane_id"], veh_info["route_id_list"], veh_info["route_length_list"], future_distance_array[lanechange_finish_timestep], lateral_offset)
+        lanechange_finish_trajectory_point = np.array([lanechange_finish_position[0], lanechange_finish_position[1], lanechange_finish_final_heading, duration_array[lanechange_finish_timestep]])
+        trajectory_array = np.vstack((trajectory_array, lanechange_finish_trajectory_point))
 
-    for trajectory_point in future_trajectory:
-        trajectory_point[2] += current_time
-    return future_trajectory
+    for duration, distance in zip(duration_array[1:], future_distance_array[1:]):
+        if lanechange_finish_trajectory_point is not None and duration <= lanechange_finish_trajectory_point[3]:
+            continue
+        future_position, future_heading = get_future_position_on_route(veh_info["edge_id"], veh_info["lane_position"], veh_info["lane_index"], veh_info["lane_id"], veh_info["route_id_list"], veh_info["route_length_list"], distance, lateral_offset)
+        trajectory_array = np.vstack((trajectory_array, np.array([future_position[0], future_position[1], future_heading, duration])))
+
+    future_trajectory_array = interpolate_future_trajectory(trajectory_array, interpolate_resolution)
+
+    future_trajectory_array[:, 3] += current_time
+    return future_trajectory_array
 
 
 
 def interpolate_future_trajectory(
         trajectory_list_array: np.ndarray,
-        duration_array: np.ndarray,
-    ) -> List[Tuple[Tuple[float, float], float, float]]:
+        interpolate_resolution: float,
+    ) -> np.ndarray:
     """
-    Given the initial, final, and several intermediate trajectory points, and a numpy array of durations, interpolate the future trajectory.
+    Given the initial, final, and several intermediate trajectory points, interpolate resolution, interpolate the future trajectory.
 
-    The trajectory point is [x, y, heading, time], and the duration array is the time horizon of the prediction.
+    The trajectory point is [x, y, heading, time], and the interpolate_resolution is the time resolution of the interpolation.
     The trajectory list array is composed of multiple trajectory points, which must include the first and last trajectory points.
     """
-    # get the first and last trajectory point
-    initial_trajectory_point = trajectory_list_array[0]
-    final_trajectory_point = trajectory_list_array[-1]
+    # Extract the time and position values
+    time_values = trajectory_list_array[:, 3]
+    position_values = trajectory_list_array[:, :3]
+
+    # Create the interpolation function
+    interpolation_function = interp1d(time_values, position_values, axis=0, kind='cubic')
+
+    # Create the new time values
+    new_time_values = np.arange(time_values[0], time_values[-1], interpolate_resolution)
+
+    # Interpolate the position values
+    new_position_values = interpolation_function(new_time_values)
+
+    # Combine the new time and position values
+    new_trajectory_list_array = np.hstack((new_position_values, new_time_values[:, None]))
+
+    return new_trajectory_list_array
 
 def get_future_position_on_route(
         veh_edge_id: str, 
@@ -308,6 +321,7 @@ def get_future_position_on_route(
     original_lane_index = veh_lane_index
     veh_lane_index = min(max_lane_index, max(0, veh_lane_index + future_lateral_offset))
     vehicle_lane_id = veh_edge_id + f"_{veh_lane_index}"
+    veh_lane_position = min(veh_lane_position, current_lane_length)
     future_position = traci.simulation.convert2D(veh_edge_id, veh_lane_position, veh_lane_index)
     future_heading = traci.lane.getAngle(vehicle_lane_id, veh_lane_position)
     return future_position, future_heading
@@ -338,7 +352,10 @@ def get_vehicle_info(veh_id, obs_dict, sumo_net):
     )
     route_with_internal = sumolib.route.addInternal(sumo_net, veh_info.route)
     veh_info.route_id_list = [route._id for route in route_with_internal]
-    veh_info.route_length_list = [route._length for route in route_with_internal]
+    # veh_info.route_length_list = [route._length for route in route_with_internal]
+    veh_info.route_length_list = [traci.lane.getLength(edge_id + "_0") for edge_id in veh_info.route_id_list]
+    # assert each element in veh_info.route_length_list is equal to the corresponding element in lane_based_route_length_list
+    # assert all([abs(a - b) < 1e-4 for a, b in zip(veh_info.route_length_list, lane_based_route_length_list)])
     return veh_info
 
 from dataclasses import dataclass

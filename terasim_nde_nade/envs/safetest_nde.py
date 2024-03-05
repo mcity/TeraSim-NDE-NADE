@@ -24,8 +24,8 @@ class SafeTestNDE(EnvTemplate):
         self._vehicle_in_env_distance("before")
 
     def on_step(self, ctx):
-        traci.simulation.executeMove()
-        self._maintain_all_vehicles(ctx)
+        # traci.simulation.executeMove()
+        # self._maintain_all_vehicles(ctx)
         control_cmds, infos = self.make_decisions(ctx)
         self.refresh_control_commands_state()
         self.execute_control_commands(control_cmds)
