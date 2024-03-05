@@ -47,6 +47,9 @@ class NDEDecisionModel(IDMModel):
         # vehicle_location = get_location(obs_dict["ego"]["edge_id"], self.lane_config)
         # self.change_vehicle_type_according_to_location(obs_dict["ego"]["veh_id"], vehicle_location)
 
+        # set yellow color for the vehicle
+        traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 255, 0, 255))
+
         leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
         current_acceleration = obs_dict["ego"]["acceleration"]
         ff_acceleration = self.get_ff_acceleration(obs_dict)
@@ -71,6 +74,7 @@ class NDEDecisionModel(IDMModel):
         # If there are negligence commands, update the command_dict with the negligence command and the normal command with the remaining probability
         negligence_command = None
         if negligence_command_dict:
+            traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 0, 0, 255)) # highlight the vehicle with red
             negligence_command = list(negligence_command_dict.values())[0]
             negligence_command.prob = negligence_prob
             command_dict = {
@@ -91,7 +95,7 @@ class NDEDecisionModel(IDMModel):
     
     def traffic_rule_negligence(self, obs_dict, ff_acceleration, current_acceleration):
         negligence_command_dict = Dict()
-        if ff_acceleration - current_acceleration > 0.2: # the vehicle is constained by the traffic rules
+        if ff_acceleration - current_acceleration > 1.0: # the vehicle is constained by the traffic rules
             # the vehicle is constained by the traffic rules
             # negligence_command_dict.update(Dict({
             #     "TrafficRule": NDECommand(command=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
@@ -100,7 +104,7 @@ class NDEDecisionModel(IDMModel):
                 "TrafficRule": NDECommand(command=Command.ACC, duration=2.0, acceleration=ff_acceleration)
             }))
             # highlight the vehicle with blue
-            traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (0, 0, 255, 255), 0.5, duration=0.3)
+            # traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (0, 0, 255, 255), 0.5, duration=0.3)
         return negligence_command_dict
     
     def leader_negligence(self, obs_dict, ff_acceleration, cf_acceleration):
@@ -115,7 +119,7 @@ class NDEDecisionModel(IDMModel):
                 "Lead": NDECommand(command=Command.ACC, duration=2.0, acceleration=ff_acceleration)
             }))
             # highlight the vehicle with green
-            traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (0, 255, 0, 255), 0.5, duration=0.3)
+            # traci.vehicle.highlight(obs_dict["ego"]["veh_id"], (0, 255, 0, 255), 0.5, duration=0.3)
             # negligence_command_dict["Lead"].future_trajectory = nde_utils.predict_future_trajectory(obs_dict["ego"]["veh_id"], obs_dict, negligence_command_dict["Lead"], self.vehicle.simulator.sumo_net, time_horizon_step=4, time_resolution=0.5)
         return negligence_command_dict
 

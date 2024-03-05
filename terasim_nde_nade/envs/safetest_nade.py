@@ -8,6 +8,7 @@ import os
 from terasim.utils import sumo_coordinate_to_center_coordinate, sumo_heading_to_orientation
 from terasim_nde_nade.vehicle.nde_vehicle_utils import get_collision_type_and_prob, Command, NDECommand, TrajectoryPoint, predict_future_trajectory, get_vehicle_info
 from shapely.geometry import LineString
+from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect
 
 veh_length = 5.0
 veh_width = 1.85
@@ -32,46 +33,6 @@ def check_func(PointList):
 
 import numpy as np
 
-def collision_check(traj1: np.ndarray, traj2: np.ndarray, veh_length: float, tem_len: float, circle_r: float):
-    # Ensure that the trajectories are sorted by time
-    traj1 = traj1[traj1[:, 3].argsort()]
-    traj2 = traj2[traj2[:, 3].argsort()]
-
-    # Get the unique time steps
-    time_steps = np.unique(np.concatenate((traj1[:, 3], traj2[:, 3])))
-
-    for time_step in time_steps:
-        # Get the positions at the current time step
-        traj_point1 = traj1[traj1[:, 3] == time_step]
-        traj_point2 = traj2[traj2[:, 3] == time_step]
-
-        # Get the circle center lists
-        center_list_1 = get_circle_center_list(traj_point1, veh_length, tem_len)
-        center_list_2 = get_circle_center_list(traj_point2, veh_length, tem_len)
-
-        # Check for collisions
-        for p1 in center_list_1:
-            for p2 in center_list_2:
-                dist = np.linalg.norm(p1 - p2)
-                if dist <= 2 * circle_r:
-                    return True, time_step
-
-    return False, None
-
-def get_circle_center_list(traj_point: np.ndarray, veh_length: float, tem_len: float):
-    center1 = (traj_point[0], traj_point[1])
-    heading = traj_point[2]
-    center0 = (
-        center1[0] + (veh_length / 2 - tem_len) * math.cos(heading),
-        center1[1] + (veh_length / 2 - tem_len) * math.sin(heading)
-    )
-    center2 = (
-        center1[0] - (veh_length / 2 - tem_len) * math.cos(heading),
-        center1[1] - (veh_length / 2 - tem_len) * math.sin(heading)
-    )
-    center_list = [center0, center1, center2]
-    return np.array(center_list)
-
 
 def cal_dist(p1, p2):
     x1, y1 = p1[0], p1[1]
@@ -88,7 +49,7 @@ class SafeTestNADE(SafeTestNDE):
         self.early_termination_weight_threshold = 1e-5
         return super().on_start(ctx)
 
-    # @profile
+    @profile
     def on_step(self, ctx):
         # traci.simulation.executeMove()
         # self._maintain_all_vehicles(ctx)
@@ -123,49 +84,8 @@ class SafeTestNADE(SafeTestNDE):
         else:
             ttc = distance / speed
         return ttc
-        
-    # @profile
-    def ITE_decision_old(self, control_command_dicts, obs_dicts):
-        """NADE decision here.
-
-        Args:
-            control_command_dicts (dict): for each vehicle v_id, control_command_dict[veh_id] = control_command, control_info. In nade, control info denotes the ndd pdf of the given BV
-            obs_dicts (dict): for each vehicle v_id, obs_dicts[veh_id] = observation
-        """
-
-
-
-
-        maneuver_challenge_dict, maneuver_challenge_info, maneuver_challenge_avoidance_dict = self.get_maneuver_challenge_dict(trajectory_dict)
-        modified_ndd_dict, new_ndd_dict_for_record = self.get_modified_ndd_dict_according_to_avoidability(ndd_dict, maneuver_challenge_avoidance_dict)
-        control_command_dict = {
-            veh_id: {
-                "command": control_command_dict[veh_id]["command"],
-                "ndd": modified_ndd_dict[veh_id],
-            } for veh_id in control_command_dict
-        } # modify the ndd dict according to the maneuver challenge
-        time = utils.get_time()
-        self.monitor.add_maneuver_challenges(maneuver_challenge_dict, maneuver_challenge_avoidance_dict, maneuver_challenge_info, time)
-        criticality_dict = {veh_id: self.get_criticality_dict(modified_ndd_dict[veh_id], maneuver_challenge_dict[veh_id]) for veh_id in control_command_dict}
-        
-        # TO-DO: return the ITE control command
-        ITE_control_command_dict, weight = self.ITE_importance_sampling(control_command_dict, criticality_dict)
-        neglect_pair_list = self.get_neglecting_vehicle_id(ITE_control_command_dict, maneuver_challenge_info)
-        neglected_vehicle_list = []
-        for neglect_pair in neglect_pair_list:
-            neglected_vehicle_list.extend(neglect_pair[1])
-        ITE_control_command_dict, avoid_collision_weight = self.apply_collision_avoidance(neglected_vehicle_list, ITE_control_command_dict)
-        weight *= avoid_collision_weight
-        for veh_id in trajectory_dict:
-            if veh_id in ITE_control_command_dict:
-                ITE_control_command_dict[veh_id]["info"] = {} if "info" not in ITE_control_command_dict[veh_id] else ITE_control_command_dict[veh_id]["info"]
-                ITE_control_command_dict[veh_id]["info"].update({
-                    "trajectory_prediction": trajectory_dict[veh_id] if veh_id in trajectory_dict else None,
-                    "maneuver_challenge": maneuver_challenge_dict[veh_id] if veh_id in maneuver_challenge_dict else None,
-                    "criticality": criticality_dict[veh_id] if veh_id in criticality_dict else None,
-                })
-        return ITE_control_command_dict, weight
     
+    @profile
     def NADE_decision(self, control_command_dicts, veh_ctx_dicts, obs_dicts):
         """NADE decision here.
 
@@ -175,11 +95,19 @@ class SafeTestNADE(SafeTestNDE):
         """
         trajectory_dicts, veh_ctx_dicts = self.predict_future_trajectory_dicts(obs_dicts, veh_ctx_dicts)
         maneuver_challenge_dicts, avoidability_dicts, veh_ctx_dicts = self.get_maneuver_challenge_dicts(trajectory_dicts, veh_ctx_dicts)
+        self.highlight_critical_vehicles(maneuver_challenge_dicts)
         # criticality_dicts, veh_ctx_dicts = self.get_criticality_dicts(control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts)
         # ITE_control_command_dicts, veh_ctx_dicts, weight = self.ITE_importance_sampling(control_command_dicts, criticality_dicts, veh_ctx_dicts)
         ITE_control_command_dicts, weight = control_command_dicts, 1.0
         return ITE_control_command_dicts, veh_ctx_dicts, weight
+    
+    def highlight_critical_vehicles(self, maneuver_challenge_dicts):
+        for veh_id in maneuver_challenge_dicts:
+            if maneuver_challenge_dicts[veh_id]["maneuver_challenge"]:
+                # highlight the vehicle with red
+                traci.vehicle.highlight(veh_id, (255, 0, 0, 255), 1, duration=0.3)
 
+    @profile
     def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
         # predict future trajectories for each vehicle
         sumo_net = self.simulator.sumo_net
@@ -195,8 +123,8 @@ class SafeTestNADE(SafeTestNDE):
             obs_dict = obs_dicts[veh_id]
             trajectory_dict = {modality: predict_future_trajectory(veh_id, obs_dict, control_command_dict[modality], sumo_net, time_horizon_step=4, time_resolution=0.5, current_time=current_time, veh_info=veh_info) for modality in control_command_dict}
             trajectory_dicts[veh_id] = trajectory_dict
-            if len(trajectory_dict) > 1:
-                print(f"veh_id: {veh_id}, trajectory_dict: {trajectory_dict}")
+            # if len(trajectory_dict) > 1:
+            #     print(f"veh_id: {veh_id}, trajectory_dict: {trajectory_dict}")
         return trajectory_dicts, veh_ctx_dicts
 
     def get_modified_ndd_dict_according_to_avoidability(self, ndd_dict, maneuver_challenge_avoidance_dict):
@@ -304,7 +232,7 @@ class SafeTestNADE(SafeTestNDE):
         else:
             raise Exception("The vehicle is not in the negligence mode.")
 
-    # @profile
+    @profile
     def get_maneuver_challenge_dicts(self, trajectory_dict, veh_ctx_dicts):
         """Get the maneuver challenge for each vehicle when it is in the negligence mode while other vehicles are in the normal mode.
 
@@ -328,19 +256,19 @@ class SafeTestNADE(SafeTestNDE):
             veh_id: self.get_maneuver_challenge(veh_id, negligence_future_trajectory_dict[veh_id], normal_future_trajectory_dict) for veh_id in trajectory_dict
         }
         # get the maneuver challenge for each vehicle, check if the negligence future will collide with other vehicles' avoidance future
-        maneuver_challenge_avoidance_dict = {
-            veh_id: self.get_maneuver_challenge(veh_id, negligence_future_trajectory_dict[veh_id], avoidance_future_trajectory_dict, highlight_flag=False) for veh_id in trajectory_dict
-        }
+        # maneuver_challenge_avoidance_dict = {
+        #     veh_id: self.get_maneuver_challenge(veh_id, negligence_future_trajectory_dict[veh_id], avoidance_future_trajectory_dict, highlight_flag=False) for veh_id in trajectory_dict
+        # }
         collision_avoidability_dicts = {}
-        for veh_id in maneuver_challenge_dicts:
-            if veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
-                collision_avoidability_dicts[veh_id] = "unavoidable" # the vehicle will be considered as unavoidable collision
-            elif veh_id in maneuver_challenge_dicts and maneuver_challenge_dicts[veh_id]["maneuver_challenge"]:
-                collision_avoidability_dicts[veh_id] = "avoidable" # the vehicle will be considered as avoidable collision
-        veh_ctx_dicts = {veh_id: veh_ctx_dicts[veh_id].update({"collision_avoidability": collision_avoidability_dicts[veh_id], "maneuver_challenge": maneuver_challenge_dicts[veh_id]}) for veh_id in veh_ctx_dicts}
+        # for veh_id in maneuver_challenge_dicts:
+        #     if veh_id in maneuver_challenge_avoidance_dict and maneuver_challenge_avoidance_dict[veh_id]["maneuver_challenge"]:
+        #         collision_avoidability_dicts[veh_id] = "unavoidable" # the vehicle will be considered as unavoidable collision
+        #     elif veh_id in maneuver_challenge_dicts and maneuver_challenge_dicts[veh_id]["maneuver_challenge"]:
+        #         collision_avoidability_dicts[veh_id] = "avoidable" # the vehicle will be considered as avoidable collision
+        # veh_ctx_dicts = {veh_id: veh_ctx_dicts[veh_id].update({"collision_avoidability": collision_avoidability_dicts[veh_id], "maneuver_challenge": maneuver_challenge_dicts[veh_id]}) for veh_id in veh_ctx_dicts}
         return maneuver_challenge_dicts, collision_avoidability_dicts, veh_ctx_dicts
 
-    # @profile
+    @profile
     def get_maneuver_challenge(self, negligence_veh_id, negligence_veh_future, all_normal_veh_future, highlight_flag=True):
         """Get the maneuver challenge for the negligence vehicle.
 
@@ -359,7 +287,9 @@ class SafeTestNADE(SafeTestNDE):
             for veh_id in all_normal_veh_future:
                 if veh_id == negligence_veh_id:
                     continue
-                collision_flag, _ = is_intersect(negligence_veh_future, all_normal_veh_future[veh_id])
+                if all_normal_veh_future[veh_id] is None:
+                    print("aaa")
+                collision_flag = is_intersect(negligence_veh_future, all_normal_veh_future[veh_id], veh_length, tem_len, circle_r)
                 if collision_flag:
                     maneuver_challenge_info[veh_id] = 1
         return {"maneuver_challenge": int(len(maneuver_challenge_info) > 0), "info": maneuver_challenge_info} # the first element is the number of vehicles that will be affected by the negligence vehicle
@@ -386,40 +316,35 @@ class SafeTestNADE(SafeTestNDE):
             criticality_dicts[modality] = ndd_ndd_command_dict[modality].prob * maneuver_challenge_dict[modality]
         return criticality_dicts, veh_ctx_dict
 
-def is_intersect(trajectory1: np.ndarray, trajectory2: np.ndarray, veh_length: float, tem_len: float, circle_r: float):
-    """Check if two trajectories intersect.
+# @profile
+# def is_intersect(trajectory1: np.ndarray, trajectory2: np.ndarray, veh_length: float, tem_len: float, circle_r: float):
+#     """Check if two trajectories intersect.
 
-    Args:
-        trajectory1 (np.ndarray): Array of points representing trajectory 1.
-        trajectory2 (np.ndarray): Array of points representing trajectory 2.
+#     Args:
+#         trajectory1 (np.ndarray): Array of points representing trajectory 1.
+#         trajectory2 (np.ndarray): Array of points representing trajectory 2.
 
-    Returns:
-        bool: True if the trajectories intersect, False otherwise.
-    """
-    if np.linalg.norm(trajectory1[0, :2] - trajectory2[0, :2]) > 30:
-        return False, None
+#     Returns:
+#         bool: True if the trajectories intersect, False otherwise.
+#     """
+#     # check if the trajectory length and resolution is the same (np.allclose), which is the last column of the trajectory
+#     # assert np.allclose(trajectory1[:, 3], trajectory2[:, 3]), "The time steps of the two trajectories should be the same."
 
-    time_steps = min(len(trajectory1), len(trajectory2))
+#     if np.linalg.norm(trajectory1[0, :2] - trajectory2[0, :2]) > 30:
+#         return False
+#     # three circle collision check
+#     collision_check_result, _ = collision_check(trajectory1, trajectory2, veh_length, tem_len, circle_r)
+#     if collision_check_result:
+#         return True
 
-    # three circle collision check
-    collision_check_result, collision_timestep = collision_check(trajectory1, trajectory2, veh_length, tem_len, circle_r)
-    if collision_check_result:
-        return True, collision_timestep
+#     line1 = LineString(trajectory1[:, :2])
+#     line2 = LineString(trajectory2[:, :2])
 
-    for i in range(time_steps - 1):
-        segment1_start = trajectory1[i, :2]
-        segment1_end = trajectory1[i + 1, :2]
-        segment2_start = trajectory2[i, :2]
-        segment2_end = trajectory2[i + 1, :2]
+#     # Check if the trajectories intersect
+#     if line1.intersects(line2):
+#         return True
+#     return False
 
-        segment1 = LineString([segment1_start, segment1_end])
-        segment2 = LineString([segment2_start, segment2_end])
-
-        if segment1.intersects(segment2):
-            return True, i
-
-    return False, None
-    
 
 
 def get_longitudinal(control_command):

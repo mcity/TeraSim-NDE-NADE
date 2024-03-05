@@ -11,6 +11,9 @@ from collections import namedtuple
 from scipy.interpolate import interp1d
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple('TrajectoryPoint', ['timestep', 'position', 'heading'])
+import jax.numpy as jnp
+from .nde_vehicle_utils_cython import *
+from numba import jit
 
 class Command(Enum):
     DEFAULT = "default"
@@ -218,6 +221,7 @@ def predict_future_distance(velocity: float, acceleration: float, duration_array
     future_distance_array = np.maximum.accumulate(future_distance_array.clip(min=0))
     return future_distance_array
 
+@profile
 def predict_future_trajectory(veh_id, obs_dict, control_command, sumo_net, time_horizon_step=4, time_resolution=0.5, interpolate_resolution=0.1, current_time = None, veh_info=None):
     """Predict the future trajectory of the vehicle.
     all position and heading in this function stays the same definition with sumo, which is (x, y) and angle in degree (north is 0, east is 90, south is 180, west is 270)
@@ -263,34 +267,34 @@ def predict_future_trajectory(veh_id, obs_dict, control_command, sumo_net, time_
     return future_trajectory_array
 
 
+#  @profile
+# def interpolate_future_trajectory(
+#         trajectory_list_array: np.ndarray,
+#         interpolate_resolution: float,
+#     ) -> np.ndarray:
+#     """
+#     Given the initial, final, and several intermediate trajectory points, interpolate resolution, interpolate the future trajectory.
 
-def interpolate_future_trajectory(
-        trajectory_list_array: np.ndarray,
-        interpolate_resolution: float,
-    ) -> np.ndarray:
-    """
-    Given the initial, final, and several intermediate trajectory points, interpolate resolution, interpolate the future trajectory.
+#     The trajectory point is [x, y, heading, time], and the interpolate_resolution is the time resolution of the interpolation.
+#     The trajectory list array is composed of multiple trajectory points, which must include the first and last trajectory points.
+#     """
+#     # Extract the time and position values
+#     time_values = trajectory_list_array[:, 3]
+#     position_values = trajectory_list_array[:, :3]
 
-    The trajectory point is [x, y, heading, time], and the interpolate_resolution is the time resolution of the interpolation.
-    The trajectory list array is composed of multiple trajectory points, which must include the first and last trajectory points.
-    """
-    # Extract the time and position values
-    time_values = trajectory_list_array[:, 3]
-    position_values = trajectory_list_array[:, :3]
+#     # Create the interpolation function
+#     interpolation_function = interp1d(time_values, position_values, axis=0, kind='linear')
 
-    # Create the interpolation function
-    interpolation_function = interp1d(time_values, position_values, axis=0, kind='cubic')
+#     # Create the new time values
+#     new_time_values = np.arange(time_values[0], time_values[-1], interpolate_resolution)
 
-    # Create the new time values
-    new_time_values = np.arange(time_values[0], time_values[-1], interpolate_resolution)
+#     # Interpolate the position values
+#     new_position_values = interpolation_function(new_time_values)
 
-    # Interpolate the position values
-    new_position_values = interpolation_function(new_time_values)
+#     # Combine the new time and position values
+#     new_trajectory_list_array = np.hstack((new_position_values, new_time_values[:, None]))
 
-    # Combine the new time and position values
-    new_trajectory_list_array = np.hstack((new_position_values, new_time_values[:, None]))
-
-    return new_trajectory_list_array
+#     return new_trajectory_list_array
 
 def get_future_position_on_route(
         veh_edge_id: str, 
@@ -326,6 +330,7 @@ def get_future_position_on_route(
     future_heading = traci.lane.getAngle(vehicle_lane_id, veh_lane_position)
     return future_position, future_heading
 
+@profile
 def get_vehicle_info(veh_id, obs_dict, sumo_net):
     """Generate vehicle information for future trajectory prediction
 
@@ -384,3 +389,61 @@ class VehicleInfoForPredict:
 # @lru_cache(maxsize=256)
 # def get_route_with_internal(net, route):
 #     return sumolib.route.addInternal(net, route)
+    
+# def sumo_trajectory_to_normal_trajectory(sumo_trajectory, veh_length=5.0):
+#     """Convert sumo trajectory to normal trajectory. Both trajectories are nparrays
+    
+#     sumo trajectory is defined as [x,y,heading,timestamp], where x, y denotes the position of the front bumper, heading start from north and goes clockwise (degrees), timestamp is the time step.
+
+#     normal trajectory is defined as [x,y,orientation,timestamp], where x, y denotes the position of the center of the vehicle, orientation follows radians, timestamp is the time step.
+
+#     """
+#     normal_trajectory = np.zeros(sumo_trajectory.shape)
+#     normal_trajectory[:, 2] = np.arctan2(np.sin(np.radians(90 - sumo_trajectory[:, 2])), np.cos(np.radians(90 - sumo_trajectory[:, 2])))
+
+#     normal_trajectory[:, 0] = sumo_trajectory[:, 0] - veh_length / 2 * np.cos(normal_trajectory[:, 2])
+#     normal_trajectory[:, 1] = sumo_trajectory[:, 1] - veh_length / 2 * np.sin(normal_trajectory[:, 2])
+#     if sumo_trajectory.shape[1] > 3:
+#         normal_trajectory[:, 3:] = sumo_trajectory[:, 3:]
+#     return normal_trajectory
+
+# @profile
+# def collision_check(traj1: np.ndarray, traj2: np.ndarray, veh_length: float, tem_len: float, circle_r: float):
+
+#     traj1 = sumo_trajectory_to_normal_trajectory(traj1, veh_length)
+#     traj2 = sumo_trajectory_to_normal_trajectory(traj2, veh_length)
+
+#     # Get the unique time steps
+#     time_steps = np.unique(np.concatenate((traj1[:, 3], traj2[:, 3])))
+
+#     for time_step in time_steps:
+#         # Get the positions at the current time step
+#         traj_point1 = traj1[traj1[:, 3] == time_step].flatten()
+#         traj_point2 = traj2[traj2[:, 3] == time_step].flatten()
+
+#         # Get the circle center lists
+#         center_list_1 = get_circle_center_list(traj_point1, veh_length, tem_len)
+#         center_list_2 = get_circle_center_list(traj_point2, veh_length, tem_len)
+
+#         # Check for collisions
+#         for p1 in center_list_1:
+#             for p2 in center_list_2:
+#                 dist = np.linalg.norm(p1 - p2)
+#                 if dist <= 2 * circle_r:
+#                     return True, time_step
+#     return False, None
+
+# def get_circle_center_list(traj_point: np.ndarray, veh_length: float, tem_len: float):
+#     center1 = (traj_point[0], traj_point[1])
+#     heading = traj_point[2]
+#     center0 = (
+#         center1[0] + (veh_length / 2 - tem_len) * np.cos(heading),
+#         center1[1] + (veh_length / 2 - tem_len) * np.sin(heading)
+#     )
+#     center2 = (
+#         center1[0] - (veh_length / 2 - tem_len) * np.cos(heading),
+#         center1[1] - (veh_length / 2 - tem_len) * np.sin(heading)
+#     )
+#     center_list = [center0, center1, center2]
+#     return np.array(center_list)
+
