@@ -205,7 +205,7 @@ def get_collision_type_and_prob(observation, negligence_mode, location_region, n
         return 0, "no_collision"
     
 
-def predict_future_distance(velocity: float, acceleration: float, duration_array: np.ndarray) -> np.ndarray:
+def predict_future_distance(velocity: float, acceleration: float, duration_array: np.ndarray, max_velocity: float) -> np.ndarray:
     """Predict the future distance of the vehicle.
 
     Args:
@@ -221,7 +221,7 @@ def predict_future_distance(velocity: float, acceleration: float, duration_array
     future_distance_array = np.maximum.accumulate(future_distance_array.clip(min=0))
     return future_distance_array
 
-@profile
+# @profile
 def predict_future_trajectory(veh_id, obs_dict, control_command, sumo_net, time_horizon_step=4, time_resolution=0.5, interpolate_resolution=0.1, current_time = None, veh_info=None):
     """Predict the future trajectory of the vehicle.
     all position and heading in this function stays the same definition with sumo, which is (x, y) and angle in degree (north is 0, east is 90, south is 180, west is 270)
@@ -239,7 +239,8 @@ def predict_future_trajectory(veh_id, obs_dict, control_command, sumo_net, time_
     # include the original position
     duration_array = np.array([time_horizon_id*time_resolution for time_horizon_id in range(time_horizon_step+1)])
     acceleration = control_command.acceleration if control_command.command == Command.ACC else veh_info["acceleration"]
-    future_distance_array = predict_future_distance(veh_info["velocity"], acceleration, duration_array)
+    max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
+    future_distance_array = predict_future_distance(veh_info["velocity"], acceleration, duration_array, max_velocity)
     lateral_offset = 0
     if control_command.command == Command.LEFT:
         lateral_offset = 1
@@ -330,7 +331,7 @@ def get_future_position_on_route(
     future_heading = traci.lane.getAngle(vehicle_lane_id, veh_lane_position)
     return future_position, future_heading
 
-@profile
+# @profile
 def get_vehicle_info(veh_id, obs_dict, sumo_net):
     """Generate vehicle information for future trajectory prediction
 

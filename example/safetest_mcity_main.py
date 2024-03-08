@@ -29,7 +29,7 @@ sim = Simulator(
     sumo_net_file_path = dir_path+'/maps/Mcity_safetest/mcity.net.xml',
     sumo_config_file_path = dir_path+'/maps/Mcity_safetest/mcity.sumocfg',
     num_tries=10,
-    gui_flag=False,
+    gui_flag=True,
     output_path=f"{args.dir}/{args.name}/raw_data/{args.nth}",
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
