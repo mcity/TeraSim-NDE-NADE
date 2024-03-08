@@ -160,7 +160,6 @@ def will_stop_at_stopline(veh_id):
             return True, "roundabout"
         else:
             return False, None
-            raise ValueError(f"next link state {next_links[0][5]} not supported")
     else:
         return False, None
 
