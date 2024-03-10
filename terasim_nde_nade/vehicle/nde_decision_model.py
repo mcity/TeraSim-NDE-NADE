@@ -108,7 +108,7 @@ class NDEDecisionModel(IDMModel):
                         obs_dict,
                         ff_acceleration,
                         current_acceleration,
-                        highlight_flag=False,
+                        highlight_flag=True,
                     )
                 )
             )
@@ -286,8 +286,6 @@ def lane_change_negligence(obs_dict, highlight_flag=False):
                     traci.vehicle.setColor(
                         obs_dict["ego"]["veh_id"], (0, 255, 0, 255)
                     )  # highlight the vehicle with green
-            else:
-                print("aaa")
     if (
         "blocked by right follower" in right_lc_state
         and "blocked by right leader" not in right_lc_state
@@ -355,6 +353,26 @@ def is_car_following(follow_id, leader_id):
         if (
             leader_edge_id in follower_future_lane_id
             or leader_edge_id in follower_future_junction_lane_id
+        ):
+            return True
+
+        leader_future_link_infos = traci.vehicle.getNextLinks(leader_id)
+        if len(leader_future_link_infos) == 0:
+            return False
+        leader_future_lane_id = leader_future_link_infos[0][0]
+        leader_junction_lane_id = leader_future_link_infos[0][4]
+        if (
+            len(
+                set(
+                    [
+                        follower_future_lane_id,
+                        follower_future_junction_lane_id,
+                        leader_future_lane_id,
+                        leader_junction_lane_id,
+                    ]
+                )
+            )
+            < 4  # the leader and follower has the same future link
         ):
             return True
         else:
