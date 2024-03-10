@@ -29,7 +29,7 @@ class Command(Enum):
     ACC = "acceleration"
 
 
-@attr.s
+@attr.s(slots=True)
 class NDECommand:
     """
     Represents a command for a vehicle in a Non-Deterministic Environment (NDE).
@@ -39,11 +39,12 @@ class NDECommand:
     if the command is "acceleration", the vehicle will decelerate to stop using the acceleration element
     """
 
-    command: Command = attr.ib(default=Command.DEFAULT, converter=Command)
+    command_type: Command = attr.ib(default=Command.DEFAULT, converter=Command)
     acceleration: float = attr.ib(default=0.0)
     future_trajectory: List[Tuple[float, float]] = attr.ib(factory=list)
     prob: float = attr.ib(default=1.0)
     duration: float = attr.ib(default=0.1)
+    info: str = attr.ib(default="")
 
 
 def get_next_lane_edge(net, lane_id):
@@ -446,7 +447,7 @@ def predict_future_trajectory(
     )
     acceleration = (
         control_command.acceleration
-        if control_command.command == Command.ACC
+        if control_command.command_type == Command.ACC
         else veh_info["acceleration"]
     )
     max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
@@ -454,9 +455,9 @@ def predict_future_trajectory(
         veh_info["velocity"], acceleration, duration_array, max_velocity
     )
     lateral_offset = 0
-    if control_command.command == Command.LEFT:
+    if control_command.command_type == Command.LEFT:
         lateral_offset = 1
-    elif control_command.command == Command.RIGHT:
+    elif control_command.command_type == Command.RIGHT:
         lateral_offset = -1
 
     trajectory_array = np.array(
@@ -465,8 +466,8 @@ def predict_future_trajectory(
 
     lanechange_finish_trajectory_point = None
     if (
-        control_command.command == Command.LEFT
-        or control_command.command == Command.RIGHT
+        control_command.command_type == Command.LEFT
+        or control_command.command_type == Command.RIGHT
     ):
         lanechange_finish_timestep = np.argmin(
             np.abs(duration_array - control_command.duration)
@@ -657,65 +658,3 @@ class VehicleInfoForPredict:
 
     def __getitem__(self, item):
         return self.__dict__[item]
-
-
-# @lru_cache(maxsize=256)
-# def get_route_with_internal(net, route):
-#     return sumolib.route.addInternal(net, route)
-
-# def sumo_trajectory_to_normal_trajectory(sumo_trajectory, veh_length=5.0):
-#     """Convert sumo trajectory to normal trajectory. Both trajectories are nparrays
-
-#     sumo trajectory is defined as [x,y,heading,timestamp], where x, y denotes the position of the front bumper, heading start from north and goes clockwise (degrees), timestamp is the time step.
-
-#     normal trajectory is defined as [x,y,orientation,timestamp], where x, y denotes the position of the center of the vehicle, orientation follows radians, timestamp is the time step.
-
-#     """
-#     normal_trajectory = np.zeros(sumo_trajectory.shape)
-#     normal_trajectory[:, 2] = np.arctan2(np.sin(np.radians(90 - sumo_trajectory[:, 2])), np.cos(np.radians(90 - sumo_trajectory[:, 2])))
-
-#     normal_trajectory[:, 0] = sumo_trajectory[:, 0] - veh_length / 2 * np.cos(normal_trajectory[:, 2])
-#     normal_trajectory[:, 1] = sumo_trajectory[:, 1] - veh_length / 2 * np.sin(normal_trajectory[:, 2])
-#     if sumo_trajectory.shape[1] > 3:
-#         normal_trajectory[:, 3:] = sumo_trajectory[:, 3:]
-#     return normal_trajectory
-
-# @profile
-# def collision_check(traj1: np.ndarray, traj2: np.ndarray, veh_length: float, tem_len: float, circle_r: float):
-
-#     traj1 = sumo_trajectory_to_normal_trajectory(traj1, veh_length)
-#     traj2 = sumo_trajectory_to_normal_trajectory(traj2, veh_length)
-
-#     # Get the unique time steps
-#     time_steps = np.unique(np.concatenate((traj1[:, 3], traj2[:, 3])))
-
-#     for time_step in time_steps:
-#         # Get the positions at the current time step
-#         traj_point1 = traj1[traj1[:, 3] == time_step].flatten()
-#         traj_point2 = traj2[traj2[:, 3] == time_step].flatten()
-
-#         # Get the circle center lists
-#         center_list_1 = get_circle_center_list(traj_point1, veh_length, tem_len)
-#         center_list_2 = get_circle_center_list(traj_point2, veh_length, tem_len)
-
-#         # Check for collisions
-#         for p1 in center_list_1:
-#             for p2 in center_list_2:
-#                 dist = np.linalg.norm(p1 - p2)
-#                 if dist <= 2 * circle_r:
-#                     return True, time_step
-#     return False, None
-
-# def get_circle_center_list(traj_point: np.ndarray, veh_length: float, tem_len: float):
-#     center1 = (traj_point[0], traj_point[1])
-#     heading = traj_point[2]
-#     center0 = (
-#         center1[0] + (veh_length / 2 - tem_len) * np.cos(heading),
-#         center1[1] + (veh_length / 2 - tem_len) * np.sin(heading)
-#     )
-#     center2 = (
-#         center1[0] - (veh_length / 2 - tem_len) * np.cos(heading),
-#         center1[1] - (veh_length / 2 - tem_len) * np.sin(heading)
-#     )
-#     center_list = [center0, center1, center2]
-#     return np.array(center_list)

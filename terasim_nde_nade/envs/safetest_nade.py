@@ -116,6 +116,9 @@ class SafeTestNADE(SafeTestNDE):
         trajectory_dicts, veh_ctx_dicts = self.predict_future_trajectory_dicts(
             obs_dicts, veh_ctx_dicts
         )
+        self.update_veh_ctx_dicts_from_predicted_trajectory(
+            veh_ctx_dicts, trajectory_dicts
+        )
         maneuver_challenge_dicts, avoidability_dicts, veh_ctx_dicts = (
             self.get_maneuver_challenge_dicts(
                 trajectory_dicts,
@@ -168,6 +171,27 @@ class SafeTestNADE(SafeTestNDE):
             # if len(trajectory_dict) > 1:
             #     print(f"veh_id: {veh_id}, trajectory_dict: {trajectory_dict}")
         return trajectory_dicts, veh_ctx_dicts
+
+    def update_veh_ctx_dicts_from_predicted_trajectory(
+        self, veh_ctx_dicts, trajectory_dict
+    ):
+        ndd_control_command_dicts = {
+            veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"]
+            for veh_id in veh_ctx_dicts
+        }
+        for veh_id in trajectory_dict:
+            for modality in trajectory_dict[veh_id]:
+                if (
+                    modality == "negligence"
+                    and ndd_control_command_dicts[veh_id][modality].command_type
+                    == Command.ACC
+                ):
+                    ndd_control_command_dicts[veh_id][
+                        "negligence"
+                    ].command_type = Command.TRAJECTORY
+                    ndd_control_command_dicts[veh_id][
+                        "negligence"
+                    ].future_trajectory = trajectory_dict[veh_id][modality]
 
     def get_modified_ndd_dict_according_to_avoidability(
         self, ndd_dict, maneuver_challenge_avoidance_dict

@@ -120,7 +120,7 @@ class NDEDecisionModel(IDMModel):
         negligence_prob = 1e-4
 
         # If there are no negligence commands, use the default command with probability 1
-        command_dict = {"normal": NDECommand(command=Command.DEFAULT, prob=1)}
+        command_dict = {"normal": NDECommand(command_type=Command.DEFAULT, prob=1)}
 
         # If there are negligence commands, update the command_dict with the negligence command and the normal command with the remaining probability
         negligence_command = None
@@ -130,7 +130,9 @@ class NDEDecisionModel(IDMModel):
             negligence_command.prob = negligence_prob
             command_dict = {
                 "negligence": negligence_command,
-                "normal": NDECommand(command=Command.DEFAULT, prob=1 - negligence_prob),
+                "normal": NDECommand(
+                    command_type=Command.DEFAULT, prob=1 - negligence_prob
+                ),
             }
 
         # sample final command based on the probability in command_dict
@@ -139,7 +141,7 @@ class NDEDecisionModel(IDMModel):
             weights=[command_dict[key].prob for key in command_dict],
             k=1,
         )[0]
-        command = NDECommand(command=Command.DEFAULT, prob=1)
+        command = NDECommand(command_type=Command.DEFAULT, prob=1)
         return command, {"ndd_command_distribution": command_dict}
 
 
@@ -179,13 +181,15 @@ def traffic_rule_negligence(
     ):  # the vehicle is constained by the traffic rules
         # the vehicle is constained by the traffic rules
         # negligence_command_dict.update(Dict({
-        #     "TrafficRule": NDECommand(command=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
+        #     "TrafficRule": NDECommand(command_type=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
         # }))
         negligence_command_dict.update(
             Dict(
                 {
                     "TrafficRule": NDECommand(
-                        command=Command.ACC, duration=2.0, acceleration=ff_acceleration
+                        command_type=Command.ACC,
+                        duration=2.0,
+                        acceleration=ff_acceleration,
                     )
                 }
             )
@@ -220,13 +224,15 @@ def leader_negligence(
     # in other condition: the vehicle is following or the vehicle has a leading vehicle but mostly constrained by traffic rules
     if ff_acceleration - cf_acceleration > 1.5:
         # negligence_command_dict.update(Dict({
-        #     "Lead": NDECommand(command=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
+        #     "Lead": NDECommand(command_type=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
         # }))
         negligence_command_dict.update(
             Dict(
                 {
                     "Lead": NDECommand(
-                        command=Command.ACC, duration=2.0, acceleration=ff_acceleration
+                        command_type=Command.ACC,
+                        duration=2.0,
+                        acceleration=ff_acceleration,
                     )
                 }
             )
@@ -280,7 +286,7 @@ def lane_change_negligence(obs_dict, highlight_flag=False):
             follower_mingap = traci.vehicle.getMinGap(left_follower[0][0])
             if left_follower[0][1] + follower_mingap > -2:
                 negligence_command_dict["LeftFoll"] = NDECommand(
-                    command=Command.LEFT, duration=1.0
+                    command_type=Command.LEFT, duration=1.0
                 )
                 if highlight_flag:
                     traci.vehicle.setColor(
@@ -298,7 +304,7 @@ def lane_change_negligence(obs_dict, highlight_flag=False):
             # the right follower is close to the ego vehicle
             if right_follower[0][1] + follower_mingap > -2:
                 negligence_command_dict["RightFoll"] = NDECommand(
-                    command=Command.RIGHT, duration=1.0
+                    command_type=Command.RIGHT, duration=1.0
                 )
                 if highlight_flag:
                     traci.vehicle.setColor(

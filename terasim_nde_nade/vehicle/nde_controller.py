@@ -7,6 +7,7 @@ from .nde_vehicle_utils import (
     Command,
     NDECommand,
     TrajectoryPoint,
+    interpolate_future_trajectory,
 )
 from terasim.overlay import traci
 from addict import Dict
@@ -40,7 +41,7 @@ class NDEController(AgentController):
             )
             if (
                 current_time - self.cached_control_command.timestep
-                > self.cached_control_command.command.duration
+                > self.cached_control_command.cached_command.duration
             ):
                 self.is_busy = False
                 self.cached_control_command = None
@@ -112,28 +113,30 @@ class NDEController(AgentController):
             action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
         """
         if not self.is_busy:
-            if control_command.command == Command.DEFAULT:
+            if control_command.command_type == Command.DEFAULT:
                 # all_checks_on(veh_id)
                 return
             else:
                 all_checks_off(veh_id)
                 # other commands will have duration, which will keep the controller busy
                 self.is_busy = True
+                # if the control command is a trajectory, then interpolate the trajectory
+                control_command = interpolate_control_command(control_command)
                 self.cached_control_command = Dict(
                     {
                         "timestep": traci.simulation.getTime(),
-                        "command": control_command,
+                        "cached_command": control_command,
                     }
                 )
-        if control_command.command == Command.TRAJECTORY:
+        if control_command.command_type == Command.TRAJECTORY:
             # pass
             self.execute_trajectory_command(veh_id, control_command, obs_dict)
         elif (
-            control_command.command == Command.LEFT
-            or control_command.command == Command.RIGHT
+            control_command.command_type == Command.LEFT
+            or control_command.command_type == Command.RIGHT
         ):
             self.execute_lane_change_command(veh_id, control_command, obs_dict)
-        elif control_command.command == Command.ACC:
+        elif control_command.command_type == Command.ACC:
             self.execute_acceleration_command(veh_id, control_command, obs_dict)
         else:
             pass
@@ -141,12 +144,12 @@ class NDEController(AgentController):
 
     @staticmethod
     def execute_trajectory_command(veh_id, control_command, obs_dict):
-        assert control_command.command == Command.TRAJECTORY
+        assert control_command.command_type == Command.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
-        trajectory_list = control_command.future_trajectory
+        trajectory_array = control_command.future_trajectory
         current_timestep = traci.simulation.getTime()
         closest_timestep_trajectory = min(
-            trajectory_list, key=lambda x: abs(x[3] - current_timestep)
+            trajectory_array, key=lambda x: abs(x[3] - current_timestep)
         )
         # set the position of the vehicle to the closest timestep trajectory point
         traci.vehicle.moveToXY(
@@ -156,15 +159,15 @@ class NDEController(AgentController):
     @staticmethod
     def execute_lane_change_command(veh_id, control_command, obs_dict):
         assert (
-            control_command.command == Command.LEFT
-            or control_command.command == Command.RIGHT
+            control_command.command_type == Command.LEFT
+            or control_command.command_type == Command.RIGHT
         )
-        indexOffset = 1 if control_command.command == Command.LEFT else -1
+        indexOffset = 1 if control_command.command_type == Command.LEFT else -1
         traci.vehicle.changeLaneRelative(veh_id, indexOffset, utils.get_step_size())
 
     @staticmethod
     def execute_acceleration_command(veh_id, control_command, obs_dict):
-        assert control_command.command == Command.ACC
+        assert control_command.command_type == Command.ACC
         acceleration = control_command.acceleration
         final_speed = obs_dict["ego"]["velocity"] + acceleration * utils.get_step_size()
         final_speed = 0 if final_speed < 0 else final_speed
@@ -179,3 +182,13 @@ def all_checks_on(veh_id):
 def all_checks_off(veh_id):
     traci.vehicle.setSpeedMode(veh_id, 0)
     traci.vehicle.setLaneChangeMode(veh_id, 0)
+
+
+def interpolate_control_command(control_command):
+    if control_command.command_type == Command.TRAJECTORY:
+        control_command.future_trajectory = interpolate_future_trajectory(
+            control_command.future_trajectory, 0.1
+        )
+        return control_command
+    else:
+        return control_command
