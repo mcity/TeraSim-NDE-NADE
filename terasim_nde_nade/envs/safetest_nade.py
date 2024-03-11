@@ -20,6 +20,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
 from shapely.geometry import LineString
 from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect
 
+
 veh_length = 5.0
 veh_width = 1.85
 circle_r = 1.3
@@ -46,12 +47,6 @@ def check_func(PointList):
 
 
 import numpy as np
-
-
-def cal_dist(p1, p2):
-    x1, y1 = p1[0], p1[1]
-    x2, y2 = p2[0], p2[1]
-    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
 class SafeTestNADE(SafeTestNDE):
@@ -83,7 +78,7 @@ class SafeTestNADE(SafeTestNDE):
         # # monitor the environment
         # self.monitor.add_observation(ITE_control_cmds, obs_dicts)
         # weight = 1.0 # disable ITE
-        # self.execute_control_commands(ITE_control_cmds)
+        self.execute_control_commands(ITE_control_cmds)
         self.importance_sampling_weight *= (
             weight  # update the importance sampling weight
         )
@@ -127,16 +122,34 @@ class SafeTestNADE(SafeTestNDE):
             )
         )
         self.highlight_critical_vehicles(maneuver_challenge_dicts)
-        # criticality_dicts, veh_ctx_dicts = self.get_criticality_dicts(control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts)
-        # ITE_control_command_dicts, veh_ctx_dicts, weight = self.ITE_importance_sampling(control_command_dicts, criticality_dicts, veh_ctx_dicts)
-        ITE_control_command_dicts, weight = control_command_dicts, 1.0
+        criticality_dicts, veh_ctx_dicts = self.get_criticality_dicts(
+            maneuver_challenge_dicts, veh_ctx_dicts
+        )
+        ndd_control_command_dicts = self.get_ndd_distribution_from_vehicle_ctx(
+            veh_ctx_dicts
+        )
+        ITE_control_command_dicts, veh_ctx_dicts, weight = self.ITE_importance_sampling(
+            ndd_control_command_dicts, criticality_dicts, veh_ctx_dicts
+        )
+        # ITE_control_command_dicts, weight = control_command_dicts, 1.0
         return ITE_control_command_dicts, veh_ctx_dicts, weight
 
     def highlight_critical_vehicles(self, maneuver_challenge_dicts):
         for veh_id in maneuver_challenge_dicts:
-            if maneuver_challenge_dicts[veh_id]["maneuver_challenge"]:
+            if maneuver_challenge_dicts[veh_id].get("negligence"):
                 # highlight the vehicle with red
                 traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=0.3)
+
+    def get_ndd_distribution_from_vehicle_ctx(self, veh_ctx_dicts):
+        if len(veh_ctx_dicts) == 1:
+            return veh_ctx_dicts[list(veh_ctx_dicts.keys())[0]][
+                "ndd_command_distribution"
+            ]
+        ndd_control_command_dicts = {
+            veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"]
+            for veh_id in veh_ctx_dicts
+        }
+        return ndd_control_command_dicts
 
     # @profile
     def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
@@ -144,10 +157,9 @@ class SafeTestNADE(SafeTestNDE):
         sumo_net = self.simulator.sumo_net
         current_time = traci.simulation.getTime()
         trajectory_dicts = {}
-        ndd_control_command_dicts = {
-            veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"]
-            for veh_id in veh_ctx_dicts
-        }
+        ndd_control_command_dicts = self.get_ndd_distribution_from_vehicle_ctx(
+            veh_ctx_dicts
+        )
         for veh_id in ndd_control_command_dicts:
             obs_dict = obs_dicts[veh_id]
             veh_info = get_vehicle_info(veh_id, obs_dict, sumo_net)
@@ -294,7 +306,9 @@ class SafeTestNADE(SafeTestNDE):
                 neglect_pair_list.append((neglecting_vehicle_id, neglected_vehicle_id))
         return neglect_pair_list
 
-    def ITE_importance_sampling(self, ndd_control_command_dict, criticality_dict):
+    def ITE_importance_sampling(
+        self, ndd_control_command_dict, criticality_dict, veh_ctx_dicts
+    ):
         """Importance sampling for NADE.
 
         Args:
@@ -305,74 +319,78 @@ class SafeTestNADE(SafeTestNDE):
             weight (float): the importance sampling weight
         """
         weight = 1.0
+        # intialize the ITE control command dict with the same keys as the ndd_control_command_dict
         ITE_control_command_dict = {
-            veh_id: ndd_control_command_dict[veh_id]["ndd"]["normal"]["command"]
+            veh_id: ndd_control_command_dict[veh_id]["normal"]
             for veh_id in ndd_control_command_dict
         }
-        time = utils.get_time()
+
         for veh_id in criticality_dict:
             if (
                 "negligence" in criticality_dict[veh_id]
                 and criticality_dict[veh_id]["negligence"]
             ):
-                sampled_prob = np.random.uniform(0, 1)
-                ndd_normal_prob = ndd_control_command_dict[veh_id]["ndd"]["normal"][
-                    "prob"
-                ]
-                ndd_negligence_prob = ndd_control_command_dict[veh_id]["ndd"][
+                ndd_normal_prob = ndd_control_command_dict[veh_id]["normal"].prob
+                ndd_negligence_prob = ndd_control_command_dict[veh_id][
                     "negligence"
-                ]["prob"]
+                ].prob
                 assert (
                     ndd_normal_prob + ndd_negligence_prob == 1
                 ), "The sum of the probabilities of the normal and negligence control commands should be 1."
+
+                # get the importance sampling probability
                 IS_prob = self.get_IS_prob(
                     ndd_control_command_dict, criticality_dict, veh_id
                 )
+
+                # update the importance sampling weight and the ITE control command
+                sampled_prob = np.random.uniform(0, 1)
                 if sampled_prob < IS_prob:  # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id][
-                        "ndd"
-                    ]["negligence"]["command"]
-                    self.monitor.update_comprehensive_info(
-                        time,
-                        {
-                            "negligence"
-                            + veh_id: {
-                                "negligence_prob": ndd_negligence_prob,
-                                "IS_prob": IS_prob,
-                                "weight": self.importance_sampling_weight,
-                                "avoidable": ndd_control_command_dict[veh_id]["ndd"][
-                                    "negligence"
-                                ]["command"]["info"]["avoidable"],
-                                "onestep_weight": ndd_negligence_prob / IS_prob,
-                                "negligence_info": ndd_control_command_dict[veh_id][
-                                    "ndd"
-                                ]["negligence"]["command"]["info"],
-                            }
-                        },
-                    )
+                        "negligence"
+                    ]
+                    # self.monitor.update_comprehensive_info(
+                    #     utils.get_time(),
+                    #     {
+                    #         "negligence"
+                    #         + veh_id: {
+                    #             "negligence_prob": ndd_negligence_prob,
+                    #             "IS_prob": IS_prob,
+                    #             "weight": self.importance_sampling_weight,
+                    #             "avoidable": ndd_control_command_dict[veh_id][
+                    #                 "negligence"
+                    #             ]["command"]["info"]["avoidable"],
+                    #             "onestep_weight": ndd_negligence_prob / IS_prob,
+                    #             "negligence_info": ndd_control_command_dict[veh_id][
+                    #                 "negligence"
+                    #             ]["command"]["info"],
+                    #         }
+                    #     },
+                    # )
                 else:
                     weight *= ndd_normal_prob / (1 - IS_prob)
                     ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id][
-                        "ndd"
-                    ]["normal"]["command"]
-        return ITE_control_command_dict, weight
+                        "normal"
+                    ]
+        return ITE_control_command_dict, veh_ctx_dicts, weight
 
     def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
+        return 0.01
         if (
             "negligence" in criticality_dict[veh_id]
             and criticality_dict[veh_id]["negligence"]
         ):
             IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 20))
             try:
-                predicted_collision_type = ndd_control_command_dict[veh_id]["ndd"][
+                predicted_collision_type = ndd_control_command_dict[veh_id][
                     "negligence"
                 ]["command"]["info"]["predicted_collision_type"]
                 if "roundabout" in predicted_collision_type:
                     IS_magnitude = float(os.getenv("IS_MAGNITUDE_ROUNDABOUT", 20))
-                    if not ndd_control_command_dict[veh_id]["ndd"]["negligence"][
-                        "command"
-                    ]["info"]["avoidable"]:
+                    if not ndd_control_command_dict[veh_id]["negligence"]["command"][
+                        "info"
+                    ]["avoidable"]:
                         IS_magnitude = IS_magnitude * 10
                         # print(f"The predicted collision type is roundabout and unavoidable, the IS magnitude is set to {IS_magnitude}")
                     # print(f"The predicted collision type is roundabout, the IS magnitude is set to {IS_magnitude}")
@@ -385,7 +403,6 @@ class SafeTestNADE(SafeTestNDE):
             except Exception as e:
                 print(f"Error: {e}")
                 pass
-
             return np.clip(
                 criticality_dict[veh_id]["negligence"] * IS_magnitude,
                 0,
@@ -423,6 +440,7 @@ class SafeTestNADE(SafeTestNDE):
                 negligence_future_trajectory_dict[veh_id],
                 normal_future_trajectory_dict,
                 obs_dicts,
+                veh_ctx_dicts[veh_id],
             )
             for veh_id in trajectory_dict
         }
@@ -445,6 +463,7 @@ class SafeTestNADE(SafeTestNDE):
         negligence_veh_future,
         all_normal_veh_future,
         obs_dicts,
+        veh_ctx_dict,
         highlight_flag=True,
     ):
         """Get the maneuver challenge for the negligence vehicle.
@@ -459,7 +478,6 @@ class SafeTestNADE(SafeTestNDE):
             maneuver_challenge_info (dict): maneuver_challenge_info[veh_id] = 1 if the negligence vehicle will affect the normal vehicle
         """
         # see if the one negligence future will intersect with other normal futures
-        maneuver_challenge_info = {}
         if negligence_veh_future is not None and all_normal_veh_future is not None:
             for veh_id in all_normal_veh_future:
                 if veh_id == negligence_veh_id:
@@ -481,43 +499,31 @@ class SafeTestNADE(SafeTestNDE):
                     circle_r,
                 )
                 if collision_flag:
-                    maneuver_challenge_info[veh_id] = 1
-        return {
-            "maneuver_challenge": int(len(maneuver_challenge_info) > 0),
-            "info": maneuver_challenge_info,
-        }  # the first element is the number of vehicles that will be affected by the negligence vehicle
+                    if "conflict_vehicle" not in veh_ctx_dict:
+                        veh_ctx_dict["conflict_vehicle"] = []
+                    veh_ctx_dict["conflict_vehicle"].append(veh_id)
+            return {
+                "normal": 0,
+                "negligence": (1 if "conflict_vehicle" in veh_ctx_dict else 0),
+            }  # the first element is the number of vehicles that will be affected by the negligence vehicle
+        else:
+            return {"normal": 0}
 
-    def get_criticality_dicts(
-        self, control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
-    ):
-        for veh_id in control_command_dicts:
-            control_command = control_command_dicts[veh_id]
-            if control_command["command"] == "negligence":
-                criticality_dicts[veh_id] = self.get_criticality_dict(
-                    control_command,
-                    maneuver_challenge_dicts[veh_id],
-                    veh_ctx_dicts[veh_id],
-                )
-
-    def get_criticality_dict(
-        self, ndd_ndd_command_dict, maneuver_challenge_dict, veh_ctx_dict
-    ):
-        """Get the criticality of the negligence vehicle.
-
-        Args:
-            ndd_dict (dict): the ndd pdf of the given BV
-            maneuver_challenge_dict (dict): the information of affected vehicles by the negligence vehicle
-
-        Returns:
-            criticality_dict (dict): the criticality of the negligence vehicle
-        """
-        # assert set(ndd_dict.keys()) == set(maneuver_challenge_dict.keys()), "The keys of ndd_dict and maneuver_challenge_dict should be the same."
+    def get_criticality_dicts(self, maneuver_challenge_dicts, veh_ctx_dicts):
+        ndd_control_command_dicts = self.get_ndd_distribution_from_vehicle_ctx(
+            veh_ctx_dicts
+        )
         criticality_dicts = {}
-        for modality in ndd_ndd_command_dict:
-            criticality_dicts[modality] = (
-                ndd_ndd_command_dict[modality].prob * maneuver_challenge_dict[modality]
-            )
-        return criticality_dicts, veh_ctx_dict
+        for veh_id in maneuver_challenge_dicts:
+            ndd_control_command_dict = ndd_control_command_dicts[veh_id]
+            maneuver_challenge_dict = maneuver_challenge_dicts[veh_id]
+            criticality_dicts[veh_id] = {
+                modality: ndd_control_command_dict[modality].prob
+                * maneuver_challenge_dict[modality]
+                for modality in maneuver_challenge_dict
+                if modality != "info"
+            }
+        return criticality_dicts, veh_ctx_dicts
 
 
 def is_link_intersect(veh1_obs, veh2_obs):

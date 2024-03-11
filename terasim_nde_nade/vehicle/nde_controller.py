@@ -128,22 +128,31 @@ class NDEController(AgentController):
                         "cached_command": control_command,
                     }
                 )
-        if control_command.command_type == Command.TRAJECTORY:
-            # pass
-            self.execute_trajectory_command(veh_id, control_command, obs_dict)
-        elif (
-            control_command.command_type == Command.LEFT
-            or control_command.command_type == Command.RIGHT
+        if (
+            self.cached_control_command["cached_command"].command_type
+            == Command.TRAJECTORY
         ):
-            self.execute_lane_change_command(veh_id, control_command, obs_dict)
-        elif control_command.command_type == Command.ACC:
-            self.execute_acceleration_command(veh_id, control_command, obs_dict)
+            # pass
+            self.execute_trajectory_command(
+                veh_id, self.cached_control_command["cached_command"], obs_dict
+            )
+        elif (
+            self.cached_control_command["cached_command"].command_type == Command.LEFT
+            or self.cached_control_command["cached_command"].command_type
+            == Command.RIGHT
+        ):
+            self.execute_lane_change_command(
+                veh_id, self.cached_control_command["cached_command"], obs_dict
+            )
+        elif self.cached_control_command["cached_command"].command_type == Command.ACC:
+            self.execute_acceleration_command(
+                veh_id, self.cached_control_command["cached_command"], obs_dict
+            )
         else:
             pass
         return
 
-    @staticmethod
-    def execute_trajectory_command(veh_id, control_command, obs_dict):
+    def execute_trajectory_command(self, veh_id, control_command, obs_dict):
         assert control_command.command_type == Command.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
         trajectory_array = control_command.future_trajectory
@@ -152,9 +161,15 @@ class NDEController(AgentController):
             trajectory_array, key=lambda x: abs(x[3] - current_timestep)
         )
         # set the position of the vehicle to the closest timestep trajectory point
+
         traci.vehicle.moveToXY(
-            veh_id, closest_timestep_trajectory[0], closest_timestep_trajectory[1], 0
-        )  # ! add keeproute
+            vehID=veh_id,
+            edgeID="",
+            laneIndex=-1,
+            x=closest_timestep_trajectory[0],
+            y=closest_timestep_trajectory[1],
+            keepRoute=1,
+        )
 
     @staticmethod
     def execute_lane_change_command(veh_id, control_command, obs_dict):

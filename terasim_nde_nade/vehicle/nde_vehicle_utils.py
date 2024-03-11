@@ -474,6 +474,7 @@ def predict_future_trajectory(
         )
         lanechange_finish_position, lanechange_finish_final_heading = (
             get_future_position_on_route(
+                traci,
                 veh_info["edge_id"],
                 veh_info["lane_position"],
                 veh_info["lane_index"],
@@ -503,6 +504,7 @@ def predict_future_trajectory(
         ):
             continue
         future_position, future_heading = get_future_position_on_route(
+            traci,
             veh_info["edge_id"],
             veh_info["lane_position"],
             veh_info["lane_index"],
@@ -529,37 +531,8 @@ def predict_future_trajectory(
     return future_trajectory_array
 
 
-#  @profile
-# def interpolate_future_trajectory(
-#         trajectory_list_array: np.ndarray,
-#         interpolate_resolution: float,
-#     ) -> np.ndarray:
-#     """
-#     Given the initial, final, and several intermediate trajectory points, interpolate resolution, interpolate the future trajectory.
-
-#     The trajectory point is [x, y, heading, time], and the interpolate_resolution is the time resolution of the interpolation.
-#     The trajectory list array is composed of multiple trajectory points, which must include the first and last trajectory points.
-#     """
-#     # Extract the time and position values
-#     time_values = trajectory_list_array[:, 3]
-#     position_values = trajectory_list_array[:, :3]
-
-#     # Create the interpolation function
-#     interpolation_function = interp1d(time_values, position_values, axis=0, kind='linear')
-
-#     # Create the new time values
-#     new_time_values = np.arange(time_values[0], time_values[-1], interpolate_resolution)
-
-#     # Interpolate the position values
-#     new_position_values = interpolation_function(new_time_values)
-
-#     # Combine the new time and position values
-#     new_trajectory_list_array = np.hstack((new_position_values, new_time_values[:, None]))
-
-#     return new_trajectory_list_array
-
-
 def get_future_position_on_route(
+    traci,
     veh_edge_id: str,
     veh_lane_position: float,
     veh_lane_index: int,
@@ -591,7 +564,11 @@ def get_future_position_on_route(
     original_lane_index = veh_lane_index
     veh_lane_index = min(max_lane_index, max(0, veh_lane_index + future_lateral_offset))
     vehicle_lane_id = veh_edge_id + f"_{veh_lane_index}"
-    veh_lane_position = min(veh_lane_position, current_lane_length)
+    veh_lane_position = min(
+        veh_lane_position,
+        current_lane_length,
+        traci.lane.getLength(vehicle_lane_id) - 0.1,
+    )
     future_position = traci.simulation.convert2D(
         veh_edge_id, veh_lane_position, veh_lane_index
     )
