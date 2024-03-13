@@ -19,7 +19,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
 )
 from shapely.geometry import LineString
 from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect
-
+from loguru import logger
 
 veh_length = 5.0
 veh_width = 1.85
@@ -62,6 +62,8 @@ class SafeTestNADE(SafeTestNDE):
 
     # @profile
     def on_step(self, ctx):
+        # clear vehicle context dicts
+        veh_ctx_dicts = {}
         # Make NDE decisions for all vehicles
         control_cmds, veh_ctx_dicts = self.make_decisions(ctx)
         obs_dicts = self.get_observation_dicts()
@@ -81,8 +83,8 @@ class SafeTestNADE(SafeTestNDE):
             trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
         )
 
-        self.update_veh_ctx_dicts_from_predicted_trajectory(
-            veh_ctx_dicts, trajectory_dicts
+        ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+            ITE_control_cmds, trajectory_dicts
         )
 
         # record the negligence mode
@@ -90,7 +92,6 @@ class SafeTestNADE(SafeTestNDE):
         # self.monitor.update_vehicle_mode(ITE_control_cmds, self.importance_sampling_weight)
         # # monitor the environment
         # self.monitor.add_observation(ITE_control_cmds, obs_dicts)
-        # weight = 1.0 # disable ITE
         self.refresh_control_commands_state()
         self.execute_control_commands(ITE_control_cmds)
         self.importance_sampling_weight *= (
@@ -167,7 +168,7 @@ class SafeTestNADE(SafeTestNDE):
         )
         ITE_control_command_dicts, veh_ctx_dicts, weight = (
             self.NADE_importance_sampling(
-                ndd_control_command_dicts, criticality_dicts, veh_ctx_dicts
+                ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
             )
         )
 
@@ -186,12 +187,12 @@ class SafeTestNADE(SafeTestNDE):
                 veh_ctx_dicts[veh_id].get("avoidable", True) is False
             ):  # collision unavoidable
                 # highlight the vehicle with gray
-                traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.3)
+                traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
             elif maneuver_challenge_dicts[veh_id].get(
                 "negligence"
             ):  # avoidable collision
                 # highlight the vehicle with red
-                traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=0.3)
+                traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=0.1)
 
     def get_ndd_distribution_from_vehicle_ctx(self, veh_ctx_dicts):
         if len(veh_ctx_dicts) == 1:
@@ -233,33 +234,28 @@ class SafeTestNADE(SafeTestNDE):
                 for modality in control_command_dict
             }
             trajectory_dicts[veh_id] = trajectory_dict
-            # if len(trajectory_dict) > 1:
-            #     print(f"veh_id: {veh_id}, trajectory_dict: {trajectory_dict}")
         return trajectory_dicts, veh_ctx_dicts
 
-    def update_veh_ctx_dicts_from_predicted_trajectory(
-        self, veh_ctx_dicts, trajectory_dicts
+    def update_control_cmds_from_predicted_trajectory(
+        self, ITE_control_cmds, trajectory_dicts
     ):
         """Update the veh_ctx_dicts with the predicted future trajectories.
         change the command type from acceleration to trajectory if the predicted collision type is rearend
         """
-        ndd_control_command_dicts = {
-            veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"]
-            for veh_id in veh_ctx_dicts
-        }
-        for veh_id in trajectory_dicts:
-            for modality in trajectory_dicts[veh_id]:
-                if (
-                    modality == "negligence"
-                    and ndd_control_command_dicts[veh_id][modality].command_type
-                    == Command.ACCELERATION
-                ):
-                    ndd_control_command_dicts[veh_id][
-                        "negligence"
-                    ].command_type = Command.TRAJECTORY
-                    ndd_control_command_dicts[veh_id][
-                        "negligence"
-                    ].future_trajectory = trajectory_dicts[veh_id][modality]
+        for veh_id in ITE_control_cmds:
+            if (
+                ITE_control_cmds[veh_id].info.get("mode") == "avoid_collision"
+                or ITE_control_cmds[veh_id].info.get("mode") == "negligence"
+            ):
+                if ITE_control_cmds[veh_id].command_type == Command.ACCELERATION:
+                    ITE_control_cmds[veh_id].command_type = Command.TRAJECTORY
+                    ITE_control_cmds[veh_id].future_trajectory = trajectory_dicts[veh_id][
+                        ITE_control_cmds[veh_id].info.get("mode")
+                    ]
+                    logger.debug(
+                        f"veh_id: {veh_id} is updated to trajectory command with mode: {ITE_control_cmds[veh_id].info.get('mode')}"
+                    )
+        return ITE_control_cmds
 
     def modify_ndd_dict_according_to_avoidability(
         self, maneuver_challenge_dicts, veh_ctx_dicts
@@ -280,6 +276,9 @@ class SafeTestNADE(SafeTestNDE):
                     )
                     ndd_control_command_dicts[veh_id]["normal"].prob = (
                         1 - ndd_control_command_dicts[veh_id]["negligence"].prob
+                    )
+                    logger.debug(
+                        f"{veh_id} is marked as unavoidable collision and the prob is reduced to {ndd_control_command_dicts[veh_id]['negligence'].prob}"
                     )
         return ndd_control_command_dicts, veh_ctx_dicts
 
@@ -328,8 +327,15 @@ class SafeTestNADE(SafeTestNDE):
             command_type=Command.ACCELERATION,
             acceleration=-emergency_brake_deceleration,
             prob=0,
-            duration=3,
+            duration=2,
         )  # by default, this avoidance command prob is 0, only when really being neglected, the prob will be updated
+        avoidance_command.info.update(
+            {
+                "mode": "avoid_collision",
+                "neglecting_vehicle_id": neglecting_vehicle_id,
+                "neglected_vehicle_id": neglected_vehicle_id,
+            }
+        )
         return avoidance_command
 
     def add_collision_avoidance_command(
@@ -371,6 +377,9 @@ class SafeTestNADE(SafeTestNDE):
                         veh_info=None,
                     )
                 )
+            logger.debug(
+                f"add avoidance command for vehicle: {neglected_vehicle_list} from vehicle: {neglecting_vehicle_id}"
+            )
         return trajectory_dicts, veh_ctx_dicts
 
     def apply_collision_avoidance(
@@ -403,11 +412,9 @@ class SafeTestNADE(SafeTestNDE):
                 neglecting_vehicle_id,
                 neglected_vehicle_list,
             ) in negligence_pair_dict.items():
-                neglecting_vehicle_avoidable_flag = veh_ctx_dicts[
-                    neglecting_vehicle_id
-                ].get("avoidable", True)
-                print(
-                    f"neglected_vehicle_list: {neglected_vehicle_list} avoiding collision from {neglecting_vehicle_id}, avoidability: {neglecting_vehicle_avoidable_flag}"
+                logger.debug(
+                    f"neglected_vehicle_list: {neglected_vehicle_list} avoiding collision from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[               neglecting_vehicle_id
+                ].get("avoidable", True)}"
                 )
                 for neglected_vehicle_id in neglected_vehicle_list:
                     avoid_collision_command = veh_ctx_dicts[neglected_vehicle_id][
@@ -421,11 +428,10 @@ class SafeTestNADE(SafeTestNDE):
                 neglecting_vehicle_id,
                 neglected_vehicle_list,
             ) in negligence_pair_dict.items():
-                neglecting_vehicle_avoidable_flag = veh_ctx_dicts[
+                logger.debug(
+                    f"neglected_vehicle_list: {neglected_vehicle_list} accept collision from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[
                     neglecting_vehicle_id
-                ].get("avoidable", True)
-                print(
-                    f"neglected_vehicle_list: {neglected_vehicle_list} accept collision from {neglecting_vehicle_id}, avoidability: {neglecting_vehicle_avoidable_flag}"
+                ].get("avoidable", True)}"
                 )
                 for neglected_vehicle_id in neglected_vehicle_list:
                     veh_ctx_dicts[neglected_vehicle_id]["mode"] = "accept_collision"
@@ -445,7 +451,7 @@ class SafeTestNADE(SafeTestNDE):
         return neglect_pair_list
 
     def NADE_importance_sampling(
-        self, ndd_control_command_dict, criticality_dict, veh_ctx_dicts
+        self, ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
     ):
         """Importance sampling for NADE.
 
@@ -459,17 +465,14 @@ class SafeTestNADE(SafeTestNDE):
         weight = 1.0
         # intialize the ITE control command dict with the same keys as the ndd_control_command_dict
         ITE_control_command_dict = {
-            veh_id: ndd_control_command_dict[veh_id]["normal"]
-            for veh_id in ndd_control_command_dict
+            veh_id: ndd_control_command_dicts[veh_id]["normal"]
+            for veh_id in ndd_control_command_dicts
         }
 
-        for veh_id in criticality_dict:
-            if (
-                "negligence" in criticality_dict[veh_id]
-                and criticality_dict[veh_id]["negligence"]
-            ):
-                ndd_normal_prob = ndd_control_command_dict[veh_id]["normal"].prob
-                ndd_negligence_prob = ndd_control_command_dict[veh_id][
+        for veh_id in maneuver_challenge_dicts:
+            if maneuver_challenge_dicts[veh_id].get("negligence"):
+                ndd_normal_prob = ndd_control_command_dicts[veh_id]["normal"].prob
+                ndd_negligence_prob = ndd_control_command_dicts[veh_id][
                     "negligence"
                 ].prob
                 assert (
@@ -478,72 +481,66 @@ class SafeTestNADE(SafeTestNDE):
 
                 # get the importance sampling probability
                 IS_prob = self.get_IS_prob(
-                    ndd_control_command_dict, criticality_dict, veh_id
+                    veh_id,
+                    ndd_control_command_dicts,
+                    maneuver_challenge_dicts,
+                    veh_ctx_dicts,
                 )
 
                 # update the importance sampling weight and the ITE control command
                 sampled_prob = np.random.uniform(0, 1)
                 if sampled_prob < IS_prob:  # select the negligece control command
                     weight *= ndd_negligence_prob / IS_prob
-                    ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id][
-                        "negligence"
-                    ]
+                    ITE_control_command_dict[veh_id] = ndd_control_command_dicts[
+                        veh_id
+                    ]["negligence"]
                     veh_ctx_dicts[veh_id]["mode"] = "negligence"
-                    # self.monitor.update_comprehensive_info(
-                    #     utils.get_time(),
-                    #     {
-                    #         "negligence"
-                    #         + veh_id: {
-                    #             "negligence_prob": ndd_negligence_prob,
-                    #             "IS_prob": IS_prob,
-                    #             "weight": self.importance_sampling_weight,
-                    #             "avoidable": ndd_control_command_dict[veh_id][
-                    #                 "negligence"
-                    #             ]["command"]["info"]["avoidable"],
-                    #             "onestep_weight": ndd_negligence_prob / IS_prob,
-                    #             "negligence_info": ndd_control_command_dict[veh_id][
-                    #                 "negligence"
-                    #             ]["command"]["info"],
-                    #         }
-                    #     },
-                    # )
+                    logger.info(
+                        f"time: {utils.get_time()}, veh_id: {veh_id} select negligence control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
+                    )
                 else:
                     weight *= ndd_normal_prob / (1 - IS_prob)
-                    ITE_control_command_dict[veh_id] = ndd_control_command_dict[veh_id][
-                        "normal"
-                    ]
+                    ITE_control_command_dict[veh_id] = ndd_control_command_dicts[
+                        veh_id
+                    ]["normal"]
+                    logger.info(
+                        f"time: {utils.get_time()}, veh_id: {veh_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
+                    )
         return ITE_control_command_dict, veh_ctx_dicts, weight
 
-    def get_IS_prob(self, ndd_control_command_dict, criticality_dict, veh_id):
-        return 0.001
-        if (
-            "negligence" in criticality_dict[veh_id]
-            and criticality_dict[veh_id]["negligence"]
-        ):
-            IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 20))
+    def get_IS_prob(
+        self, veh_id, ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
+    ):
+        if maneuver_challenge_dicts[veh_id].get("negligence"):
+            if veh_ctx_dicts[veh_id].get("avoidable", True) is False:
+                IS_magnitude = 0.1
+            IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 1000))
             try:
-                predicted_collision_type = ndd_control_command_dict[veh_id][
+                predicted_collision_type = ndd_control_command_dicts[veh_id][
                     "negligence"
-                ]["command"]["info"]["predicted_collision_type"]
+                ].info["predicted_collision_type"]
+
+                # get the importance sampling magnitude according to the predicted collision type
                 if "roundabout" in predicted_collision_type:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_ROUNDABOUT", 20))
-                    if not ndd_control_command_dict[veh_id]["negligence"]["command"][
-                        "info"
-                    ]["avoidable"]:
-                        IS_magnitude = IS_magnitude * 10
-                        # print(f"The predicted collision type is roundabout and unavoidable, the IS magnitude is set to {IS_magnitude}")
-                    # print(f"The predicted collision type is roundabout, the IS magnitude is set to {IS_magnitude}")
+                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_ROUNDABOUT", 1000))
+                    logger.debug(f"IS_magnitude: {IS_magnitude} for roundabout")
                 elif "highway" in predicted_collision_type:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_HIGHWAY", 20))
-                    # print(f"The predicted collision type is highway, the IS magnitude is set to {IS_magnitude}")
+                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_HIGHWAY", 1000))
+                    logger.debug(f"IS_magnitude: {IS_magnitude} for highway")
                 else:
-                    # print(f"The predicted collision type is intersection, the IS magnitude is set to {IS_magnitude}")
-                    pass
+                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 1000))
+                    logger.debug(f"IS_magnitude: {IS_magnitude} for intersection")
+
+                # if the vehicle is not avoidable, increase the importance sampling magnitude
+                if not veh_ctx_dicts[veh_id].get("avoidable", True):
+                    IS_magnitude = IS_magnitude * 10
             except Exception as e:
-                print(f"Error: {e}")
+                logger.critical(
+                    f"Error in getting the importance sampling magnitude: {e}"
+                )
                 pass
             return np.clip(
-                criticality_dict[veh_id]["negligence"] * IS_magnitude,
+                ndd_control_command_dicts[veh_id]["negligence"].prob * IS_magnitude,
                 0,
                 self.max_importance_sampling_prob,
             )
@@ -589,6 +586,7 @@ class SafeTestNADE(SafeTestNDE):
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
                     veh_ctx_dicts[veh_id]["avoidable"] = False
+                    logger.debug(f"veh_id: {veh_id} is not avoidable")
 
         return maneuver_challenge_avoidance_dicts, veh_ctx_dicts
 
@@ -630,6 +628,20 @@ class SafeTestNADE(SafeTestNDE):
                 if veh_id in maneuver_challenge_dicts
                 else {"normal": 0}
             )
+
+        maneuver_challenge_dicts_shrinked = {
+            veh_id: maneuver_challenge_dicts[veh_id]
+            for veh_id in maneuver_challenge_dicts
+            if maneuver_challenge_dicts[veh_id].get("negligence")
+        }
+        conflict_vehicle_info = {
+            veh_id: veh_ctx_dicts[veh_id].get("conflict_vehicle")
+            for veh_id in veh_ctx_dicts
+            if veh_ctx_dicts[veh_id].get("conflict_vehicle")
+        }
+        logger.debug(
+            f"maneuver_challenge: {maneuver_challenge_dicts_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
+        )
         return maneuver_challenge_dicts, veh_ctx_dicts
 
     def get_maneuver_challenge(
@@ -654,7 +666,7 @@ class SafeTestNADE(SafeTestNDE):
             maneuver_challenge_info (dict): maneuver_challenge_info[veh_id] = 1 if the negligence vehicle will affect the normal vehicle
         """
         # see if the one negligence future will intersect with other normal futures
-        collision_flag = False
+        final_collision_flag = False
         if negligence_veh_future is not None and all_normal_veh_future is not None:
             for veh_id in all_normal_veh_future:
                 if veh_id == negligence_veh_id:
@@ -675,13 +687,14 @@ class SafeTestNADE(SafeTestNDE):
                     tem_len,
                     circle_r,
                 )
+                final_collision_flag = final_collision_flag or collision_flag
                 if collision_flag and record_in_ctx:
                     if "conflict_vehicle" not in veh_ctx_dict:
                         veh_ctx_dict["conflict_vehicle"] = []
                     veh_ctx_dict["conflict_vehicle"].append(veh_id)
             return {
                 "normal": 0,
-                "negligence": (1 if collision_flag else 0),
+                "negligence": (1 if final_collision_flag else 0),
             }  # the first element is the number of vehicles that will be affected by the negligence vehicle
         else:
             return {"normal": 0}

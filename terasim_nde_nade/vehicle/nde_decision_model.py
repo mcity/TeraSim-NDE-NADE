@@ -46,18 +46,6 @@ class NDEDecisionModel(IDMModel):
             MOBIL_lc_flag, stochastic_acc_flag, IDM_parameters, MOBIL_parameters
         )
 
-    def get_negligence_prob(self, obs_dict, negligence_mode):
-        veh_road_id = obs_dict["ego"]["edge_id"]
-        location = get_location(veh_road_id, self.lane_config)
-        neg_veh_road_id, neg_location = None, None
-        if obs_dict["local"].get(negligence_mode, None) is not None:
-            neg_veh_road_id = obs_dict["local"][negligence_mode].get("edge_id", None)
-            neg_location = get_location(neg_veh_road_id, self.lane_config)
-        collision_prob, collision_type = get_collision_type_and_prob(
-            obs_dict, negligence_mode, location, neg_location
-        )
-        return collision_prob, collision_type
-
     def change_vehicle_type_according_to_location(self, veh_id, vehicle_location):
         if "highway" in vehicle_location:  # highway/freeway scenario
             traci.vehicle.setType(veh_id, "NDE_HIGHWAY")
@@ -116,9 +104,6 @@ class NDEDecisionModel(IDMModel):
             Dict(lane_change_negligence(obs_dict, highlight_flag=True))
         )
 
-        # Set default negligence probability and command
-        negligence_prob = 1e-4
-
         # If there are no negligence commands, use the default command with probability 1
         command_dict = {"normal": NDECommand(command_type=Command.DEFAULT, prob=1)}
 
@@ -127,11 +112,23 @@ class NDEDecisionModel(IDMModel):
         if negligence_command_dict:
             # traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 0, 0, 255)) # highlight the vehicle with red
             negligence_command = list(negligence_command_dict.values())[0]
-            negligence_command.prob = negligence_prob
+            negligence_command.prob, predicted_collision_type = (
+                get_collision_type_and_prob(
+                    obs_dict, negligence_command, vehicle_location
+                )
+            )
+            negligence_command.info.update(
+                {
+                    "predicted_collision_type": predicted_collision_type,
+                    "vehicle_location": vehicle_location,
+                }
+            )
             command_dict = {
                 "negligence": negligence_command,
                 "normal": NDECommand(
-                    command_type=Command.DEFAULT, prob=1 - negligence_prob
+                    command_type=Command.DEFAULT,
+                    prob=1 - negligence_command.prob,
+                    info={"vehicle_location": vehicle_location},
                 ),
             }
 
@@ -141,7 +138,7 @@ class NDEDecisionModel(IDMModel):
             weights=[command_dict[key].prob for key in command_dict],
             k=1,
         )[0]
-        command = NDECommand(command_type=Command.DEFAULT, prob=1)
+        # command = NDECommand(command_type=Command.DEFAULT, prob=1)
         return command, {"ndd_command_distribution": command_dict}
 
 
@@ -178,22 +175,21 @@ def traffic_rule_negligence(
 
     if ff_acceleration - current_acceleration > 1.0 or (
         current_acceleration < 0 and ff_acceleration > 0.2
-    ):  # the vehicle is constained by the traffic rules
-        # the vehicle is constained by the traffic rules
-        # negligence_command_dict.update(Dict({
-        #     "TrafficRule": NDECommand(command_type=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
-        # }))
-        negligence_command_dict.update(
-            Dict(
-                {
-                    "TrafficRule": NDECommand(
-                        command_type=Command.ACCELERATION,
-                        duration=2.0,
-                        acceleration=ff_acceleration,
-                    )
-                }
-            )
+    ):
+        negligence_command_dict["TrafficRule"] = NDECommand(
+            command_type=Command.ACCELERATION,
+            duration=2.0,
+            acceleration=ff_acceleration,
         )
+        negligence_command_dict["TrafficRule"].info.update(
+            {
+                "mode": "negligence",
+                "negligence_mode": "TrafficRule",
+                "stopping": stopping,
+                "stop_location": stop_location,
+            }
+        )
+
         if highlight_flag:
             traci.vehicle.setColor(
                 obs_dict["ego"]["veh_id"], (0, 0, 255, 255)
@@ -211,7 +207,7 @@ def leader_negligence(
 ):
     negligence_command_dict = Dict()
 
-    # if the vehicle and the leading vehicle are both stopped
+    # if the vehicle and the leading vehicle are both stopped, disable negligence
     if (
         obs_dict["ego"]["velocity"] < 0.5
         and traci.vehicle.getSpeed(leader_info[0]) < 0.5
@@ -219,7 +215,8 @@ def leader_negligence(
         return negligence_command_dict
 
     # if the vehicle is car following
-    if is_car_following(obs_dict["ego"]["veh_id"], leader_info[0]):
+    is_car_following_flag = is_car_following(obs_dict["ego"]["veh_id"], leader_info[0])
+    if is_car_following_flag:
         leader_velocity = traci.vehicle.getSpeed(leader_info[0])
         # ego vehicle is stopping or the velocity difference between the ego vehicle and the leader is small
         if (
@@ -228,27 +225,29 @@ def leader_negligence(
         ):
             return negligence_command_dict
 
-    # in other condition: the vehicle is following or the vehicle has a leading vehicle but mostly constrained by traffic rules
+    # if the free flow acceleration is significantly larger than the car following accelerations
     if ff_acceleration - cf_acceleration > 1.5:
-        # negligence_command_dict.update(Dict({
-        #     "Lead": NDECommand(command_type=Command.TRAJECTORY, duration=2.0, acceleration=ff_acceleration)
-        # }))
-        negligence_command_dict.update(
-            Dict(
-                {
-                    "Lead": NDECommand(
-                        command_type=Command.ACCELERATION,
-                        duration=2.0,
-                        acceleration=ff_acceleration,
-                    )
-                }
-            )
+        negligence_command = NDECommand(
+            command_type=Command.ACCELERATION,
+            duration=2.0,
+            acceleration=ff_acceleration,
         )
+        negligence_command.info.update(
+            {
+                "is_car_following_flag": is_car_following_flag,
+                "leader_info": leader_info,
+                "ff_acceleration": ff_acceleration,
+                "cf_acceleration": cf_acceleration,
+                "current_acceleration": current_acceleration,
+                "mode": "negligence",
+                "negligence_mode": "Lead",
+            }
+        )
+        negligence_command_dict.update(Dict({"Lead": negligence_command}))
         if highlight_flag:
             traci.vehicle.setColor(
                 obs_dict["ego"]["veh_id"], (255, 0, 0, 255)
             )  # highlight the vehicle with red
-        # negligence_command_dict["Lead"].future_trajectory = nde_utils.predict_future_trajectory(obs_dict["ego"]["veh_id"], obs_dict, negligence_command_dict["Lead"], self.vehicle.simulator.sumo_net, time_horizon_step=4, time_resolution=0.5)
     return negligence_command_dict
 
 
@@ -278,8 +277,8 @@ def lane_change_negligence(obs_dict, highlight_flag=False):
         obs_dict["ego"]["veh_id"], -1
     )
 
-    left_lc_will = wantsChangeLane(1, left_lc_state_original[1])
-    right_lc_will = wantsChangeLane(-1, right_lc_state_original[1])
+    # left_lc_will = wantsChangeLane(1, left_lc_state_original[1])
+    # right_lc_will = wantsChangeLane(-1, right_lc_state_original[1])
 
     if (
         "blocked by left follower" in left_lc_state
@@ -294,6 +293,9 @@ def lane_change_negligence(obs_dict, highlight_flag=False):
             if left_follower[0][1] + follower_mingap > -2:
                 negligence_command_dict["LeftFoll"] = NDECommand(
                     command_type=Command.LEFT, duration=1.0
+                )
+                negligence_command_dict["LeftFoll"].info.update(
+                    {"mode": "negligence", "negligence_mode": "LeftFoll"}
                 )
                 if highlight_flag:
                     traci.vehicle.setColor(
@@ -312,6 +314,9 @@ def lane_change_negligence(obs_dict, highlight_flag=False):
             if right_follower[0][1] + follower_mingap > -2:
                 negligence_command_dict["RightFoll"] = NDECommand(
                     command_type=Command.RIGHT, duration=1.0
+                )
+                negligence_command_dict["RightFoll"].info.update(
+                    {"mode": "negligence", "detailed_mode": "RightFoll"}
                 )
                 if highlight_flag:
                     traci.vehicle.setColor(

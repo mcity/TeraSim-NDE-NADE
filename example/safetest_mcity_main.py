@@ -8,6 +8,14 @@ from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 import argparse
+from loguru import logger
+
+logger.add(
+    sys.stdout,
+    format="{time} {level} {message}",
+    filter="terasim_nde_nade",
+    level="INFO",
+)
 
 
 parser = argparse.ArgumentParser(description="Run simulation.")
