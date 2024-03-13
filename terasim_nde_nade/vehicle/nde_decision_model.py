@@ -187,7 +187,7 @@ def traffic_rule_negligence(
             Dict(
                 {
                     "TrafficRule": NDECommand(
-                        command_type=Command.ACC,
+                        command_type=Command.ACCELERATION,
                         duration=2.0,
                         acceleration=ff_acceleration,
                     )
@@ -211,6 +211,13 @@ def leader_negligence(
 ):
     negligence_command_dict = Dict()
 
+    # if the vehicle and the leading vehicle are both stopped
+    if (
+        obs_dict["ego"]["velocity"] < 0.5
+        and traci.vehicle.getSpeed(leader_info[0]) < 0.5
+    ):
+        return negligence_command_dict
+
     # if the vehicle is car following
     if is_car_following(obs_dict["ego"]["veh_id"], leader_info[0]):
         leader_velocity = traci.vehicle.getSpeed(leader_info[0])
@@ -230,7 +237,7 @@ def leader_negligence(
             Dict(
                 {
                     "Lead": NDECommand(
-                        command_type=Command.ACC,
+                        command_type=Command.ACCELERATION,
                         duration=2.0,
                         acceleration=ff_acceleration,
                     )

@@ -30,7 +30,9 @@ class NDEController(AgentController):
     def __init__(self, simulator, params):
         self.is_busy = False
         self.cached_control_command = None  # this is a dict, containing the control command for the vehicle with the timestep information
-        return super().__init__(simulator, params)
+        return super().__init__(
+            simulator, control_command_schema=NDECommand, params=params
+        )
 
     def _update_controller_status(self, veh_id, current_time=None):
         """Refresh the state of the controller. This function will be called at each timestep as far as vehicle is still in the simulator, even if the vehicle is not controlled."""
@@ -46,14 +48,6 @@ class NDEController(AgentController):
                 self.is_busy = False
                 self.cached_control_command = None
                 all_checks_on(veh_id)
-
-    def _is_command_legal(self, veh_id, control_command):
-        """Check if the control command is legal."""
-        # check if the control command is legal
-
-        # check if the vehicle is currently in a lane change process
-
-        return True
 
     def execute_urban_lanechange(self, veh_id, control_command, obs_dict):
         self.allow_lane_change = False  # disable urban lane change after 1 lane change
@@ -144,7 +138,10 @@ class NDEController(AgentController):
             self.execute_lane_change_command(
                 veh_id, self.cached_control_command["cached_command"], obs_dict
             )
-        elif self.cached_control_command["cached_command"].command_type == Command.ACC:
+        elif (
+            self.cached_control_command["cached_command"].command_type
+            == Command.ACCELERATION
+        ):
             self.execute_acceleration_command(
                 veh_id, self.cached_control_command["cached_command"], obs_dict
             )
@@ -182,7 +179,7 @@ class NDEController(AgentController):
 
     @staticmethod
     def execute_acceleration_command(veh_id, control_command, obs_dict):
-        assert control_command.command_type == Command.ACC
+        assert control_command.command_type == Command.ACCELERATION
         acceleration = control_command.acceleration
         final_speed = obs_dict["ego"]["velocity"] + acceleration * utils.get_step_size()
         final_speed = 0 if final_speed < 0 else final_speed

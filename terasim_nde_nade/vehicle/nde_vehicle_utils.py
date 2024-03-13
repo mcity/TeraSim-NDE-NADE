@@ -16,9 +16,11 @@ from scipy.interpolate import interp1d
 
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
-import jax.numpy as jnp
 from .nde_vehicle_utils_cython import *
-from numba import jit
+
+from typing import List, Tuple, Dict, Any
+from pydantic import BaseModel
+from enum import Enum
 
 
 class Command(Enum):
@@ -26,11 +28,10 @@ class Command(Enum):
     LEFT = "left"
     RIGHT = "right"
     TRAJECTORY = "trajectory"
-    ACC = "acceleration"
+    ACCELERATION = "acceleration"
 
 
-@attr.s(slots=True)
-class NDECommand:
+class NDECommand(BaseModel):
     """
     Represents a command for a vehicle in a Non-Deterministic Environment (NDE).
     if the command is "default", the vehicle will follow the SUMO controlled model, other elements will be ignored
@@ -39,12 +40,12 @@ class NDECommand:
     if the command is "acceleration", the vehicle will decelerate to stop using the acceleration element
     """
 
-    command_type: Command = attr.ib(default=Command.DEFAULT, converter=Command)
-    acceleration: float = attr.ib(default=0.0)
-    future_trajectory: List[Tuple[float, float]] = attr.ib(factory=list)
-    prob: float = attr.ib(default=1.0)
-    duration: float = attr.ib(default=0.1)
-    info: str = attr.ib(default="")
+    command_type: Command = Command.DEFAULT
+    acceleration: float = 0.0
+    future_trajectory: List[Tuple[float, float]] = []
+    prob: float = 1.0
+    duration: float = 0.1
+    info: Dict[str, Any] = {}
 
 
 def get_next_lane_edge(net, lane_id):
@@ -447,7 +448,7 @@ def predict_future_trajectory(
     )
     acceleration = (
         control_command.acceleration
-        if control_command.command_type == Command.ACC
+        if control_command.command_type == Command.ACCELERATION
         else veh_info["acceleration"]
     )
     max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
