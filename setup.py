@@ -27,4 +27,5 @@ setup(
         "Operating System :: OS Independent",
     ],
     ext_modules=cythonize(extensions),
+    requires=["loguru"],
 )

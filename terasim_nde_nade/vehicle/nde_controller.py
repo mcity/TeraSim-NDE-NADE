@@ -47,7 +47,7 @@ class NDEController(AgentController):
             ):
                 self.is_busy = False
                 self.cached_control_command = None
-                all_checks_on(veh_id)
+                self.all_checks_on(veh_id)
 
     def execute_urban_lanechange(self, veh_id, control_command, obs_dict):
         self.allow_lane_change = False  # disable urban lane change after 1 lane change
@@ -111,7 +111,7 @@ class NDEController(AgentController):
                 # all_checks_on(veh_id)
                 return
             else:
-                all_checks_off(veh_id)
+                self.all_checks_off(veh_id)
                 # other commands will have duration, which will keep the controller busy
                 self.is_busy = True
                 # if the control command is a trajectory, then interpolate the trajectory
@@ -185,15 +185,15 @@ class NDEController(AgentController):
         final_speed = 0 if final_speed < 0 else final_speed
         traci.vehicle.setSpeed(veh_id, final_speed)
 
+    @staticmethod
+    def all_checks_on(veh_id):
+        traci.vehicle.setSpeedMode(veh_id, 31)
+        traci.vehicle.setLaneChangeMode(veh_id, 1621)
 
-def all_checks_on(veh_id):
-    traci.vehicle.setSpeedMode(veh_id, 31)
-    traci.vehicle.setLaneChangeMode(veh_id, 1621)
-
-
-def all_checks_off(veh_id):
-    traci.vehicle.setSpeedMode(veh_id, 0)
-    traci.vehicle.setLaneChangeMode(veh_id, 0)
+    @staticmethod
+    def all_checks_off(veh_id):
+        traci.vehicle.setSpeedMode(veh_id, 0)
+        traci.vehicle.setLaneChangeMode(veh_id, 0)
 
 
 def interpolate_control_command(control_command):

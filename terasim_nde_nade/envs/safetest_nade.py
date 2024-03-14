@@ -60,6 +60,28 @@ class SafeTestNADE(SafeTestNDE):
         self.early_termination_weight_threshold = 1e-5
         return super().on_start(ctx)
 
+    def executemove(self, ctx, control_cmds, veh_ctx_dicts, obs_dicts):
+        traci.simulation.executeMove()
+        self._maintain_all_vehicles(ctx)
+        existing_vehicle_list = traci.vehicle.getIDList()
+        control_cmds = {
+            veh_id: control_cmds[veh_id]
+            for veh_id in control_cmds
+            if veh_id in existing_vehicle_list
+        }
+        obs_dicts = {
+            veh_id: obs_dicts[veh_id]
+            for veh_id in obs_dicts
+            if veh_id in existing_vehicle_list
+        }
+        veh_ctx_dicts = {
+            veh_id: veh_ctx_dicts[veh_id]
+            for veh_id in veh_ctx_dicts
+            if veh_id in existing_vehicle_list
+        }
+        return control_cmds, veh_ctx_dicts, obs_dicts
+
+
     # @profile
     def on_step(self, ctx):
         # clear vehicle context dicts
@@ -68,6 +90,7 @@ class SafeTestNADE(SafeTestNDE):
         control_cmds, veh_ctx_dicts = self.make_decisions(ctx)
         obs_dicts = self.get_observation_dicts()
         # Make ITE decision, includes the modification of NDD distribution according to avoidability
+        control_cmds, veh_ctx_dicts, obs_dicts = self.executemove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
         (
             ITE_control_cmds,
             veh_ctx_dicts,
@@ -252,7 +275,7 @@ class SafeTestNADE(SafeTestNDE):
                     ITE_control_cmds[veh_id].future_trajectory = trajectory_dicts[veh_id][
                         ITE_control_cmds[veh_id].info.get("mode")
                     ]
-                    logger.debug(
+                    logger.trace(
                         f"veh_id: {veh_id} is updated to trajectory command with mode: {ITE_control_cmds[veh_id].info.get('mode')}"
                     )
         return ITE_control_cmds
@@ -277,7 +300,7 @@ class SafeTestNADE(SafeTestNDE):
                     ndd_control_command_dicts[veh_id]["normal"].prob = (
                         1 - ndd_control_command_dicts[veh_id]["negligence"].prob
                     )
-                    logger.debug(
+                    logger.trace(
                         f"{veh_id} is marked as unavoidable collision and the prob is reduced to {ndd_control_command_dicts[veh_id]['negligence'].prob}"
                     )
         return ndd_control_command_dicts, veh_ctx_dicts
@@ -377,7 +400,7 @@ class SafeTestNADE(SafeTestNDE):
                         veh_info=None,
                     )
                 )
-            logger.debug(
+            logger.trace(
                 f"add avoidance command for vehicle: {neglected_vehicle_list} from vehicle: {neglecting_vehicle_id}"
             )
         return trajectory_dicts, veh_ctx_dicts
@@ -412,8 +435,8 @@ class SafeTestNADE(SafeTestNDE):
                 neglecting_vehicle_id,
                 neglected_vehicle_list,
             ) in negligence_pair_dict.items():
-                logger.debug(
-                    f"neglected_vehicle_list: {neglected_vehicle_list} avoiding collision from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[               neglecting_vehicle_id
+                logger.info(
+                    f"{timestamp}, neglected_vehicle_list: {neglected_vehicle_list} avoiding collision from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[neglecting_vehicle_id
                 ].get("avoidable", True)}"
                 )
                 for neglected_vehicle_id in neglected_vehicle_list:
@@ -428,8 +451,8 @@ class SafeTestNADE(SafeTestNDE):
                 neglecting_vehicle_id,
                 neglected_vehicle_list,
             ) in negligence_pair_dict.items():
-                logger.debug(
-                    f"neglected_vehicle_list: {neglected_vehicle_list} accept collision from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[
+                logger.info(
+                    f"{timestamp}, neglected_vehicle_list: {neglected_vehicle_list} accept collision from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[
                     neglecting_vehicle_id
                 ].get("avoidable", True)}"
                 )
@@ -503,7 +526,7 @@ class SafeTestNADE(SafeTestNDE):
                     ITE_control_command_dict[veh_id] = ndd_control_command_dicts[
                         veh_id
                     ]["normal"]
-                    logger.info(
+                    logger.trace(
                         f"time: {utils.get_time()}, veh_id: {veh_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )
         return ITE_control_command_dict, veh_ctx_dicts, weight
@@ -514,7 +537,7 @@ class SafeTestNADE(SafeTestNDE):
         if maneuver_challenge_dicts[veh_id].get("negligence"):
             if veh_ctx_dicts[veh_id].get("avoidable", True) is False:
                 IS_magnitude = 0.1
-            IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 1000))
+            IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 100))
             try:
                 predicted_collision_type = ndd_control_command_dicts[veh_id][
                     "negligence"
@@ -522,14 +545,14 @@ class SafeTestNADE(SafeTestNDE):
 
                 # get the importance sampling magnitude according to the predicted collision type
                 if "roundabout" in predicted_collision_type:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_ROUNDABOUT", 1000))
-                    logger.debug(f"IS_magnitude: {IS_magnitude} for roundabout")
+                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_ROUNDABOUT", 100))
+                    logger.trace(f"IS_magnitude: {IS_magnitude} for roundabout")
                 elif "highway" in predicted_collision_type:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_HIGHWAY", 1000))
-                    logger.debug(f"IS_magnitude: {IS_magnitude} for highway")
+                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_HIGHWAY", 100))
+                    logger.trace(f"IS_magnitude: {IS_magnitude} for highway")
                 else:
                     IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 1000))
-                    logger.debug(f"IS_magnitude: {IS_magnitude} for intersection")
+                    logger.trace(f"IS_magnitude: {IS_magnitude} for intersection")
 
                 # if the vehicle is not avoidable, increase the importance sampling magnitude
                 if not veh_ctx_dicts[veh_id].get("avoidable", True):
@@ -586,7 +609,7 @@ class SafeTestNADE(SafeTestNDE):
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
                     veh_ctx_dicts[veh_id]["avoidable"] = False
-                    logger.debug(f"veh_id: {veh_id} is not avoidable")
+                    logger.trace(f"veh_id: {veh_id} is not avoidable")
 
         return maneuver_challenge_avoidance_dicts, veh_ctx_dicts
 
@@ -639,7 +662,7 @@ class SafeTestNADE(SafeTestNDE):
             for veh_id in veh_ctx_dicts
             if veh_ctx_dicts[veh_id].get("conflict_vehicle")
         }
-        logger.debug(
+        logger.trace(
             f"maneuver_challenge: {maneuver_challenge_dicts_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
         )
         return maneuver_challenge_dicts, veh_ctx_dicts

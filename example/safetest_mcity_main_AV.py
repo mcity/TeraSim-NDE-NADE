@@ -25,12 +25,15 @@ env = SafeTestNADEWithAV(
         lane_config_path=dir_path + "/maps/Mcity_safetest/lane_config.json"
     ),
     info_extractor=InfoExtractor,
+    warmup_time_lb=100,
+    warmup_time_ub=200,
+    run_time=1200,
 )
 sim = Simulator(
     sumo_net_file_path=dir_path + "/maps/Mcity_safetest/mcity.net.xml",
     sumo_config_file_path=dir_path + "/maps/Mcity_safetest/mcity.sumocfg",
     num_tries=10,
-    gui_flag=False,
+    gui_flag=True,
     output_path=f"{args.dir}/{args.exp_name}/raw_data/{args.exp_name}_{args.nth}",
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
