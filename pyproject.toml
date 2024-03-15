@@ -9,7 +9,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-build = 'build.py'
 
 [tool.poetry.dependencies]
 python = "^3.12"  # Specify your Python version requirements
@@ -21,3 +20,6 @@ terasim = { git = "git@github.com:michigan-traffic-lab/TeraSim.git", branch = "f
 [build-system]
 requires = ["poetry-core", "Cython", "setuptools", "wheel", "numpy"]
 build-backend = "setuptools.build_meta"
+
+[tool.poetry.build]
+script = "build.py"  # This script will run Cythonize

@@ -11,6 +11,4 @@ extensions = [
     ),
 ]
 
-setup(
-    ext_modules=cythonize(extensions),
-)
+setup(ext_modules=cythonize(extensions), script_args=["build_ext", "--inplace"])

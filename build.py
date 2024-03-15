@@ -1,6 +1,5 @@
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
-from setuptools.command.build_ext import build_ext
 from Cython.Build import cythonize
 import numpy
 
@@ -12,9 +11,4 @@ extensions = [
     ),
 ]
 
-
-def build(setup_kwargs):
-    setup_kwargs.update(
-        ext_modules=cythonize(extensions),
-        cmdclass={"build_ext": build_ext},
-    )
+setup(ext_modules=cythonize(extensions), script_args=["build_ext", "--inplace"])
