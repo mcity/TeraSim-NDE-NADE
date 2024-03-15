@@ -18,7 +18,7 @@ setup(
     author_email="haoweis@umich.edu",
     packages=["terasim_nde_nade", "terasim_nde_nade.envs", "terasim_nde_nade.vehicle"],
     package_data={
-        "terasim_nde_nade.vehicle": ["lane_config.json"],
+        "terasim_nde_nade.vehicle": ["edge_config.json"],
     },
     description="TeraSim NDE ITE package",
     url="https://github.com/michigan-traffic-lab/TeraSim-NDE-ITE",

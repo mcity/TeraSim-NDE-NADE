@@ -10,8 +10,8 @@ import json
 
 
 class NDEVehicleFactory(VehicleFactory):
-    def __init__(self, lane_config_path) -> None:
-        self.lane_config = json.load(open(lane_config_path, "r"))
+    def __init__(self, edge_config_path) -> None:
+        self.edge_config = json.load(open(edge_config_path, "r"))
         super().__init__()
 
     def create_vehicle(self, veh_id, simulator):

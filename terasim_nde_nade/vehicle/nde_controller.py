@@ -192,7 +192,7 @@ class NDEController(AgentController):
 
     @staticmethod
     def all_checks_off(veh_id):
-        traci.vehicle.setSpeedMode(veh_id, 0)
+        traci.vehicle.setSpeedMode(veh_id, 32)
         traci.vehicle.setLaneChangeMode(veh_id, 0)
 
 

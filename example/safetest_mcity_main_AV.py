@@ -22,7 +22,7 @@ monitor = EnvMonitor(
 )
 env = SafeTestNADEWithAV(
     vehicle_factory=NDEVehicleFactory(
-        lane_config_path=dir_path + "/maps/Mcity_safetest/lane_config.json"
+        edge_config_path=dir_path + "/maps/Mcity_safetest/edge_config.json"
     ),
     info_extractor=InfoExtractor,
     warmup_time_lb=100,

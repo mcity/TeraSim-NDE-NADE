@@ -333,6 +333,7 @@ class SafeTestNADE(SafeTestNDE):
         neglected_vehicle_future,
         neglecting_vehicle_id,
         neglected_vehicle_id,
+        avoidable,
     ):
         """Get the avoidance command for the neglecting vehicle.
 
@@ -343,6 +344,9 @@ class SafeTestNADE(SafeTestNDE):
         Returns:
             avoidance_command (dict): the avoidance command
         """
+        if not avoidable:
+            return None
+
         emergency_brake_deceleration = traci.vehicle.getEmergencyDecel(
             neglected_vehicle_id
         )
@@ -383,23 +387,27 @@ class SafeTestNADE(SafeTestNDE):
                     neglected_vehicle_future,
                     neglecting_vehicle_id,
                     neglected_vehicle_id,
+                    avoidable=veh_ctx_dicts[neglecting_vehicle_id].get("avoidable", True),
                 )
-                veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"][
-                    "avoid_collision"
-                ] = avoidance_command
-                trajectory_dicts[neglected_vehicle_id]["avoid_collision"] = (
-                    predict_future_trajectory(
-                        neglected_vehicle_id,
-                        obs_dicts[neglected_vehicle_id],
-                        avoidance_command,
-                        self.simulator.sumo_net,
-                        time_horizon_step=6,
-                        time_resolution=0.5,
-                        interpolate_resolution=0.5,
-                        current_time=None,
-                        veh_info=None,
+                if avoidance_command:
+                    veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"][
+                        "avoid_collision"
+                    ] = avoidance_command
+                    trajectory_dicts[neglected_vehicle_id]["avoid_collision"] = (
+                        predict_future_trajectory(
+                            neglected_vehicle_id,
+                            obs_dicts[neglected_vehicle_id],
+                            avoidance_command,
+                            self.simulator.sumo_net,
+                            time_horizon_step=6,
+                            time_resolution=0.5,
+                            interpolate_resolution=0.5,
+                            current_time=None,
+                            veh_info=None,
+                        )
                     )
-                )
+                else:
+                    logger.trace("no avoidance command (because of collision-unavoidable) for the vehicle")
             logger.trace(
                 f"add avoidance command for vehicle: {neglected_vehicle_list} from vehicle: {neglecting_vehicle_id}"
             )
@@ -417,7 +425,12 @@ class SafeTestNADE(SafeTestNDE):
         Returns:
             _type_: _description_
         """
+
+        # TODO: add logic, if the collision is unavoidable, the vehicle should not apply collision avoidances
+
         negligence_pair_dict = self.get_negligence_pair_dict(veh_ctx_dicts)
+
+        
 
         avoid_collision_IS_prob = float(os.getenv("AVOID_COLLISION_IS_PROB", 0.2))
         avoid_collision_IS_prob = 1.0
@@ -427,7 +440,18 @@ class SafeTestNADE(SafeTestNDE):
         # no vehicle neglected
         if len(negligence_pair_dict) == 0:
             return ITE_control_command_dict, veh_ctx_dicts, weight
-
+        
+        # neglected vehicle set is all the vehicles that are neglected by the neglecting vehicle, combine all vehicles in the negligence_pair_dict values
+        neglected_vehicle_set = set()
+        for neglected_vehicle_list in negligence_pair_dict.values():
+            neglected_vehicle_set.update(neglected_vehicle_list)
+        
+        avoidance_command_list = [veh_ctx_dicts[veh_id]["ndd_command_distribution"].get("avoid_collision", None) for veh_id in neglected_vehicle_set]
+        # check if the avoidance command list is all None
+        if all(avoidance_command is None for avoidance_command in avoidance_command_list):
+            logger.critical(f"all avoidance command is None, no collision avoidance command will be selected and NADE for collision avoidance will be disabled, neglected_vehicle_set: {neglected_vehicle_set}")
+            return ITE_control_command_dict, veh_ctx_dicts, weight
+        
         timestamp = utils.get_time()
         IS_prob = np.random.uniform(0, 1)
         if IS_prob < avoid_collision_IS_prob:  # apply collision aboidance (select NDD)
@@ -435,6 +459,8 @@ class SafeTestNADE(SafeTestNDE):
                 neglecting_vehicle_id,
                 neglected_vehicle_list,
             ) in negligence_pair_dict.items():
+                if neglecting_vehicle_id == "CAV":
+                    logger.critical(f"neglecting_vehicle_id: {neglecting_vehicle_id}, neglected_vehicle_list: {neglected_vehicle_list}")
                 logger.info(
                     f"{timestamp}, neglected_vehicle_list: {neglected_vehicle_list} avoiding collision from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[neglecting_vehicle_id
                 ].get("avoidable", True)}"
@@ -442,10 +468,13 @@ class SafeTestNADE(SafeTestNDE):
                 for neglected_vehicle_id in neglected_vehicle_list:
                     avoid_collision_command = veh_ctx_dicts[neglected_vehicle_id][
                         "ndd_command_distribution"
-                    ]["avoid_collision"]
-                    ITE_control_command_dict[neglected_vehicle_id] = (
-                        avoid_collision_command
-                    )
+                    ].get("avoid_collision", None)
+                    if avoid_collision_command:
+                        ITE_control_command_dict[neglected_vehicle_id] = (
+                            avoid_collision_command
+                        )
+                    else:
+                        logger.critical(f"neglected_vehicle_id: {neglected_vehicle_id} does not have avoidance command")
         else:  # does not apply collision avoidance
             for (
                 neglecting_vehicle_id,

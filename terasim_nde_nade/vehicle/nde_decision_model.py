@@ -11,23 +11,14 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
     Command,
     NDECommand,
     TrajectoryPoint,
+    is_car_following,
+    get_location,
 )
 import attr
 import random
 import traci.constants as tc
 from typing import List, Tuple
 from addict import Dict
-
-lane_config = json.load(
-    open(
-        "/home/haoweis/TeraSim-Meso/TeraSim-NDE-ITE/example/maps/Mcity_safetest/lane_config.json",
-        "r",
-    )
-)
-
-
-def get_location(veh_road_id):
-    return "intersection"
 
 
 class NDEDecisionModel(IDMModel):
@@ -352,46 +343,3 @@ def get_cf_acceleration(obs_dict, leader_info):
         cf_speed_with_leading_vehicle - obs_dict["ego"]["velocity"]
     ) / traci.simulation.getDeltaT()
     return cf_acceleration
-
-
-def is_car_following(follow_id, leader_id):
-    # check if the follow_id is car following the leader_id using the traci API and detect the future links
-    current_edge_id = traci.vehicle.getLaneID(follow_id)
-    leader_edge_id = traci.vehicle.getLaneID(leader_id)
-    # the two vehicle are on the same link
-    if current_edge_id == leader_edge_id:
-        return True
-    else:
-        # the two vehicle are on different links, but the leader is on the future link of the follower
-        follower_future_link_infos = traci.vehicle.getNextLinks(follow_id)
-        if len(follower_future_link_infos) == 0:
-            return False
-        follower_future_lane_id = follower_future_link_infos[0][0]
-        follower_future_junction_lane_id = follower_future_link_infos[0][4]  # + "_0"
-        if (
-            leader_edge_id in follower_future_lane_id
-            or leader_edge_id in follower_future_junction_lane_id
-        ):
-            return True
-
-        leader_future_link_infos = traci.vehicle.getNextLinks(leader_id)
-        if len(leader_future_link_infos) == 0:
-            return False
-        leader_future_lane_id = leader_future_link_infos[0][0]
-        leader_junction_lane_id = leader_future_link_infos[0][4]
-        if (
-            len(
-                set(
-                    [
-                        follower_future_lane_id,
-                        follower_future_junction_lane_id,
-                        leader_future_lane_id,
-                        leader_junction_lane_id,
-                    ]
-                )
-            )
-            < 4  # the leader and follower has the same future link
-        ):
-            return True
-        else:
-            return False

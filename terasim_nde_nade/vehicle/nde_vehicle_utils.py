@@ -7,6 +7,7 @@ from terasim.utils import (
     sumo_coordinate_to_center_coordinate,
     sumo_heading_to_orientation,
 )
+import json
 
 # from .nde_vehicle_utils_cython import get_future_position_on_route
 from typing import List, Tuple, Optional
@@ -222,11 +223,30 @@ def in_which_lane_group(lane_id, lane_groups):
     return -1
 
 
-def get_location(lane_id, lane_config):
-    for lane_type, lane_groups in lane_config.items():
-        index = in_which_lane_group(lane_id, lane_groups)
+edge_config = json.load(
+    open(
+        "/home/haoweis/TeraSim-Meso/TeraSim-NDE-ITE/example/maps/Mcity_safetest/edge_config.json",
+        "r",
+    )
+)
+
+
+def is_in_lanes(edge_id: str, edges: List[str]) -> bool:
+    return edge_id in set(edges)
+
+
+def in_which_lane_group(edge_id: str, edge_groups: Dict[int, List[str]]) -> int:
+    for index, edges in edge_groups.items():
+        if is_in_lanes(edge_id, edges):
+            return index
+    return -1
+
+
+def get_location(edge_id: str, edge_config_path: Optional[str] = None) -> str:
+    for edge_type, edge_groups in edge_config.items():
+        index = in_which_lane_group(edge_id, edge_groups)
         if index != -1:
-            return lane_type + "_" + str(index)
+            return edge_type
     return "intersection"
 
 
@@ -267,17 +287,21 @@ def is_head_on(ego_obs, leader_info):
     return (120 < start_angle < 240) and (120 < end_angle < 240)
 
 
+from typing import Dict, Tuple, Any
+
+
 def get_collision_type_and_prob(
-    obs_dict,
-    negligence_command,
-    location,
-):
+    obs_dict: Dict[str, Any],
+    negligence_command: NDECommand,
+    location: Optional[str] = None,
+) -> Tuple[float, str]:
     """
     Given current observation and the negligence mode, detect what type of collisions will be generated
     """
-
+    if location is None:
+        location = get_location(obs_dict["ego"]["edge_id"])
     rear_end = negligence_command.info.get("is_car_following_flag", False)
-    negligence_mode = negligence_command.info.get("negligence_mode", "None")
+    negligence_mode = negligence_command.info.get("negligence_mode", None)
     if "roundabout" in location:
         if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
             return roundabout_cutin_prob, "roundabout_cutin"
@@ -313,6 +337,54 @@ def get_collision_type_and_prob(
             )
     else:
         return 0, "no_collision"
+
+
+from typing import List, Tuple
+
+
+def is_car_following(follow_id: str, leader_id: str) -> bool:
+    # check if the follow_id is car following the leader_id using the traci API and detect the future links
+    current_edge_id = traci.vehicle.getLaneID(follow_id)
+    leader_edge_id = traci.vehicle.getLaneID(leader_id)
+    # the two vehicle are on the same link
+    if current_edge_id == leader_edge_id:
+        return True
+    else:
+        # the two vehicle are on different links, but the leader is on the future link of the follower
+        follower_future_link_infos: List[Tuple] = traci.vehicle.getNextLinks(follow_id)
+        if len(follower_future_link_infos) == 0:
+            return False
+        follower_future_lane_id: str = follower_future_link_infos[0][0]
+        follower_future_junction_lane_id: str = follower_future_link_infos[0][
+            4
+        ]  # + "_0"
+        if (
+            leader_edge_id in follower_future_lane_id
+            or leader_edge_id in follower_future_junction_lane_id
+        ):
+            return True
+
+        leader_future_link_infos: List[Tuple] = traci.vehicle.getNextLinks(leader_id)
+        if len(leader_future_link_infos) == 0:
+            return False
+        leader_future_lane_id: str = leader_future_link_infos[0][0]
+        leader_junction_lane_id: str = leader_future_link_infos[0][4]
+        if (
+            len(
+                set(
+                    [
+                        follower_future_lane_id,
+                        follower_future_junction_lane_id,
+                        leader_future_lane_id,
+                        leader_junction_lane_id,
+                    ]
+                )
+            )
+            < 4  # the leader and follower has the same future link
+        ):
+            return True
+        else:
+            return False
 
 
 def predict_future_distance(
