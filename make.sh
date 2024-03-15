@@ -1,2 +1,2 @@
 poetry install
-python build.py
+python setup.py build_ext --inplace
