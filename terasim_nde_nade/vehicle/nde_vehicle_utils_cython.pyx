@@ -1,5 +1,11 @@
 from typing import List, Tuple
 cimport cython
+import numpy as np
+cimport numpy as np
+from shapely.geometry import LineString
+from libc.math cimport sqrt, pow, sin, cos, atan2, M_PI
+from scipy.interpolate import interp1d
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef Tuple[Tuple[float, float], float] get_future_position_on_route(
@@ -43,9 +49,6 @@ cpdef Tuple[Tuple[float, float], float] get_future_position_on_route(
     future_heading = traci.lane.getAngle(vehicle_lane_id, veh_lane_position)
     return future_position, future_heading
 
-import numpy as np
-cimport numpy as np
-from libc.math cimport sin, cos, atan2, M_PI
 
 def sumo_trajectory_to_normal_trajectory(np.ndarray[double, ndim=2] sumo_trajectory, double veh_length=5.0):
     cdef int n = sumo_trajectory.shape[0]
@@ -78,10 +81,6 @@ def get_circle_center_list(np.ndarray[double, ndim=1] traj_point, double veh_len
 
     return center_list
 
-import numpy as np
-cimport numpy as np
-from libc.math cimport sqrt
-
 def collision_check(np.ndarray[double, ndim=2] traj1, np.ndarray[double, ndim=2] traj2, double veh_length, double tem_len, double circle_r):
     cdef int i, j, k
     cdef double dist, dx, dy
@@ -108,11 +107,6 @@ def collision_check(np.ndarray[double, ndim=2] traj1, np.ndarray[double, ndim=2]
 
     return False, None
 
-
-import numpy as np
-cimport numpy as np
-from scipy.interpolate import interp1d
-
 def interpolate_future_trajectory(np.ndarray[double, ndim=2] trajectory_list_array, double interpolate_resolution):
     cdef np.ndarray[double, ndim=1] time_values = trajectory_list_array[:, 3]
     cdef np.ndarray[double, ndim=2] position_values = trajectory_list_array[:, :3]
@@ -130,11 +124,6 @@ def interpolate_future_trajectory(np.ndarray[double, ndim=2] trajectory_list_arr
     cdef np.ndarray[double, ndim=2] new_trajectory_list_array = np.hstack((new_position_values, new_time_values[:, None]))
 
     return new_trajectory_list_array
-
-import numpy as np
-cimport numpy as np
-from shapely.geometry import LineString
-from libc.math cimport sqrt, pow
 
 cpdef bint is_intersect(np.ndarray[double, ndim=2] trajectory1, np.ndarray[double, ndim=2] trajectory2, double veh_length, double tem_len, double circle_r):
     cdef np.ndarray[double, ndim=1] trajectory1_start = trajectory1[0, :2]

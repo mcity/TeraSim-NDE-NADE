@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "terasim_nde_nade"
+version = "0.1.0"
+description = "TeraSim NDE NADE package"
+authors = ["Haowei Sun <haoweis@umich.edu>"]
+license = "MIT"  # Specify your license
+repository = "https://github.com/michigan-traffic-lab/TeraSim-NDE-ITE"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"  # Specify your Python version requirements
+Cython = "^3.0.8"
+loguru = "^0.5.3"
+shapely = "^2.0.3"
+terasim = { git = "git@github.com:michigan-traffic-lab/TeraSim.git", branch = "feature/simple_sensor_architecture" }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+
+# Custom configurations and scripts might be necessary for handling Cython extensions
