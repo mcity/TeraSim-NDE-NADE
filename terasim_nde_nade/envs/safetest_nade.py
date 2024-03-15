@@ -79,7 +79,7 @@ class SafeTestNADE(SafeTestNDE):
             for veh_id in veh_ctx_dicts
             if veh_id in existing_vehicle_list
         }
-        return control_cmds, veh_ctx_dicts, obs_dicts
+        return control_cmds, veh_ctx_dicts, obs_dicts, self.should_continue_simulation()
 
 
     # @profile
@@ -90,36 +90,32 @@ class SafeTestNADE(SafeTestNDE):
         control_cmds, veh_ctx_dicts = self.make_decisions(ctx)
         obs_dicts = self.get_observation_dicts()
         # Make ITE decision, includes the modification of NDD distribution according to avoidability
-        control_cmds, veh_ctx_dicts, obs_dicts = self.executemove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
-        (
-            ITE_control_cmds,
-            veh_ctx_dicts,
-            weight,
-            trajectory_dicts,
-            maneuver_challenge_dicts,
-            _,
-        ) = self.NADE_decision(
-            control_cmds, veh_ctx_dicts, obs_dicts
-        )  # enable ITE
+        control_cmds, veh_ctx_dicts, obs_dicts, should_continue_simulation_flag = self.executemove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
+        if should_continue_simulation_flag:
+            (
+                ITE_control_cmds,
+                veh_ctx_dicts,
+                weight,
+                trajectory_dicts,
+                maneuver_challenge_dicts,
+                _,
+            ) = self.NADE_decision(
+                control_cmds, veh_ctx_dicts, obs_dicts
+            )  # enable ITE
 
-        ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
-            trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
-        )
+            ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
+                trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
+            )
 
-        ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
-            ITE_control_cmds, trajectory_dicts
-        )
+            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+                ITE_control_cmds, trajectory_dicts
+            )
 
-        # record the negligence mode
-        # self.negligence_record(ITE_control_cmds)
-        # self.monitor.update_vehicle_mode(ITE_control_cmds, self.importance_sampling_weight)
-        # # monitor the environment
-        # self.monitor.add_observation(ITE_control_cmds, obs_dicts)
-        self.refresh_control_commands_state()
-        self.execute_control_commands(ITE_control_cmds)
-        self.importance_sampling_weight *= (
-            weight  # update the importance sampling weight
-        )
+            self.refresh_control_commands_state()
+            self.execute_control_commands(ITE_control_cmds)
+            self.importance_sampling_weight *= (
+                weight  # update the importance sampling weight
+            )
         # Simulation stop check
         return self.should_continue_simulation()
 
@@ -171,6 +167,10 @@ class SafeTestNADE(SafeTestNDE):
             veh_ctx_dicts,
         )
 
+        veh_ctx_dicts = self.remove_collision_avoidance_command_using_avoidability(
+            obs_dicts, trajectory_dicts, veh_ctx_dicts
+        )
+
         # update the ndd probability according to collision avoidability
         modified_ndd_control_command_dicts, veh_ctx_dicts = (
             self.modify_ndd_dict_according_to_avoidability(
@@ -179,7 +179,7 @@ class SafeTestNADE(SafeTestNDE):
         )
 
         # highlight the critical vehicles and calculate criticality
-        self.highlight_critical_vehicles(maneuver_challenge_dicts, veh_ctx_dicts)
+        # self.highlight_critical_vehicles(maneuver_challenge_dicts, veh_ctx_dicts)
 
         criticality_dicts, veh_ctx_dicts = self.get_criticality_dicts(
             maneuver_challenge_dicts, veh_ctx_dicts
@@ -203,6 +203,30 @@ class SafeTestNADE(SafeTestNDE):
             maneuver_challenge_dicts,
             criticality_dicts,
         )
+    
+    def remove_collision_avoidance_command_using_avoidability(self, obs_dicts, trajectory_dicts, veh_ctx_dicts):
+        """Remove the collision avoidance command for the vehicles that are not avoidable.
+
+        Args:
+            obs_dicts (dict): the observation dicts
+            trajectory_dicts (dict): the trajectory dicts
+            veh_ctx_dicts (dict): the vehicle context dicts
+
+        Returns:
+            veh_ctx_dicts (dict): the updated vehicle context dicts
+        """
+        potential_negligence_pair_dict = self.get_negligence_pair_dict(veh_ctx_dicts, potential=True)
+        for (
+            neglecting_vehicle_id,
+            neglected_vehicle_list,
+        ) in potential_negligence_pair_dict.items():
+            if veh_ctx_dicts[neglecting_vehicle_id].get("avoidable", True) is False:
+                for neglected_vehicle_id in neglected_vehicle_list:
+                    # remove the collision avoidance command
+                    veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"]["avoid_collision"] = None
+                    trajectory_dicts[neglected_vehicle_id].pop("avoid_collision", None)
+                    logger.trace(f"veh_id: {neglected_vehicle_id} is not avoidable from {neglecting_vehicle_id}, remove the collision avoidance command")
+        return veh_ctx_dicts
 
     def highlight_critical_vehicles(self, maneuver_challenge_dicts, veh_ctx_dicts):
         for veh_id in maneuver_challenge_dicts:
@@ -214,14 +238,10 @@ class SafeTestNADE(SafeTestNDE):
             elif maneuver_challenge_dicts[veh_id].get(
                 "negligence"
             ):  # avoidable collision
-                # highlight the vehicle with red
-                traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=0.1)
+                # highlight the vehicle with yellow
+                traci.vehicle.highlight(veh_id, (255, 255, 0, 255), duration=0.1)
 
     def get_ndd_distribution_from_vehicle_ctx(self, veh_ctx_dicts):
-        if len(veh_ctx_dicts) == 1:
-            return veh_ctx_dicts[list(veh_ctx_dicts.keys())[0]][
-                "ndd_command_distribution"
-            ]
         ndd_control_command_dicts = {
             veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"]
             for veh_id in veh_ctx_dicts
@@ -333,7 +353,6 @@ class SafeTestNADE(SafeTestNDE):
         neglected_vehicle_future,
         neglecting_vehicle_id,
         neglected_vehicle_id,
-        avoidable,
     ):
         """Get the avoidance command for the neglecting vehicle.
 
@@ -344,8 +363,6 @@ class SafeTestNADE(SafeTestNDE):
         Returns:
             avoidance_command (dict): the avoidance command
         """
-        if not avoidable:
-            return None
 
         emergency_brake_deceleration = traci.vehicle.getEmergencyDecel(
             neglected_vehicle_id
@@ -354,7 +371,7 @@ class SafeTestNADE(SafeTestNDE):
             command_type=Command.ACCELERATION,
             acceleration=-emergency_brake_deceleration,
             prob=0,
-            duration=2,
+            duration=3,
         )  # by default, this avoidance command prob is 0, only when really being neglected, the prob will be updated
         avoidance_command.info.update(
             {
@@ -387,27 +404,23 @@ class SafeTestNADE(SafeTestNDE):
                     neglected_vehicle_future,
                     neglecting_vehicle_id,
                     neglected_vehicle_id,
-                    avoidable=veh_ctx_dicts[neglecting_vehicle_id].get("avoidable", True),
                 )
-                if avoidance_command:
-                    veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"][
-                        "avoid_collision"
-                    ] = avoidance_command
-                    trajectory_dicts[neglected_vehicle_id]["avoid_collision"] = (
-                        predict_future_trajectory(
-                            neglected_vehicle_id,
-                            obs_dicts[neglected_vehicle_id],
-                            avoidance_command,
-                            self.simulator.sumo_net,
-                            time_horizon_step=6,
-                            time_resolution=0.5,
-                            interpolate_resolution=0.5,
-                            current_time=None,
-                            veh_info=None,
-                        )
+                veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"][
+                    "avoid_collision"
+                ] = avoidance_command
+                trajectory_dicts[neglected_vehicle_id]["avoid_collision"] = (
+                    predict_future_trajectory(
+                        neglected_vehicle_id,
+                        obs_dicts[neglected_vehicle_id],
+                        avoidance_command,
+                        self.simulator.sumo_net,
+                        time_horizon_step=6,
+                        time_resolution=0.5,
+                        interpolate_resolution=0.5,
+                        current_time=None,
+                        veh_info=None,
                     )
-                else:
-                    logger.trace("no avoidance command (because of collision-unavoidable) for the vehicle")
+                )
             logger.trace(
                 f"add avoidance command for vehicle: {neglected_vehicle_list} from vehicle: {neglecting_vehicle_id}"
             )
@@ -547,6 +560,7 @@ class SafeTestNADE(SafeTestNDE):
                         veh_id
                     ]["negligence"]
                     veh_ctx_dicts[veh_id]["mode"] = "negligence"
+                    traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
                     logger.info(
                         f"time: {utils.get_time()}, veh_id: {veh_id} select negligence control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )

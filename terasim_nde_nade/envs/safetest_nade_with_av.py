@@ -27,9 +27,17 @@ class SafeTestNADEWithAV(SafeTestNADE):
         # set the CAV with white color
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
 
+        traci.vehicle.subscribeContext(
+            "CAV",
+            traci.constants.CMD_GET_VEHICLE_VARIABLE,
+            50,
+            [traci.constants.VAR_POSITION],
+        )
+
     def NADE_decision(self, control_command_dicts, veh_ctx_dicts, obs_dicts):
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
         traci.vehicle.setSpeed("CAV", 6)
+        traci.vehicle.setSpeedMode("CAV", 32)
         predicted_CAV_control_command = self.predict_cav_control_command(
             control_command_dicts, veh_ctx_dicts, obs_dicts
         )
@@ -39,6 +47,29 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 "normal": NDECommand(command_type=Command.DEFAULT, prob=0),
             }
         return super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
+
+    def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
+        # only consider the vehicles that are around the CAV (within 50m range)
+
+        neighbor_veh_ids_set = set(
+            traci.vehicle.getContextSubscriptionResults("CAV").keys()
+        )
+        # add "CAV" to the neighbor_veh_ids_set
+        neighbor_veh_ids_set.add("CAV")
+
+        filtered_obs_dicts = {
+            veh_id: obs_dicts[veh_id]
+            for veh_id in obs_dicts
+            if veh_id in neighbor_veh_ids_set
+        }
+        filtered_veh_ctx_dicts = {
+            veh_id: veh_ctx_dicts[veh_id]
+            for veh_id in veh_ctx_dicts
+            if veh_id in neighbor_veh_ids_set
+        }
+        return super().predict_future_trajectory_dicts(
+            filtered_obs_dicts, filtered_veh_ctx_dicts
+        )
 
     def predict_cav_control_command(
         self, control_command_dicts, veh_ctx_dicts, obs_dicts

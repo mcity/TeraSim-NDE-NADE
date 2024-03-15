@@ -602,7 +602,7 @@ traci = "^1.19.0"
 type = "git"
 url = "git@github.com:michigan-traffic-lab/TeraSim.git"
 reference = "feature/simple_sensor_architecture"
-resolved_reference = "0a65c00f1e5b276cb9f30df6f61f09769f558725"
+resolved_reference = "97dfaa9e4fc8bd00ad74fa0ebed4b4fe3f56c225"
 
 [[package]]
 name = "traci"
