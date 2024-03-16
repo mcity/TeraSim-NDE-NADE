@@ -3,19 +3,31 @@ import terasim.utils as utils
 import numpy as np
 from terasim.overlay import traci
 
+
 class SafeTestNDE(EnvTemplate):
 
-    def __init__(self, vehicle_factory, info_extractor, warmup_time_lb=900, warmup_time_ub=1200, run_time=300, *args, **kwargs):
+    def __init__(
+        self,
+        vehicle_factory,
+        info_extractor,
+        warmup_time_lb=900,
+        warmup_time_ub=1200,
+        run_time=300,
+        *args,
+        **kwargs
+    ):
         rng = np.random.default_rng()
-        self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub)) # 12 minutes
-        self.run_time = run_time # 5 minutes
+        self.warmup_time = int(
+            rng.integers(low=warmup_time_lb, high=warmup_time_ub)
+        )  # 12 minutes
+        self.run_time = run_time  # 5 minutes
         print("warmup_time", self.warmup_time, "run_time", self.run_time)
         super().__init__(vehicle_factory, info_extractor, *args, **kwargs)
 
     def on_start(self, ctx):
         self.sumo_warmup(self.warmup_time)
         return super().on_start(ctx)
-    
+
     def sumo_warmup(self, warmup_time):
         while True:
             traci.simulationStep()
@@ -29,23 +41,25 @@ class SafeTestNDE(EnvTemplate):
         self.execute_control_commands(control_cmds)
         # self.monitor.add_observation(control_cmds)
         return self.should_continue_simulation()
-    
+
     def refresh_control_commands_state(self):
         current_time = traci.simulation.getTime()
         for veh_id in self.vehicle_list.keys():
-            self.vehicle_list[veh_id].controller._update_controller_status(veh_id, current_time)
+            self.vehicle_list[veh_id].controller._update_controller_status(
+                veh_id, current_time
+            )
 
     def final_state_log(self):
         return {
             "warmup_time": self.warmup_time,
             "run_time": self.run_time,
         }
-    
+
     def _vehicle_in_env_distance(self, mode):
         veh_id_list = traci.vehicle.getIDList()
         distance_dist = self._get_distance(veh_id_list)
         # self.monitor.update_distance(distance_dist, mode)
-    
+
     def _get_distance(self, veh_id_list):
         distance_dist = {veh_id: utils.get_distance(veh_id) for veh_id in veh_id_list}
         return distance_dist
