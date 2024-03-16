@@ -15,7 +15,10 @@ python = "^3.12"  # Specify your Python version requirements
 Cython = "^3.0.8"
 loguru = "^0.5.3"
 shapely = "^2.0.3"
-terasim = { git = "git@github.com:michigan-traffic-lab/TeraSim.git", branch = "feature/simple_sensor_architecture" }
+# terasim = { git = "git@github.com:michigan-traffic-lab/TeraSim.git", branch = "feature/simple_sensor_architecture" }
+
+[tool.poetry.dev-dependencies]
+terasim = { path = "../TeraSim", develop = true}
 
 [build-system]
 requires = ["poetry-core", "Cython", "setuptools", "wheel", "numpy"]

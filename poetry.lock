@@ -582,7 +582,7 @@ description = "A SUMO-based environment for AV testing and evaluation"
 optional = false
 python-versions = "^3.12"
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 addict = "^2.4.0"
@@ -599,10 +599,8 @@ sumolib = "^1.19.0"
 traci = "^1.19.0"
 
 [package.source]
-type = "git"
-url = "git@github.com:michigan-traffic-lab/TeraSim.git"
-reference = "feature/simple_sensor_architecture"
-resolved_reference = "97dfaa9e4fc8bd00ad74fa0ebed4b4fe3f56c225"
+type = "directory"
+url = "../TeraSim"
 
 [[package]]
 name = "traci"
@@ -646,4 +644,4 @@ dev = ["black (>=19.3b0)", "pytest (>=4.6.2)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "9411b84517ddc761e852f4374e41afd81ec525436facc51af40285eb2f5f8c2b"
+content-hash = "b73613181d09933c56b2e2cf6c8a53fc31ddc720394e9b27bcec5e6c74c5c4aa"
