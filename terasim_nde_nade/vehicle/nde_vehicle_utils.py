@@ -387,28 +387,42 @@ def is_car_following(follow_id: str, leader_id: str) -> bool:
             return False
 
 
-def predict_future_distance(
+def predict_future_distance_velocity_vectorized(
     velocity: float,
     acceleration: float,
     duration_array: np.ndarray,
     max_velocity: float,
 ) -> np.ndarray:
-    """Predict the future distance of the vehicle.
+    """Predict the future distance of the vehicle using vectorized operations for improved performance.
 
     Args:
-        velocity (float): the velocity of the vehicle
-        acceleration (float): the acceleration of the vehicle
-        duration_array (np.ndarray): the array of duration
+        velocity (float): The initial velocity of the vehicle.
+        acceleration (float): The acceleration of the vehicle.
+        duration_array (np.ndarray): The array of time points at which to calculate distance.
+        max_velocity (float): The maximum velocity of the vehicle.
 
     Returns:
-        future_distance_array (np.ndarray): the array of future distance
+        np.ndarray: The array of future distances at each time point in duration_array.
     """
-    future_distance_array = (
-        velocity * duration_array + 0.5 * acceleration * duration_array**2
-    )
-    # the lane_position delta list should be non-decreasing and non-negative
-    future_distance_array = np.maximum.accumulate(future_distance_array.clip(min=0))
-    return future_distance_array
+    # Calculate velocity at each time point, ensuring it does not exceed max_velocity.
+    velocity_array = np.clip(velocity + acceleration * duration_array, 0, max_velocity)
+
+    # Calculate the average velocities between consecutive time points.
+    average_velocities = 0.5 * (velocity_array[1:] + velocity_array[:-1])
+
+    # Calculate the time differences between consecutive time points.
+    time_differences = duration_array[1:] - duration_array[:-1]
+
+    # Calculate distance increments using the average velocities and time differences.
+    distance_increments = average_velocities * time_differences
+
+    # Calculate the cumulative distance at each time point.
+    cumulative_distances = np.cumsum(distance_increments)
+    cumulative_distances = np.insert(
+        cumulative_distances, 0, 0
+    )  # Include starting point (distance=0)
+
+    return cumulative_distances, velocity_array
 
 
 # @profile
@@ -455,8 +469,10 @@ def predict_future_trajectory(
         else veh_info["acceleration"]
     )
     max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
-    future_distance_array = predict_future_distance(
-        veh_info["velocity"], acceleration, duration_array, max_velocity
+    future_distance_array, future_velocity_array = (
+        predict_future_distance_velocity_vectorized(
+            veh_info["velocity"], acceleration, duration_array, max_velocity
+        )
     )
     lateral_offset = 0
     if control_command.command_type == Command.LEFT:
@@ -465,7 +481,13 @@ def predict_future_trajectory(
         lateral_offset = -1
 
     trajectory_array = np.array(
-        [veh_info.position[0], veh_info.position[1], veh_info.heading, 0]
+        [
+            veh_info.position[0],
+            veh_info.position[1],
+            veh_info.heading,
+            future_velocity_array[0],
+            0,
+        ]
     )
 
     lanechange_finish_trajectory_point = None
@@ -494,6 +516,7 @@ def predict_future_trajectory(
                 lanechange_finish_position[0],
                 lanechange_finish_position[1],
                 lanechange_finish_final_heading,
+                future_velocity_array[lanechange_finish_timestep],
                 duration_array[lanechange_finish_timestep],
             ]
         )
@@ -501,7 +524,9 @@ def predict_future_trajectory(
             (trajectory_array, lanechange_finish_trajectory_point)
         )
 
-    for duration, distance in zip(duration_array[1:], future_distance_array[1:]):
+    for duration, distance, velocity in zip(
+        duration_array[1:], future_distance_array[1:], future_velocity_array[1:]
+    ):
         if (
             lanechange_finish_trajectory_point is not None
             and duration <= lanechange_finish_trajectory_point[3]
@@ -522,7 +547,13 @@ def predict_future_trajectory(
             (
                 trajectory_array,
                 np.array(
-                    [future_position[0], future_position[1], future_heading, duration]
+                    [
+                        future_position[0],
+                        future_position[1],
+                        future_heading,
+                        velocity,
+                        duration,
+                    ]
                 ),
             )
         )
@@ -531,7 +562,7 @@ def predict_future_trajectory(
         trajectory_array, interpolate_resolution
     )
 
-    future_trajectory_array[:, 3] += current_time
+    future_trajectory_array[:, -1] += current_time
     return future_trajectory_array
 
 

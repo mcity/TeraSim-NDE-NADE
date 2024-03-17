@@ -108,8 +108,8 @@ def collision_check(np.ndarray[double, ndim=2] traj1, np.ndarray[double, ndim=2]
     return False, None
 
 def interpolate_future_trajectory(np.ndarray[double, ndim=2] trajectory_list_array, double interpolate_resolution):
-    cdef np.ndarray[double, ndim=1] time_values = trajectory_list_array[:, 3]
-    cdef np.ndarray[double, ndim=2] position_values = trajectory_list_array[:, :3]
+    cdef np.ndarray[double, ndim=1] time_values = trajectory_list_array[:, -1]
+    cdef np.ndarray[double, ndim=2] position_values = trajectory_list_array[:, :-1]
 
     # Create the interpolation function
     interpolation_function = interp1d(time_values, position_values, axis=0, kind='linear')

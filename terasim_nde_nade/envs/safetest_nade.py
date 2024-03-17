@@ -439,12 +439,7 @@ class SafeTestNADE(SafeTestNDE):
             _type_: _description_
         """
 
-        # TODO: add logic, if the collision is unavoidable, the vehicle should not apply collision avoidances
-
         negligence_pair_dict = self.get_negligence_pair_dict(veh_ctx_dicts)
-
-        
-
         avoid_collision_IS_prob = float(os.getenv("AVOID_COLLISION_IS_PROB", 0.2))
         avoid_collision_IS_prob = 1.0
         avoid_collision_ndd_prob = 0.99

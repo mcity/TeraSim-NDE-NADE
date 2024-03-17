@@ -49,6 +49,7 @@ class NDEController(AgentController):
                 self.cached_control_command = None
                 self.all_checks_on(veh_id)
 
+    # TODO: combine this with the execute_control_command
     def execute_urban_lanechange(self, veh_id, control_command, obs_dict):
         self.allow_lane_change = False  # disable urban lane change after 1 lane change
         vehicle_lane_id = obs_dict["ego"]["lane_id"]
@@ -155,18 +156,19 @@ class NDEController(AgentController):
         trajectory_array = control_command.future_trajectory
         current_timestep = traci.simulation.getTime()
         closest_timestep_trajectory = min(
-            trajectory_array, key=lambda x: abs(x[3] - current_timestep)
+            trajectory_array, key=lambda x: abs(x[-1] - current_timestep)
         )
         # set the position of the vehicle to the closest timestep trajectory point
-
         traci.vehicle.moveToXY(
             vehID=veh_id,
             edgeID="",
             laneIndex=-1,
             x=closest_timestep_trajectory[0],
             y=closest_timestep_trajectory[1],
+            angle=closest_timestep_trajectory[2],
             keepRoute=1,
         )
+        traci.vehicle.setPreviousSpeed(veh_id, closest_timestep_trajectory[3])
 
     @staticmethod
     def execute_lane_change_command(veh_id, control_command, obs_dict):
