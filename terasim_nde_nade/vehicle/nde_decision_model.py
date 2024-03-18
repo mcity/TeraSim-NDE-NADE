@@ -47,10 +47,29 @@ class NDEDecisionModel(IDMModel):
         else:
             raise ValueError(f"location {vehicle_location} not supported")
 
+    # TODO: check if we should use rerouteeffort or changetarget
+    @staticmethod
+    def reroute_vehicle_if_necessary(veh_id: str, current_lane_id: str) -> bool:
+        bestlanes: List[Tuple[str, float, float, bool]] = traci.vehicle.getBestLanes(
+            veh_id
+        )
+        # get the bestlane with current lane id
+        for lane in bestlanes:
+            if lane[0] == current_lane_id:
+                if not lane[4]:  # the current lane does not allow continueing the route
+                    traci.vehicle.rerouteEffort(veh_id)
+                    return True  # reroute the vehicle
+        return False  # do not reroute the vehicle
+
     def derive_control_command_from_observation(self, obs_dict):
         # change the IDM and MOBIL parameters based on the location
         vehicle_location = get_location(obs_dict["ego"]["edge_id"])
-        # self.change_vehicle_type_according_to_location(obs_dict["ego"]["veh_id"], vehicle_location)
+        self.change_vehicle_type_according_to_location(
+            obs_dict["ego"]["veh_id"], vehicle_location
+        )
+        self.reroute_vehicle_if_necessary(
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
+        )
 
         # set yellow color for the vehicle
         traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 255, 0, 255))

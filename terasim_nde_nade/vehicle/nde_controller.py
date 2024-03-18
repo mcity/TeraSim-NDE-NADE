@@ -11,6 +11,7 @@ from .nde_vehicle_utils import (
 )
 from terasim.overlay import traci
 from addict import Dict
+from loguru import logger
 
 
 def get_all_routes():
@@ -49,58 +50,6 @@ class NDEController(AgentController):
                 self.cached_control_command = None
                 self.all_checks_on(veh_id)
 
-    # TODO: combine this with the execute_control_command
-    def execute_urban_lanechange(self, veh_id, control_command, obs_dict):
-        self.allow_lane_change = False  # disable urban lane change after 1 lane change
-        vehicle_lane_id = obs_dict["ego"]["lane_id"]
-        neighbour_lane = get_neighbour_lane(
-            self.simulator.sumo_net,
-            vehicle_lane_id,
-            direction=control_command["lateral"],
-        )
-        if neighbour_lane is not None:
-            current_edge_id = obs_dict["local"]["Ego"]["edge_id"]
-            new_target_lane, new_target_edge = get_next_lane_edge(
-                self.simulator.sumo_net, neighbour_lane
-            )
-            all_route_edges = get_all_route_edges()
-            perfect_new_route_index = None
-            for route in all_route_edges.keys():
-                if (
-                    new_target_edge in all_route_edges[route]
-                    and current_edge_id in all_route_edges[route]
-                ):
-                    perfect_new_route_index = route
-                    break
-            if (
-                perfect_new_route_index is not None
-            ):  # if there is a route that can reach the target edge and the current edge, then use this route
-                traci.vehicle.setRouteID(veh_id, route)
-            else:
-                final_edge_id_in_new_route = None
-                for (
-                    route
-                ) in (
-                    all_route_edges.keys()
-                ):  # if there is no route that can reach the target edge and the current edge, then find a route that can reach the target edge and let the vehicle go to the final edge of this route
-                    if new_target_edge in all_route_edges[route]:
-                        final_edge_id_in_new_route = all_route_edges[route][-1]
-                        break
-                # if no route can reach the target edge, then let the vehicle go to the target edge
-                final_edge_id_in_new_route = (
-                    final_edge_id_in_new_route
-                    if final_edge_id_in_new_route is not None
-                    else new_target_edge
-                )
-                traci.vehicle.changeTarget(veh_id, new_target_edge)
-
-    def is_urban_lanechange(self, veh_edge_id):
-        return (
-            ("EG_1_1_1" not in veh_edge_id)
-            and ("EG_1_3_1" not in veh_edge_id)
-            and ("NODE_7_0" not in veh_edge_id)
-        )
-
     def execute_control_command(self, veh_id, control_command, obs_dict):
         """Vehicle acts based on the input action.
 
@@ -123,34 +72,46 @@ class NDEController(AgentController):
                         "cached_command": control_command,
                     }
                 )
-        if (
-            self.cached_control_command["cached_command"].command_type
-            == Command.TRAJECTORY
-        ):
+                self.execute_control_command_onestep(
+                    veh_id, self.cached_control_command, obs_dict, fisrt_step=True
+                )
+        else:
+            self.execute_control_command_onestep(
+                veh_id, self.cached_control_command, obs_dict, fisrt_step=False
+            )
+
+    def execute_control_command_onestep(
+        self, veh_id, cached_control_command, obs_dict, fisrt_step=False
+    ):
+        if cached_control_command["cached_command"].command_type == Command.TRAJECTORY:
             # pass
             self.execute_trajectory_command(
-                veh_id, self.cached_control_command["cached_command"], obs_dict
+                veh_id, cached_control_command["cached_command"], obs_dict
             )
         elif (
-            self.cached_control_command["cached_command"].command_type == Command.LEFT
-            or self.cached_control_command["cached_command"].command_type
-            == Command.RIGHT
+            cached_control_command["cached_command"].command_type == Command.LEFT
+            or cached_control_command["cached_command"].command_type == Command.RIGHT
         ):
+            traci.vehicle.getBestLanes(veh_id)
             self.execute_lane_change_command(
-                veh_id, self.cached_control_command["cached_command"], obs_dict
+                veh_id,
+                cached_control_command["cached_command"],
+                obs_dict,
+                fisrt_step=fisrt_step,
             )
         elif (
-            self.cached_control_command["cached_command"].command_type
+            cached_control_command["cached_command"].command_type
             == Command.ACCELERATION
         ):
             self.execute_acceleration_command(
-                veh_id, self.cached_control_command["cached_command"], obs_dict
+                veh_id, cached_control_command["cached_command"], obs_dict
             )
         else:
-            pass
+            logger.error("Invalid command type")
         return
 
-    def execute_trajectory_command(self, veh_id, control_command, obs_dict):
+    @staticmethod
+    def execute_trajectory_command(veh_id, control_command, obs_dict):
         assert control_command.command_type == Command.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
         trajectory_array = control_command.future_trajectory
@@ -171,16 +132,20 @@ class NDEController(AgentController):
         traci.vehicle.setPreviousSpeed(veh_id, closest_timestep_trajectory[3])
 
     @staticmethod
-    def execute_lane_change_command(veh_id, control_command, obs_dict):
+    def execute_lane_change_command(
+        veh_id, control_command, obs_dict, first_step=False
+    ):
         assert (
             control_command.command_type == Command.LEFT
             or control_command.command_type == Command.RIGHT
         )
-        indexOffset = 1 if control_command.command_type == Command.LEFT else -1
-        traci.vehicle.changeLaneRelative(veh_id, indexOffset, utils.get_step_size())
+        if first_step:  # only execute lane change command once
+            indexOffset = 1 if control_command.command_type == Command.LEFT else -1
+            traci.vehicle.changeLaneRelative(veh_id, indexOffset, utils.get_step_size())
 
     @staticmethod
     def execute_acceleration_command(veh_id, control_command, obs_dict):
+        logger.critical("the acceleration command should not be executed")
         assert control_command.command_type == Command.ACCELERATION
         acceleration = control_command.acceleration
         final_speed = obs_dict["ego"]["velocity"] + acceleration * utils.get_step_size()
