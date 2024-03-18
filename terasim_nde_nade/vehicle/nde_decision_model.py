@@ -50,9 +50,7 @@ class NDEDecisionModel(IDMModel):
     # TODO: check if we should use rerouteeffort or changetarget
     @staticmethod
     def reroute_vehicle_if_necessary(veh_id: str, current_lane_id: str) -> bool:
-        bestlanes: List[Tuple[str, float, float, bool]] = traci.vehicle.getBestLanes(
-            veh_id
-        )
+        bestlanes = traci.vehicle.getBestLanes(veh_id)
         # get the bestlane with current lane id
         for lane in bestlanes:
             if lane[0] == current_lane_id:
