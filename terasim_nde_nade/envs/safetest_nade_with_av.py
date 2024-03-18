@@ -15,15 +15,16 @@ class SafeTestNADEWithAV(SafeTestNADE):
     def on_start(self, ctx):
         # initialize the surrogate model and add AV to env
         super().on_start(ctx)
-        self.add_vehicle(
-            veh_id="CAV",
-            route="cav_route",
-            lane="best",
-            lane_id="EG_9_1_1_0",
-            position=0,
-            speed=0,
-            type_id="NDE_HIGHWAY",
-        )
+        if "CAV" not in traci.vehicle.getIDList():
+            self.add_vehicle(
+                veh_id="CAV",
+                route="cav_route",
+                lane="best",
+                lane_id="EG_9_1_1_0",
+                position=0,
+                speed=0,
+                type_id="NDE_HIGHWAY",
+            )
         # set the CAV with white color
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
 
