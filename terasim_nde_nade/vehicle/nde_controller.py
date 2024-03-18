@@ -73,15 +73,15 @@ class NDEController(AgentController):
                     }
                 )
                 self.execute_control_command_onestep(
-                    veh_id, self.cached_control_command, obs_dict, fisrt_step=True
+                    veh_id, self.cached_control_command, obs_dict, first_step=True
                 )
         else:
             self.execute_control_command_onestep(
-                veh_id, self.cached_control_command, obs_dict, fisrt_step=False
+                veh_id, self.cached_control_command, obs_dict, first_step=False
             )
 
     def execute_control_command_onestep(
-        self, veh_id, cached_control_command, obs_dict, fisrt_step=False
+        self, veh_id, cached_control_command, obs_dict, first_step=False
     ):
         if cached_control_command["cached_command"].command_type == Command.TRAJECTORY:
             # pass
@@ -92,12 +92,11 @@ class NDEController(AgentController):
             cached_control_command["cached_command"].command_type == Command.LEFT
             or cached_control_command["cached_command"].command_type == Command.RIGHT
         ):
-            traci.vehicle.getBestLanes(veh_id)
             self.execute_lane_change_command(
                 veh_id,
                 cached_control_command["cached_command"],
                 obs_dict,
-                fisrt_step=fisrt_step,
+                first_step=first_step,
             )
         elif (
             cached_control_command["cached_command"].command_type
