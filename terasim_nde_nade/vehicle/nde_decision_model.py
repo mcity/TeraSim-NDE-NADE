@@ -47,16 +47,19 @@ class NDEDecisionModel(IDMModel):
         else:
             raise ValueError(f"location {vehicle_location} not supported")
 
-    # TODO: check if we should use rerouteeffort or changetarget
     @staticmethod
     def reroute_vehicle_if_necessary(veh_id: str, current_lane_id: str) -> bool:
         bestlanes = traci.vehicle.getBestLanes(veh_id)
         # get the bestlane with current lane id
         for lane in bestlanes:
             if lane[0] == current_lane_id:
-                if not lane[4]:  # the current lane does not allow continueing the route
-                    traci.vehicle.rerouteEffort(veh_id)
-                    return True  # reroute the vehicle
+                if not lane[4]:  # the current lane does not allow continuing the route
+                    next_lniks = traci.lane.getLinks(current_lane_id)
+                    if next_lniks:
+                        next_lane_id = traci.lane.getLinks(current_lane_id)[0][0]
+                        next_edge_id = traci.lane.getEdgeID(next_lane_id)
+                        traci.vehicle.changeTarget(veh_id, next_edge_id)
+                        return True  # reroute the vehicle
         return False  # do not reroute the vehicle
 
     def derive_control_command_from_observation(self, obs_dict):
