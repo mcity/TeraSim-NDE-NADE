@@ -54,9 +54,9 @@ class NDEDecisionModel(IDMModel):
         for lane in bestlanes:
             if lane[0] == current_lane_id:
                 if not lane[4]:  # the current lane does not allow continuing the route
-                    next_lniks = traci.lane.getLinks(current_lane_id)
-                    if next_lniks:
-                        next_lane_id = traci.lane.getLinks(current_lane_id)[0][0]
+                    next_links = traci.lane.getLinks(current_lane_id)
+                    if next_links:
+                        next_lane_id = next_links[0][0]
                         next_edge_id = traci.lane.getEdgeID(next_lane_id)
                         traci.vehicle.changeTarget(veh_id, next_edge_id)
                         return True  # reroute the vehicle
