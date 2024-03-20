@@ -8,6 +8,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
     get_collision_type_and_prob,
     is_car_following,
 )
+from loguru import logger
 
 
 class SafeTestNADEWithAV(SafeTestNADE):
@@ -21,7 +22,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 veh_id="CAV",
                 route_id="cav_route",
                 lane="best",
-                lane_id="EG_9_1_1_0",
+                lane_id="EG_35_1_14_0",
                 position=0,
                 speed=0,
                 type_id="NDE_URBAN",
@@ -35,6 +36,12 @@ class SafeTestNADEWithAV(SafeTestNADE):
             50,
             [traci.constants.VAR_POSITION],
         )
+
+    def reroute_vehicle_if_necessary(self, veh_id, veh_ctx_dicts, obs_dicts):
+        if veh_id == "CAV":
+            logger.debug("CAV will not be rerouted.")
+            return False
+        super().reroute_vehicle_if_necessary(veh_id, veh_ctx_dicts, obs_dicts)
 
     def NADE_decision(self, control_command_dicts, veh_ctx_dicts, obs_dicts):
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
