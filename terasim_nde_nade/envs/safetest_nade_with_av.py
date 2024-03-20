@@ -14,16 +14,17 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
     def on_start(self, ctx):
         # initialize the surrogate model and add AV to env
+        self.max_importance_sampling_prob = 0.1
         super().on_start(ctx)
         if "CAV" not in traci.vehicle.getIDList():
             self.add_vehicle(
                 veh_id="CAV",
-                route="cav_route",
+                route_id="cav_route",
                 lane="best",
                 lane_id="EG_9_1_1_0",
                 position=0,
                 speed=0,
-                type_id="NDE_HIGHWAY",
+                type_id="NDE_URBAN",
             )
         # set the CAV with white color
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
@@ -139,8 +140,14 @@ class SafeTestNADEWithAV(SafeTestNADE):
             )
         return CAV_command
 
-    # def get_IS_prob(self, criticality_dict, veh_id):
-    #     return self.max_importance_sampling_prob
+    def get_IS_prob(
+        self,
+        veh_id,
+        ndd_control_command_dicts,
+        maneuver_challenge_dicts,
+        veh_ctx_dicts,
+    ):
+        return self.max_importance_sampling_prob
 
     def get_maneuver_challenge(
         self,

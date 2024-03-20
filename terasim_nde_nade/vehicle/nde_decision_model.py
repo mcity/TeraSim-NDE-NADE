@@ -97,7 +97,7 @@ class NDEDecisionModel(IDMModel):
                         ff_acceleration,
                         cf_acceleration,
                         current_acceleration,
-                        highlight_flag=False,
+                        highlight_flag=True,
                     )
                 )
             )
@@ -110,12 +110,12 @@ class NDEDecisionModel(IDMModel):
                         obs_dict,
                         ff_acceleration,
                         current_acceleration,
-                        highlight_flag=False,
+                        highlight_flag=True,
                     )
                 )
             )
         negligence_command_dict.update(
-            Dict(lane_change_negligence(obs_dict, highlight_flag=False))
+            Dict(lane_change_negligence(obs_dict, highlight_flag=True))
         )
 
         # If there are no negligence commands, use the default command with probability 1

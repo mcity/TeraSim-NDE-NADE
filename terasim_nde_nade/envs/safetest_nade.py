@@ -112,7 +112,7 @@ class SafeTestNADE(SafeTestNDE):
 
             self.refresh_control_commands_state()
             self.execute_control_commands(ITE_control_cmds)
-            self.record_experiment_data(veh_ctx_dicts, should_continue_simulation_flag)
+            # self.record_experiment_data(veh_ctx_dicts, should_continue_simulation_flag)
         return should_continue_simulation_flag
     
     def record_experiment_data(self, veh_ctx_dicts, should_continue_simulation_flag):
