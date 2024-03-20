@@ -1,14 +1,26 @@
-from setuptools import setup, find_packages
-from setuptools.extension import Extension
+from setuptools import setup, find_packages, Extension
 from Cython.Build import cythonize
 import numpy
 
 extensions = [
     Extension(
-        "terasim_nde_nade.vehicle.nde_vehicle_utils_cython",
-        ["terasim_nde_nade/vehicle/nde_vehicle_utils_cython.pyx"],
+        "terasim_nde_nade",
+        ["**.py", "terasim_nde_nade/vehicle/nde_vehicle_utils_cython.pyx"],
         include_dirs=[numpy.get_include()],
-    ),
+    )
 ]
 
-setup(ext_modules=cythonize(extensions), script_args=["build_ext", "--inplace"])
+setup(
+    name="terasim_nde_nade",
+    version="0.1.0",
+    ext_modules=cythonize(extensions),
+    package_data={
+        "terasim_nde_nade": ["./build/*.so"],
+    },
+    zip_safe=False,
+    install_requires=[
+        "Cython>=3.0.8",
+        "loguru>=0.5.3",
+        "shapely>=2.0.3",
+    ],
+)

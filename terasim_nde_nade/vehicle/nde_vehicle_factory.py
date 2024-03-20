@@ -26,7 +26,8 @@ class NDEVehicleFactory(VehicleFactory):
             "lc_duration": 1,  # the lane change duration will be 1 second
             "neg_duration": 2,  # the negligence duration will be 2 second
         }
-        if veh_id == "CAV":
+        # if veh_id == "CAV":
+        if False:
             controller = AggressiveController(simulator, control_params)
         else:
             controller = NDEController(simulator, control_params)
