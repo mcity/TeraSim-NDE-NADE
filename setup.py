@@ -4,16 +4,20 @@ import numpy
 
 extensions = [
     Extension(
-        "terasim_nde_nade",
-        ["**.py", "terasim_nde_nade/vehicle/nde_vehicle_utils_cython.pyx"],
+        "terasim_nde_nade.vehicle.nde_vehicle_utils_cython",
+        ["terasim_nde_nade/vehicle/nde_vehicle_utils_cython.pyx"],
         include_dirs=[numpy.get_include()],
-    )
+    ),
+    Extension(
+        "*",
+        ["terasim_nde_nade/**/*.py"],
+    ),
 ]
 
 setup(
     name="terasim_nde_nade",
     version="0.1.0",
-    ext_modules=cythonize(extensions),
+    ext_modules=cythonize(extensions, build_dir="build"),
     package_data={
         "terasim_nde_nade": ["./build/*.so"],
     },
