@@ -81,7 +81,6 @@ class SafeTestNADE(SafeTestNDE):
         }
         return control_cmds, veh_ctx_dicts, obs_dicts, self.should_continue_simulation()
 
-
     # @profile
     def on_step(self, ctx):
         # clear vehicle context dicts
@@ -102,22 +101,45 @@ class SafeTestNADE(SafeTestNDE):
             ) = self.NADE_decision(
                 control_cmds, veh_ctx_dicts, obs_dicts
             )  # enable ITE
-
+            self.importance_sampling_weight *= weight # update weight by negligence
             ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
                 trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
             )
-
+            self.importance_sampling_weight *= weight # update weight by collision avoidance
             ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
                 ITE_control_cmds, trajectory_dicts
             )
 
             self.refresh_control_commands_state()
             self.execute_control_commands(ITE_control_cmds)
-            self.importance_sampling_weight *= (
-                weight  # update the importance sampling weight
-            )
-        # Simulation stop check
-        return self.should_continue_simulation()
+            self.record_experiment_data(veh_ctx_dicts, should_continue_simulation_flag)
+        return should_continue_simulation_flag
+    
+    def record_experiment_data(self, veh_ctx_dicts, should_continue_simulation_flag):
+        if not self.log_flag:
+            return
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+        self.record_step_data(veh_ctx_dicts)
+        if not should_continue_simulation_flag:
+            self.record_final_data(veh_ctx_dicts)
+
+    def record_step_data(self, veh_ctx_dicts):
+        step_log = {}
+        for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
+            maneuver_challenge = veh_ctx_dict.get("maneuver_challenge", None)
+            if maneuver_challenge and maneuver_challenge.get("negligence", None):
+                step_log[veh_id]["maneuver_challenge"] = maneuver_challenge
+
+            keys = ["avoidable", "conflict_vehicle_list", "mode"]
+            step_log[veh_id].update({key: veh_ctx_dict[key] for key in keys if veh_ctx_dict.get(key)})
+            
+            if not len(step_log[veh_id]):
+                step_log.pop(veh_id)
+        return step_log
+
+    def record_final_data(self, veh_ctx_dicts):
+        pass
 
     def get_observation_dicts(self):
         obs_dicts = {
@@ -332,16 +354,16 @@ class SafeTestNADE(SafeTestNDE):
         veh_ctx_dicts = {
             veh_id: ctx
             for veh_id, ctx in veh_ctx_dicts.items()
-            if "conflict_vehicle" in ctx
+            if "conflict_vehicle_list" in ctx
         }
 
         if potential:
             negligence_pair_dict = {
-                veh_id: ctx["conflict_vehicle"] for veh_id, ctx in veh_ctx_dicts.items()
+                veh_id: ctx["conflict_vehicle_list"] for veh_id, ctx in veh_ctx_dicts.items()
             }
         else:
             negligence_pair_dict = {
-                veh_id: ctx["conflict_vehicle"]
+                veh_id: ctx["conflict_vehicle_list"]
                 for veh_id, ctx in veh_ctx_dicts.items()
                 if "mode" in ctx and ctx["mode"] == "negligence"
             }
@@ -441,7 +463,6 @@ class SafeTestNADE(SafeTestNDE):
 
         negligence_pair_dict = self.get_negligence_pair_dict(veh_ctx_dicts)
         avoid_collision_IS_prob = float(os.getenv("AVOID_COLLISION_IS_PROB", 0.2))
-        avoid_collision_IS_prob = 1.0
         avoid_collision_ndd_prob = 0.99
         weight = 1.0
 
@@ -458,11 +479,13 @@ class SafeTestNADE(SafeTestNDE):
         # check if the avoidance command list is all None
         if all(avoidance_command is None for avoidance_command in avoidance_command_list):
             logger.critical(f"all avoidance command is None, no collision avoidance command will be selected and NADE for collision avoidance will be disabled, neglected_vehicle_set: {neglected_vehicle_set}")
+            for veh_id in neglected_vehicle_set:
+                veh_ctx_dicts[veh_id]["mode"] = "accept_collision"
             return ITE_control_command_dict, veh_ctx_dicts, weight
         
         timestamp = utils.get_time()
         IS_prob = np.random.uniform(0, 1)
-        if IS_prob < avoid_collision_IS_prob:  # apply collision aboidance (select NDD)
+        if IS_prob < avoid_collision_IS_prob:  # apply collision avoidance (select NDD)
             for (
                 neglecting_vehicle_id,
                 neglected_vehicle_list,
@@ -477,12 +500,17 @@ class SafeTestNADE(SafeTestNDE):
                     avoid_collision_command = veh_ctx_dicts[neglected_vehicle_id][
                         "ndd_command_distribution"
                     ].get("avoid_collision", None)
+                    # if avoidable, then collision command should be available, if not avoidable, then collision command should be None
+                    assert ((avoid_collision_command is not None) and (veh_ctx_dicts[neglecting_vehicle_id]["avoidable"])) or ((avoid_collision_command is None) and (not veh_ctx_dicts[neglecting_vehicle_id]["avoidable"]))
                     if avoid_collision_command:
                         ITE_control_command_dict[neglected_vehicle_id] = (
                             avoid_collision_command
                         )
+                        veh_ctx_dicts[neglected_vehicle_id]["mode"] = "avoid_collision"
                     else:
-                        logger.critical(f"neglected_vehicle_id: {neglected_vehicle_id} does not have avoidance command")
+                        logger.critical(f"neglected_vehicle_id: {neglected_vehicle_id} does not have avoidance command from {neglecting_vehicle_id}, avoidability: {veh_ctx_dicts[neglecting_vehicle_id].get('avoidable', True)}")
+            weight *= avoid_collision_ndd_prob / avoid_collision_IS_prob
+                
         else:  # does not apply collision avoidance
             for (
                 neglecting_vehicle_id,
@@ -589,7 +617,7 @@ class SafeTestNADE(SafeTestNDE):
                     IS_magnitude = float(os.getenv("IS_MAGNITUDE_HIGHWAY", 100))
                     logger.trace(f"IS_magnitude: {IS_magnitude} for highway")
                 else:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 1000))
+                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 100))
                     logger.trace(f"IS_magnitude: {IS_magnitude} for intersection")
 
                 # if the vehicle is not avoidable, increase the importance sampling magnitude
@@ -629,7 +657,7 @@ class SafeTestNADE(SafeTestNDE):
         for veh_id in maneuver_challenge_dicts:
             if maneuver_challenge_dicts[veh_id].get("negligence"):
                 conflict_vehicle_list = veh_ctx_dicts[veh_id].get(
-                    "conflict_vehicle", []
+                    "conflict_vehicle_list", []
                 )
                 conflict_vehicle_future_dict = {
                     veh_id: avoidance_future_trajectory_dict[veh_id]
@@ -696,9 +724,9 @@ class SafeTestNADE(SafeTestNDE):
             if maneuver_challenge_dicts[veh_id].get("negligence")
         }
         conflict_vehicle_info = {
-            veh_id: veh_ctx_dicts[veh_id].get("conflict_vehicle")
+            veh_id: veh_ctx_dicts[veh_id].get("conflict_vehicle_list")
             for veh_id in veh_ctx_dicts
-            if veh_ctx_dicts[veh_id].get("conflict_vehicle")
+            if veh_ctx_dicts[veh_id].get("conflict_vehicle_list")
         }
         logger.trace(
             f"maneuver_challenge: {maneuver_challenge_dicts_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
@@ -750,9 +778,9 @@ class SafeTestNADE(SafeTestNDE):
                 )
                 final_collision_flag = final_collision_flag or collision_flag
                 if collision_flag and record_in_ctx:
-                    if "conflict_vehicle" not in veh_ctx_dict:
-                        veh_ctx_dict["conflict_vehicle"] = []
-                    veh_ctx_dict["conflict_vehicle"].append(veh_id)
+                    if "conflict_vehicle_list" not in veh_ctx_dict:
+                        veh_ctx_dict["conflict_vehicle_list"] = []
+                    veh_ctx_dict["conflict_vehicle_list"].append(veh_id)
             return {
                 "normal": 0,
                 "negligence": (1 if final_collision_flag else 0),

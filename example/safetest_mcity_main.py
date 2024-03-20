@@ -33,6 +33,7 @@ env = SafeTestNADE(
         edge_config_path=dir_path + "/maps/Mcity_safetest/edge_config.json"
     ),
     info_extractor=InfoExtractor,
+    log_dir=f"{args.dir}/{args.name}/raw_data/{args.nth}",
     warmup_time_lb=100,
     warmup_time_ub=200,
     run_time=1200,

@@ -2,6 +2,7 @@ from terasim.envs.template import EnvTemplate
 import terasim.utils as utils
 import numpy as np
 from terasim.overlay import traci
+from loguru import logger
 
 
 class SafeTestNDE(EnvTemplate):
@@ -13,15 +14,18 @@ class SafeTestNDE(EnvTemplate):
         warmup_time_lb=900,
         warmup_time_ub=1200,
         run_time=300,
+        log_flag=True,
+        log_dir=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         rng = np.random.default_rng()
-        self.warmup_time = int(
-            rng.integers(low=warmup_time_lb, high=warmup_time_ub)
-        )  # 12 minutes
-        self.run_time = run_time  # 5 minutes
-        print("warmup_time", self.warmup_time, "run_time", self.run_time)
+        self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub))
+        self.run_time = run_time
+        logger.info(f"warmup_time: {self.warmup_time}, run_time: {self.run_time}")
+        self.final_log = None
+        self.log_dir = log_dir
+        self.log_flag = log_flag
         super().__init__(vehicle_factory, info_extractor, *args, **kwargs)
 
     def on_start(self, ctx):
@@ -49,12 +53,6 @@ class SafeTestNDE(EnvTemplate):
                 veh_id, current_time
             )
 
-    def final_state_log(self):
-        return {
-            "warmup_time": self.warmup_time,
-            "run_time": self.run_time,
-        }
-
     def _vehicle_in_env_distance(self, mode):
         veh_id_list = traci.vehicle.getIDList()
         distance_dist = self._get_distance(veh_id_list)
@@ -72,10 +70,21 @@ class SafeTestNDE(EnvTemplate):
             colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
-            # self.monitor.save_observation(veh_1_id, veh_2_id)
-            # self.monitor.export_final_state(veh_1_id, veh_2_id, self.final_state_log(), "collision")
+            self.final_log = {
+                "veh_1_id": veh_1_id,
+                "veh_2_id": veh_2_id,
+                "warmup_time": self.warmup_time,
+                "run_time": self.run_time,
+                "finish_reason": "collision",
+            }
             return False
         elif utils.get_time() >= self.warmup_time + self.run_time:
-            # self.monitor.export_final_state(None, None, self.final_state_log(), "timeout")
+            self.final_log = {
+                "veh_1_id": None,
+                "veh_2_id": None,
+                "warmup_time": self.warmup_time,
+                "run_time": self.run_time,
+                "finish_reason": "timeout",
+            }
             return False
-        return super().should_continue_simulation()
+        return True

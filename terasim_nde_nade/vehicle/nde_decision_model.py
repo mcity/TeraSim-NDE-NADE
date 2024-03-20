@@ -58,8 +58,11 @@ class NDEDecisionModel(IDMModel):
                     if next_links:
                         next_lane_id = next_links[0][0]
                         next_edge_id = traci.lane.getEdgeID(next_lane_id)
-                        traci.vehicle.changeTarget(veh_id, next_edge_id)
-                        return True  # reroute the vehicle
+                        try:
+                            traci.vehicle.changeTarget(veh_id, next_edge_id)
+                            return True  # reroute the vehicle
+                        except:
+                            return False
         return False  # do not reroute the vehicle
 
     def derive_control_command_from_observation(self, obs_dict):
@@ -73,7 +76,7 @@ class NDEDecisionModel(IDMModel):
         )
 
         # set yellow color for the vehicle
-        traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 255, 0, 255))
+        # traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 255, 0, 255))
 
         leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
         current_acceleration = obs_dict["ego"]["acceleration"]
@@ -94,7 +97,7 @@ class NDEDecisionModel(IDMModel):
                         ff_acceleration,
                         cf_acceleration,
                         current_acceleration,
-                        highlight_flag=True,
+                        highlight_flag=False,
                     )
                 )
             )
@@ -107,12 +110,12 @@ class NDEDecisionModel(IDMModel):
                         obs_dict,
                         ff_acceleration,
                         current_acceleration,
-                        highlight_flag=True,
+                        highlight_flag=False,
                     )
                 )
             )
         negligence_command_dict.update(
-            Dict(lane_change_negligence(obs_dict, highlight_flag=True))
+            Dict(lane_change_negligence(obs_dict, highlight_flag=False))
         )
 
         # If there are no negligence commands, use the default command with probability 1
