@@ -257,25 +257,6 @@ def get_sumo_angle(np_angle):
     return sumo_angle
 
 
-def is_in_lanes(lane_id, lanes):
-    return lane_id in set(lanes)
-
-
-def in_which_lane_group(lane_id, lane_groups):
-    for index, lanes in lane_groups.items():
-        if is_in_lanes(lane_id, lanes):
-            return index
-    return -1
-
-
-edge_config = json.load(
-    open(
-        "/home/haoweis/TeraSim-Meso/TeraSim-NDE-ITE/example/maps/Mcity_safetest/edge_config.json",
-        "r",
-    )
-)
-
-
 def get_lane_angle(lane_id, mode="start"):
     if mode == "start":
         relative_position = 0

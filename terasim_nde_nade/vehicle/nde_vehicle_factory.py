@@ -10,12 +10,8 @@ import json
 
 
 class NDEVehicleFactory(VehicleFactory):
-    def __init__(self, edge_config_path) -> None:
-        self.edge_config = json.load(open(edge_config_path, "r"))
-        super().__init__()
 
     def create_vehicle(self, veh_id, simulator):
-
         sensor_list = [NDEEgoSensor()]
         decision_model = NDEDecisionModel(MOBIL_lc_flag=True, stochastic_acc_flag=False)
         # decision_model = IDMModel(MOBIL_lc_flag=True, stochastic_acc_flag=True)

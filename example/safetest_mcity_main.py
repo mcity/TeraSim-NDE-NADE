@@ -25,9 +25,7 @@ parser.add_argument("--nth", type=str, help="the nth epoch", default="0_0")
 args = parser.parse_args()
 
 env = SafeTestNADE(
-    vehicle_factory=NDEVehicleFactory(
-        edge_config_path=dir_path + "/maps/Mcity_safetest/edge_config.json"
-    ),
+    vehicle_factory=NDEVehicleFactory(),
     info_extractor=InfoExtractor,
     log_dir=f"{args.dir}/{args.name}/raw_data/{args.nth}",
     warmup_time_lb=100,
