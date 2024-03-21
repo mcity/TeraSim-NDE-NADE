@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
-from .nde_vehicle_utils_cython import *
+from terasim_nde_nade.vehicle.nde_vehicle_utils_cython import *
 
 from typing import List, Tuple, Dict, Any, Optional
 from pydantic import BaseModel
