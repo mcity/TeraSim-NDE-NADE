@@ -8,9 +8,6 @@ from terasim.utils import (
     sumo_heading_to_orientation,
 )
 import json
-
-# from .nde_vehicle_utils_cython import get_future_position_on_route
-from typing import List, Tuple, Optional
 from enum import Enum
 from collections import namedtuple
 from scipy.interpolate import interp1d
@@ -19,7 +16,7 @@ from scipy.interpolate import interp1d
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
 from .nde_vehicle_utils_cython import *
 
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 from pydantic import BaseModel
 from enum import Enum
 
@@ -184,10 +181,58 @@ def get_next_lane_edge(net, lane_id):
     return outgoing_lanes[0].getID(), outgoing_edges[0].getID()
 
 
-def get_negligence_prob(
-    observation, negligence_mode, location_region, neg_location_region
+tls_controlled_lane_set = None
+from itertools import chain
+
+
+def cache_tls_controlled_lane_set():
+    global tls_controlled_lane_set
+    for tls_id in traci.trafficlight.getIDList():
+        controlled_links = traci.trafficlight.getControlledLinks(tls_id)
+        lane_set = {
+            lane
+            for link in chain.from_iterable(controlled_links)
+            for lane in [link[0], link[-1]]
+        }
+        tls_controlled_lane_set.update(lane_set)
+
+
+def get_distance_to_next_tls(veh_id: str):
+    next_tls_info = traci.vehicle.getNextTLS(veh_id)
+    if next_tls_info:
+        tls_distance = next_tls_info[0][2]
+        return tls_distance
+    else:
+        return float("inf")
+
+
+def get_location(
+    veh_id: str,
+    lane_id: str = None,
+    distance_to_tls_threshold: float = 25,
+    highway_speed_threshold: float = 7.5,
+    highlight_flag: bool = False,
 ):
-    pass
+    global tls_controlled_lane_set
+    if tls_controlled_lane_set is None:
+        tls_controlled_lane_set = set()
+        cache_tls_controlled_lane_set()
+    lane_id = lane_id if lane_id else traci.vehicle.getLaneID(veh_id)
+    if traci.lane.getMaxSpeed(lane_id) > highway_speed_threshold:
+        if highlight_flag:
+            traci.vehicle.setColor(veh_id, (255, 0, 0, 255))  # red
+        return "highway"
+    elif (
+        lane_id in tls_controlled_lane_set
+        or get_distance_to_next_tls(veh_id) < distance_to_tls_threshold
+    ):
+        if highlight_flag:
+            traci.vehicle.setColor(veh_id, (0, 255, 0, 255))  # green
+        return "intersection"
+    else:
+        if highlight_flag:
+            traci.vehicle.setColor(veh_id, (0, 0, 255, 255))  # blue
+        return "roundabout"
 
 
 def get_neighbour_lane(net, lane_id, direction="left"):
@@ -231,25 +276,6 @@ edge_config = json.load(
 )
 
 
-def is_in_lanes(edge_id: str, edges: List[str]) -> bool:
-    return edge_id in set(edges)
-
-
-def in_which_lane_group(edge_id: str, edge_groups: Dict[int, List[str]]) -> int:
-    for index, edges in edge_groups.items():
-        if is_in_lanes(edge_id, edges):
-            return index
-    return -1
-
-
-def get_location(edge_id: str, edge_config_path: Optional[str] = None) -> str:
-    for edge_type, edge_groups in edge_config.items():
-        index = in_which_lane_group(edge_id, edge_groups)
-        if index != -1:
-            return edge_type
-    return "intersection"
-
-
 def get_lane_angle(lane_id, mode="start"):
     if mode == "start":
         relative_position = 0
@@ -287,9 +313,6 @@ def is_head_on(ego_obs, leader_info):
     return (120 < start_angle < 240) and (120 < end_angle < 240)
 
 
-from typing import Dict, Tuple, Any
-
-
 def get_collision_type_and_prob(
     obs_dict: Dict[str, Any],
     negligence_command: NDECommand,
@@ -299,7 +322,7 @@ def get_collision_type_and_prob(
     Given current observation and the negligence mode, detect what type of collisions will be generated
     """
     if location is None:
-        location = get_location(obs_dict["ego"]["edge_id"])
+        location = get_location(obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"])
     rear_end = negligence_command.info.get("is_car_following_flag", False)
     negligence_mode = negligence_command.info.get("negligence_mode", None)
     if "roundabout" in location:

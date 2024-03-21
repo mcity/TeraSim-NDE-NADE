@@ -23,20 +23,6 @@ from addict import Dict
 
 class NDEDecisionModel(IDMModel):
 
-    def __init__(
-        self,
-        MOBIL_lc_flag=True,
-        stochastic_acc_flag=False,
-        IDM_parameters=None,
-        MOBIL_parameters=None,
-    ):
-        current_path = os.path.dirname(os.path.abspath(__file__))
-        lane_config_path = os.path.join(current_path, "lane_config.json")
-        self.lane_config = json.load(open(lane_config_path, "r"))
-        super().__init__(
-            MOBIL_lc_flag, stochastic_acc_flag, IDM_parameters, MOBIL_parameters
-        )
-
     def change_vehicle_type_according_to_location(self, veh_id, vehicle_location):
         if "highway" in vehicle_location:  # highway/freeway scenario
             traci.vehicle.setType(veh_id, "NDE_HIGHWAY")
@@ -66,17 +52,17 @@ class NDEDecisionModel(IDMModel):
         return False  # do not reroute the vehicle
 
     def derive_control_command_from_observation(self, obs_dict):
+        highlight_flag = False
         # change the IDM and MOBIL parameters based on the location
-        vehicle_location = get_location(obs_dict["ego"]["edge_id"])
+        vehicle_location = get_location(
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
+        )
         self.change_vehicle_type_according_to_location(
             obs_dict["ego"]["veh_id"], vehicle_location
         )
         self.reroute_vehicle_if_necessary(
             obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
         )
-
-        # set yellow color for the vehicle
-        # traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 255, 0, 255))
 
         leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
         current_acceleration = obs_dict["ego"]["acceleration"]
@@ -97,7 +83,7 @@ class NDEDecisionModel(IDMModel):
                         ff_acceleration,
                         cf_acceleration,
                         current_acceleration,
-                        highlight_flag=True,
+                        highlight_flag=highlight_flag,
                     )
                 )
             )
@@ -110,12 +96,12 @@ class NDEDecisionModel(IDMModel):
                         obs_dict,
                         ff_acceleration,
                         current_acceleration,
-                        highlight_flag=True,
+                        highlight_flag=highlight_flag,
                     )
                 )
             )
         negligence_command_dict.update(
-            Dict(lane_change_negligence(obs_dict, highlight_flag=True))
+            Dict(lane_change_negligence(obs_dict, highlight_flag=highlight_flag))
         )
 
         # If there are no negligence commands, use the default command with probability 1
