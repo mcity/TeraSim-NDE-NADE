@@ -157,3 +157,4 @@ example/output
 monitor_1.json
 monitor.json
 *.c
+/dist_pyarmor
