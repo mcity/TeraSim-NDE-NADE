@@ -16,10 +16,6 @@ parser.add_argument("--exp_name", type=str, help="experiment name", default="tes
 parser.add_argument("--nth", type=str, help="the nth epoch", default="0_0")
 args = parser.parse_args()
 
-monitor = EnvMonitor(
-    log_dir=f"{args.dir}/{args.exp_name}/raw_data",
-    exp_id=f"{args.exp_name}_{args.nth}",
-)
 env = SafeTestNADEWithAV(
     vehicle_factory=NDEVehicleFactory(
         edge_config_path=dir_path + "/maps/Mcity_safetest/edge_config.json"
@@ -37,6 +33,5 @@ sim = Simulator(
     output_path=f"{args.dir}/{args.exp_name}/raw_data/{args.exp_name}_{args.nth}",
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
-monitor.bind_env(env)
 sim.bind_env(env)
 sim.run()

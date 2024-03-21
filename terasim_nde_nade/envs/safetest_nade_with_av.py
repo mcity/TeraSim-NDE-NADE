@@ -193,29 +193,16 @@ class SafeTestNADEWithAV(SafeTestNADE):
             )
 
     def should_continue_simulation(self):
-        # stop when collision happens or 300s
         collision_id_list = traci.simulation.getCollidingVehiclesIDList()
-        vehicle_list = traci.vehicle.getIDList()
-        if "CAV" not in vehicle_list:
-            self._vehicle_in_env_distance("after")
-            self.monitor.export_final_state(
-                None, None, self.final_state_log(), "CAV_out_of_env"
-            )
+        if "CAV" not in traci.vehicle.getIDList():
+            logger.info("CAV left the simulation, stop the simulation.")
             return False
         elif len(collision_id_list) >= 2 and "CAV" in collision_id_list:
-            self._vehicle_in_env_distance("after")
-            colliding_vehicles = self.simulator.get_colliding_vehicles()
-            veh_1_id = colliding_vehicles[0]
-            veh_2_id = colliding_vehicles[1]
-            self.monitor.save_observation(veh_1_id, veh_2_id)
-            self.monitor.export_final_state(
-                veh_1_id, veh_2_id, self.final_state_log(), "collision"
+            logger.critical(
+                "Collision happens between CAV and other vehicles, stop the simulation."
             )
             return False
         elif utils.get_time() >= self.warmup_time + self.run_time:
-            self._vehicle_in_env_distance("after")
-            self.monitor.export_final_state(
-                None, None, self.final_state_log(), "timeout"
-            )
+            logger.info("Simulation timeout, stop the simulation.")
             return False
         return True
