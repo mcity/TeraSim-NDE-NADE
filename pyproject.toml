@@ -16,7 +16,6 @@ Cython = "^3.0.8"
 loguru = "^0.5.3"
 shapely = "^2.0.3"
 # terasim = { git = "git@github.com:michigan-traffic-lab/TeraSim.git", branch = "feature/simple_sensor_architecture" }
-terasim = "^0.1.0"
 
 [tool.poetry.dev-dependencies]
 terasim = { path = "../TeraSim", develop = true}
