@@ -3,7 +3,6 @@ import os, sys
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 from terasim.simulator import Simulator
-from terasim_nde_nade.envs.env_monitor import EnvMonitor
 from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
