@@ -33,6 +33,7 @@ class SafeTestNDE(EnvTemplate):
         return super().on_start(ctx)
 
     def sumo_warmup(self, warmup_time):
+        # TODO: change vehicle type during the warmup time (might make warmup time longer)
         while True:
             traci.simulationStep()
             if traci.simulation.getTime() > warmup_time:
