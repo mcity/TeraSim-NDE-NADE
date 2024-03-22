@@ -115,7 +115,8 @@ def interpolate_future_trajectory(np.ndarray[double, ndim=2] trajectory_list_arr
     interpolation_function = interp1d(time_values, position_values, axis=0, kind='linear')
 
     # Create the new time values
-    cdef np.ndarray[double, ndim=1] new_time_values = np.arange(time_values[0], time_values[-1], interpolate_resolution)
+    cdef int num_points = int((time_values[-1] - time_values[0]) / interpolate_resolution) + 1
+    cdef np.ndarray[double, ndim=1] new_time_values = np.linspace(time_values[0], time_values[-1], num_points)
 
     # Interpolate the position values
     cdef np.ndarray[double, ndim=2] new_position_values = interpolation_function(new_time_values)

@@ -15,7 +15,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
     def on_start(self, ctx):
         # initialize the surrogate model and add AV to env
-        self.max_importance_sampling_prob = 0.1
+        self.max_importance_sampling_prob = 0.01
         super().on_start(ctx)
         if "CAV" not in traci.vehicle.getIDList():
             self.add_vehicle(
@@ -44,9 +44,6 @@ class SafeTestNADEWithAV(SafeTestNADE):
         super().reroute_vehicle_if_necessary(veh_id, veh_ctx_dicts, obs_dicts)
 
     def NADE_decision(self, control_command_dicts, veh_ctx_dicts, obs_dicts):
-        traci.vehicle.setColor("CAV", (255, 255, 255, 255))
-        traci.vehicle.setSpeed("CAV", 6)
-        traci.vehicle.setSpeedMode("CAV", 32)
         predicted_CAV_control_command = self.predict_cav_control_command(
             control_command_dicts, veh_ctx_dicts, obs_dicts
         )
