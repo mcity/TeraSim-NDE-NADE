@@ -125,7 +125,7 @@ class NDEController(AgentController):
             laneIndex=-1,
             x=closest_timestep_trajectory[0],
             y=closest_timestep_trajectory[1],
-            angle=closest_timestep_trajectory[2],
+            # angle=closest_timestep_trajectory[2],
             keepRoute=1,
         )
         traci.vehicle.setPreviousSpeed(veh_id, closest_timestep_trajectory[3])
@@ -166,7 +166,7 @@ def interpolate_control_command(control_command):
     if control_command.command_type == Command.TRAJECTORY:
         control_command.future_trajectory = interpolate_future_trajectory(
             control_command.future_trajectory, 0.1
-        )
+        )  # TODO: Angle cannot be interpolated
         return control_command
     else:
         return control_command

@@ -87,6 +87,9 @@ class SafeTestNADE(SafeTestNDE):
         veh_ctx_dicts = {}
         # Make NDE decisions for all vehicles
         control_cmds, veh_ctx_dicts = self.make_decisions(ctx)
+        # first_vehicle_veh = list(control_cmds.keys())[0]
+        # for veh_id in control_cmds:
+        #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
         obs_dicts = self.get_observation_dicts()
         # Make ITE decision, includes the modification of NDD distribution according to avoidability
         control_cmds, veh_ctx_dicts, obs_dicts, should_continue_simulation_flag = (

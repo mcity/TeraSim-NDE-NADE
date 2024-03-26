@@ -12,7 +12,9 @@ import json
 class NDEVehicleFactory(VehicleFactory):
 
     def create_vehicle(self, veh_id, simulator):
-        sensor_list = [NDEEgoSensor()]
+        sensor_list = [
+            NDEEgoSensor(cache=True, cache_history=True, cache_history_duration=1)
+        ]
         decision_model = NDEDecisionModel(MOBIL_lc_flag=True, stochastic_acc_flag=False)
         # decision_model = IDMModel(MOBIL_lc_flag=True, stochastic_acc_flag=True)
         control_params = {
