@@ -57,21 +57,30 @@ class NDEEgoSensor(EgoSensor):
         history_array = self._get_history_array(self.cache_length)
         current_time = traci.simulation.getTime()
         starting_time = current_time - self.cache_history_duration
+        assert isclose(
+            self._history[-1][0], current_time, rel_tol=1e-3
+        ), f"Current time is {current_time}, last time is {self._history[-1][0]}"
         if self.cache_history:
-            if isclose(self._history[0][0], starting_time, rel_tol=1e-3) and isclose(
-                self._history[-1][0], current_time, rel_tol=1e-3
-            ):
+            if isclose(
+                self._history[0][0], starting_time, rel_tol=1e-3
+            ):  # history is long enough and up-to-date
                 return history_array
-            elif self._history[0][0] <= starting_time:
-                interp_times = np.arange(starting_time, current_time, self.deltaT)
-                times = history_array[:, 0]
-                data = history_array[:, 1:]
-                interp_func = interp1d(times, data, axis=0, fill_value="extrapolate")
-                interp_data = interp_func(interp_times)
-                return np.concatenate([interp_times[:, None], interp_data], axis=1)
-            else:  # history is not long enough
-                logger.debug("History is not long enough, return None by default.")
-                return None
+            else:  # history is not long enough, fill with nan
+                expected_row_number = self.cache_length
+                actual_row_number = history_array.shape[0]
+                history_array = np.vstack(
+                    (
+                        np.ones(
+                            (
+                                expected_row_number - actual_row_number,
+                                history_array.shape[1],
+                            )
+                        )
+                        * np.nan,
+                        history_array,
+                    )
+                )
+
         else:
             raise ValueError(
                 "History is not cached, please set cache_history=True and cache_number when intializing the sensor."
