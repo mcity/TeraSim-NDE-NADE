@@ -39,8 +39,10 @@ class NDEEgoSensor(EgoSensor):
     def fetch(self) -> dict:
         fetch_data = self._fetch()
         if self.cache_history:
+            cached_time_list = np.array([time for time, _ in self._history])
             current_time = traci.simulation.getTime()
-            self._history.append((current_time, fetch_data))
+            if not np.any(np.isclose(cached_time_list, current_time, atol=1e-3)):
+                self._history.append((current_time, fetch_data))
         return fetch_data
 
     @property
