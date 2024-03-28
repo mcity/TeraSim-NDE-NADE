@@ -28,7 +28,7 @@ def get_all_route_edges():
 
 class NDEController(AgentController):
 
-    def __init__(self, simulator, params):
+    def __init__(self, simulator, params=None):
         self.is_busy = False
         self.cached_control_command = None  # this is a dict, containing the control command for the vehicle with the timestep information
         return super().__init__(

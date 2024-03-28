@@ -48,7 +48,6 @@ class SafeTestNADEWithAV(SafeTestNADE):
         super().reroute_vehicle_if_necessary(veh_id, veh_ctx_dicts, obs_dicts)
 
     def NADE_decision(self, control_command_dicts, veh_ctx_dicts, obs_dicts):
-        # TODO: disable the AV negligence behavior here (cannot sample it from the distribution)
         predicted_CAV_control_command = self.predict_cav_control_command(
             control_command_dicts, veh_ctx_dicts, obs_dicts
         )

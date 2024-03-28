@@ -5,6 +5,7 @@ from terasim.vehicle.vehicle import Vehicle
 from terasim_nde_nade.vehicle.nde_controller import NDEController
 from terasim_nde_nade.vehicle.aggressive_controller import AggressiveController
 from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
+from terasim_nde_nade.vehicle.conflict_generation_model import ConflictGenerationModel
 from terasim_nde_nade.vehicle.nde_ego_sensor import NDEEgoSensor
 import json
 
@@ -15,20 +16,16 @@ class NDEVehicleFactory(VehicleFactory):
         sensor_list = [
             NDEEgoSensor(cache=True, cache_history=True, cache_history_duration=1)
         ]
-        decision_model = NDEDecisionModel(MOBIL_lc_flag=True, stochastic_acc_flag=False)
-        # decision_model = IDMModel(MOBIL_lc_flag=True, stochastic_acc_flag=True)
-        control_params = {
-            "v_high": 20,
-            "v_low": 0,
-            "acc_duration": 0.1,  # the acceleration duration will be 0.1 second
-            "lc_duration": 1,  # the lane change duration will be 1 second
-            "neg_duration": 2,  # the negligence duration will be 2 second
-        }
-        # if veh_id == "CAV":
-        if False:
-            controller = AggressiveController(simulator, control_params)
+        if veh_id == "CAV":
+            decision_model = NDEDecisionModel(
+                MOBIL_lc_flag=True, stochastic_acc_flag=False
+            )
         else:
-            controller = NDEController(simulator, control_params)
+            decision_model = ConflictGenerationModel(
+                MOBIL_lc_flag=True, stochastic_acc_flag=False
+            )
+
+        controller = NDEController(simulator)
         return Vehicle(
             veh_id,
             simulator,
