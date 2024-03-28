@@ -25,7 +25,11 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 lane_id="EG_35_1_14_0",
                 position=0,
                 speed=0,
-                type_id="NDE_URBAN",
+                type_id="ISUZU_truck",
+                length=5.4,
+                width=1.9,
+                height=2.9,
+                veh_class="truck",
             )
         # set the CAV with white color
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
