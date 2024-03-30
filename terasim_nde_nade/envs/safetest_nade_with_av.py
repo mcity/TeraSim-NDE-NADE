@@ -33,7 +33,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
             "CAV",
             traci.constants.CMD_GET_VEHICLE_VARIABLE,
             50,
-            [traci.constants.VAR_POSITION],
+            [traci.constants.VAR_DISTANCE],
         )
 
     def reroute_vehicle_if_necessary(self, veh_id, veh_ctx_dicts, obs_dicts):
