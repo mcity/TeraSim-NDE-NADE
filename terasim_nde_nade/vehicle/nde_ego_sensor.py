@@ -13,6 +13,7 @@ class NDEEgoSensor(EgoSensor):
             "velocity": traci.vehicle.getSpeed,
             "position": traci.vehicle.getPosition,
             "position3d": traci.vehicle.getPosition3D,
+            "lane_position": traci.vehicle.getLanePosition,
             "heading": traci.vehicle.getAngle,
             "edge_id": traci.vehicle.getRoadID,
             "lane_id": traci.vehicle.getLaneID,
