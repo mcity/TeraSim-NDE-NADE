@@ -57,7 +57,10 @@ class NDEController(AgentController):
             action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
         """
         if not self.is_busy:
-            if control_command.command_type == Command.DEFAULT:
+            if (
+                control_command.command_type == Command.DEFAULT
+                or control_command.command_type == Command.CUSTOM
+            ):
                 # all_checks_on(veh_id)
                 return
             else:
@@ -83,6 +86,27 @@ class NDEController(AgentController):
     def execute_control_command_onestep(
         self, veh_id, cached_control_command, obs_dict, first_step=False
     ):
+        if cached_control_command["cached_command"].command_type == Command.CUSTOM:
+            if (
+                cached_control_command["cached_command"].custom_control_command
+                is not None
+                and cached_control_command[
+                    "cached_command"
+                ].custom_execute_control_command
+                is not None
+            ):
+                cached_control_command["cached_command"].custom_execute_control_command(
+                    veh_id,
+                    cached_control_command["cached_command"].custom_control_command,
+                    obs_dict,
+                )
+                return
+            else:
+                logger.error(
+                    "Custom control command or Custom control command execution is not defined"
+                )
+                return
+
         if cached_control_command["cached_command"].command_type == Command.TRAJECTORY:
             # pass
             self.execute_trajectory_command(

@@ -16,8 +16,8 @@ from scipy.interpolate import interp1d
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
 from terasim_nde_nade.vehicle.nde_vehicle_utils_cython import *
 
-from typing import List, Tuple, Dict, Any, Optional
-from pydantic import BaseModel
+from typing import List, Tuple, Dict, Any, Optional, Callable
+from pydantic import BaseModel, validator
 from enum import Enum
 
 
@@ -155,6 +155,7 @@ class Command(Enum):
     RIGHT = "right"
     TRAJECTORY = "trajectory"
     ACCELERATION = "acceleration"
+    CUSTOM = "custom"
 
 
 class NDECommand(BaseModel):
@@ -170,8 +171,14 @@ class NDECommand(BaseModel):
     acceleration: float = 0.0
     future_trajectory: List[Tuple[float, float]] = []
     prob: float = 1.0
-    duration: float = 0.1
+    duration: float = None
     info: Dict[str, Any] = {}
+    custom_control_command: Dict[str, Any] = None
+    custom_execute_control_command: Callable = None
+
+    @validator("duration", pre=True, always=True)
+    def set_duration(cls, v):
+        return v if v is not None else traci.simulation.getDeltaT()
 
 
 def get_next_lane_edge(net, lane_id):

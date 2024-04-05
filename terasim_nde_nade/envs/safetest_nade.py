@@ -20,6 +20,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
 from shapely.geometry import LineString
 from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect
 from loguru import logger
+from addict import Dict
 
 veh_length = 5.0
 veh_width = 1.85
@@ -37,19 +38,18 @@ class Point:
         return "({}, {})".format(self.x, self.y)
 
 
-def check_func(PointList):
-    for i in range(len(PointList) - 1):
-        if (PointList[i].x - PointList[i + 1].x) ** 2 + (
-            PointList[i].y - PointList[i + 1].y
-        ) ** 2 > 256:
-            return False
-    return True
+def is_multi_inherited(cls):
+    # print(cls.__bases__)
+    # print(inspect.getmro(cls))
+    return len(cls.__bases__) > 1
 
 
-import numpy as np
+BaseEnv_tuple = (
+    SafeTestNDE  # NeuralNDE should be inserted throught the second inherited class
+)
 
 
-class SafeTestNADE(SafeTestNDE):
+class SafeTestNADE(*BaseEnv_tuple):
 
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
@@ -57,7 +57,7 @@ class SafeTestNADE(SafeTestNDE):
         self.unavoidable_collision_prob_factor = (
             1e-2  # the factor to reduce the probability of the anavoidable collision
         )
-        self.early_termination_weight_threshold = 1e-5
+        self.log = Dict()
         return super().on_start(ctx)
 
     def executemove(self, ctx, control_cmds, veh_ctx_dicts, obs_dicts):
@@ -116,23 +116,45 @@ class SafeTestNADE(SafeTestNDE):
             ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
                 ITE_control_cmds, trajectory_dicts
             )
+            if is_multi_inherited(
+                type(self)
+            ):  # inherited from NeuralNDE as well (note that NeuralNDE should be the second inherited class)
+                # get the second inherited class
+                NeuralNDE_class = self.__class__.__bases__[1]
+                # get the make_decisions method from the second inherited class
+                nnde_control_commands, _ = NeuralNDE_class.make_decisions(self, ctx)
+                # merge the control commands with the NeuralNDE control commands
+                ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
+                    ITE_control_cmds, nnde_control_commands
+                )
 
             self.refresh_control_commands_state()
             self.execute_control_commands(ITE_control_cmds)
-            # self.record_experiment_data(veh_ctx_dicts, should_continue_simulation_flag)
+
+        self.record_experiment_data(veh_ctx_dicts, should_continue_simulation_flag)
         return should_continue_simulation_flag
+
+    def merge_NADE_NeuralNDE_control_commands(
+        self, NADE_control_commands, NeuralNDE_control_commands
+    ):
+        # only replace the control commands that command_type is DEFAULT
+        for veh_id in NeuralNDE_control_commands:
+            if NeuralNDE_control_commands[veh_id].command_type == Command.DEFAULT:
+                NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
+        return NADE_control_commands
 
     def record_experiment_data(self, veh_ctx_dicts, should_continue_simulation_flag):
         if not self.log_flag:
             return
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
-        self.record_step_data(veh_ctx_dicts)
+        # current_time = utils.get_time()
+        # self.log[current_time] = self.record_step_data(veh_ctx_dicts)
         if not should_continue_simulation_flag:
             self.record_final_data(veh_ctx_dicts)
 
     def record_step_data(self, veh_ctx_dicts):
-        step_log = {}
+        step_log = Dict()
         for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
             maneuver_challenge = veh_ctx_dict.get("maneuver_challenge", None)
             if maneuver_challenge and maneuver_challenge.get("negligence", None):
@@ -142,13 +164,47 @@ class SafeTestNADE(SafeTestNDE):
             step_log[veh_id].update(
                 {key: veh_ctx_dict[key] for key in keys if veh_ctx_dict.get(key)}
             )
-
-            if not len(step_log[veh_id]):
-                step_log.pop(veh_id)
+            if step_log[veh_id].get("avoidable"):
+                step_log[veh_id].pop("avoidable")
         return step_log
 
     def record_final_data(self, veh_ctx_dicts):
-        pass
+        return False
+        collide_veh_list = traci.simulation.getCollidingVehiclesIDList()
+        if len(collide_veh_list) == 0:
+            veh_1_id, veh_2_id = None, None
+        elif len(collide_veh_list) >= 2:
+            veh_1_id, veh_2_id = collide_veh_list[:2]
+        else:
+            raise ValueError(
+                "The number of colliding vehicles is less than 2 but not 0."
+            )
+        experiments_infos = {
+            "veh_1_id": veh_1_id,
+            "veh_2_id": veh_2_id,
+            "end_time": utils.get_time(),
+            "negligence_mode": neg_mode,
+            "negligence_info": neg_info,
+            "negligence_time": neg_time,
+            "negligence_car": neg_car,
+            "avoid_collision_mode": avoid_mode,
+            "avoid_collision_info": avoid_info,
+            "avoid_collision_time": avoid_time,
+            "avoid_collision_car": avoid_car,
+            "accept_collision_mode": accept_mode,
+            "accept_collision_info": accept_info,
+            "accept_collision_time": accept_time,
+            "accept_collision_car": accept_car,
+            "distance": total_distance,
+            "end_reason": end_reason,
+            "num_maneuver_challenges": self.num_maneuver_challenges,
+            "veh_1_lane_id": (
+                traci.vehicle.getLaneID(veh_1_id) if veh_1_id is not None else None
+            ),
+            "veh_2_lane_id": (
+                traci.vehicle.getLaneID(veh_2_id) if veh_2_id is not None else None
+            ),
+        }
 
     def get_observation_dicts(self):
         obs_dicts = {
