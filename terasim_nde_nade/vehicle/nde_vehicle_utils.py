@@ -180,6 +180,10 @@ class NDECommand(BaseModel):
     def set_duration(cls, v):
         return v if v is not None else traci.simulation.getDeltaT()
 
+    class Config:
+        slots = True
+        extra = "forbid"
+
 
 def get_next_lane_edge(net, lane_id):
     origin_lane = net.getLane(lane_id)
