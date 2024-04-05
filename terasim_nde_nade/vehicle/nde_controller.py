@@ -57,11 +57,13 @@ class NDEController(AgentController):
             action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
         """
         if not self.is_busy:
-            if (
-                control_command.command_type == Command.DEFAULT
-                or control_command.command_type == Command.CUSTOM
-            ):
+            if control_command.command_type == Command.DEFAULT:
                 # all_checks_on(veh_id)
+                return
+            elif control_command.command_type == Command.CUSTOM:
+                self.execute_control_command_onestep(
+                    veh_id, self.cached_control_command, obs_dict, first_step=True
+                )
                 return
             else:
                 self.all_checks_off(veh_id)
