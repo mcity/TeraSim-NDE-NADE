@@ -61,6 +61,12 @@ class NDEController(AgentController):
                 # all_checks_on(veh_id)
                 return
             elif control_command.command_type == Command.CUSTOM:
+                self.cached_control_command = Dict(
+                    {
+                        "timestep": traci.simulation.getTime(),
+                        "cached_command": control_command,
+                    }
+                )
                 self.execute_control_command_onestep(
                     veh_id, self.cached_control_command, obs_dict, first_step=True
                 )
