@@ -14,7 +14,7 @@ class SafeTestNDE(EnvTemplate):
         warmup_time_lb=900,
         warmup_time_ub=1200,
         run_time=300,
-        log_flag=True,
+        log_flag=False,
         log_dir=None,
         *args,
         **kwargs,
