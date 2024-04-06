@@ -32,6 +32,52 @@ class SafeTestNDE(EnvTemplate):
         self.sumo_warmup(self.warmup_time)
         return super().on_start(ctx)
 
+    def executeMove(self, ctx, control_cmds=None, veh_ctx_dicts=None, obs_dicts=None):
+        for veh_id in traci.vehicle.getIDList():
+            traci.vehicle.setSpeed(veh_id, -1)
+        traci.simulation.executeMove()
+        self._maintain_all_vehicles(ctx)
+        existing_vehicle_list = traci.vehicle.getIDList()
+
+        control_cmds = (
+            {
+                veh_id: control_cmds[veh_id]
+                for veh_id in control_cmds
+                if veh_id in existing_vehicle_list
+            }
+            if control_cmds
+            else {}
+        )
+        obs_dicts = (
+            {
+                veh_id: obs_dicts[veh_id]
+                for veh_id in obs_dicts
+                if veh_id in existing_vehicle_list
+            }
+            if obs_dicts
+            else {}
+        )
+        veh_ctx_dicts = (
+            {
+                veh_id: veh_ctx_dicts[veh_id]
+                for veh_id in veh_ctx_dicts
+                if veh_id in existing_vehicle_list
+            }
+            if veh_ctx_dicts
+            else {}
+        )
+        return control_cmds, veh_ctx_dicts, obs_dicts, self.should_continue_simulation()
+
+    def cache_history_tls_data(self, focus_tls_ids=None):
+        if not focus_tls_ids:
+            focus_tls_ids = traci.trafficlight.getIDList()
+        for tls_id in focus_tls_ids:
+            if tls_id not in self.tls_info_cache:
+                self.tls_info_cache[tls_id] = deque(maxlen=self.history_length + 1)
+            current_time = traci.simulation.getTime()
+            tls_state = traci.trafficlight.getRedYellowGreenState(tls_id)
+            self.tls_info_cache[tls_id].append((current_time, tls_state))
+
     def sumo_warmup(self, warmup_time):
         # TODO: change vehicle type during the warmup time (might make warmup time longer)
         while True:
@@ -44,7 +90,6 @@ class SafeTestNDE(EnvTemplate):
         control_cmds, infos = self.make_decisions(ctx)
         self.refresh_control_commands_state()
         self.execute_control_commands(control_cmds)
-        # self.monitor.add_observation(control_cmds)
         return self.should_continue_simulation()
 
     def refresh_control_commands_state(self):

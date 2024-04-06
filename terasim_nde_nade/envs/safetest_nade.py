@@ -21,6 +21,7 @@ from shapely.geometry import LineString
 from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect
 from loguru import logger
 from addict import Dict
+from terasim.envs.template import EnvTemplate
 
 veh_length = 5.0
 veh_width = 1.85
@@ -38,18 +39,10 @@ class Point:
         return "({}, {})".format(self.x, self.y)
 
 
-def is_multi_inherited(cls):
-    # print(cls.__bases__)
-    # print(inspect.getmro(cls))
-    return len(cls.__bases__) > 1
+BaseEnv = SafeTestNDE
 
 
-BaseEnv_tuple = (
-    SafeTestNDE  # NeuralNDE should be inserted throught the second inherited class
-)
-
-
-class SafeTestNADE(*BaseEnv_tuple):
+class SafeTestNADE(BaseEnv):
 
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
@@ -58,42 +51,25 @@ class SafeTestNADE(*BaseEnv_tuple):
             1e-2  # the factor to reduce the probability of the anavoidable collision
         )
         self.log = Dict()
-        return super().on_start(ctx)
+        for base in self.__class__.__bases__:
+            base.on_start(self, ctx)
 
-    def executemove(self, ctx, control_cmds, veh_ctx_dicts, obs_dicts):
-        traci.simulation.executeMove()
-        self._maintain_all_vehicles(ctx)
-        existing_vehicle_list = traci.vehicle.getIDList()
-        control_cmds = {
-            veh_id: control_cmds[veh_id]
-            for veh_id in control_cmds
-            if veh_id in existing_vehicle_list
-        }
-        obs_dicts = {
-            veh_id: obs_dicts[veh_id]
-            for veh_id in obs_dicts
-            if veh_id in existing_vehicle_list
-        }
-        veh_ctx_dicts = {
-            veh_id: veh_ctx_dicts[veh_id]
-            for veh_id in veh_ctx_dicts
-            if veh_id in existing_vehicle_list
-        }
-        return control_cmds, veh_ctx_dicts, obs_dicts, self.should_continue_simulation()
+
 
     # @profile
     def on_step(self, ctx):
+        self.cache_history_tls_data()
         # clear vehicle context dicts
         veh_ctx_dicts = {}
         # Make NDE decisions for all vehicles
-        control_cmds, veh_ctx_dicts = self.make_decisions(ctx)
+        control_cmds, veh_ctx_dicts = EnvTemplate.make_decisions(ctx)
         # first_vehicle_veh = list(control_cmds.keys())[0]
         # for veh_id in control_cmds:
         #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
         obs_dicts = self.get_observation_dicts()
         # Make ITE decision, includes the modification of NDD distribution according to avoidability
         control_cmds, veh_ctx_dicts, obs_dicts, should_continue_simulation_flag = (
-            self.executemove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
+            self.executeMove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
         )
         if should_continue_simulation_flag:
             (
@@ -116,18 +92,11 @@ class SafeTestNADE(*BaseEnv_tuple):
             ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
                 ITE_control_cmds, trajectory_dicts
             )
-            if is_multi_inherited(
-                type(self)
-            ):  # inherited from NeuralNDE as well (note that NeuralNDE should be the second inherited class)
-                # get the second inherited class
-                NeuralNDE_class = self.__class__.__bases__[1]
-                # get the make_decisions method from the second inherited class
-                nnde_control_commands, _ = NeuralNDE_class.make_decisions(self, ctx)
-                # merge the control commands with the NeuralNDE control commands
+            if hasattr(self, "nnde_make_decisions"):
+                nnde_control_commands, _ = self.nnde_make_decisions(self, ctx)
                 ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
                     ITE_control_cmds, nnde_control_commands
                 )
-
             self.refresh_control_commands_state()
             self.execute_control_commands(ITE_control_cmds)
 
@@ -139,7 +108,10 @@ class SafeTestNADE(*BaseEnv_tuple):
     ):
         # only replace the control commands that command_type is DEFAULT
         for veh_id in NeuralNDE_control_commands:
-            if NeuralNDE_control_commands[veh_id].command_type == Command.DEFAULT:
+            if (
+                veh_id in NADE_control_commands
+                and NADE_control_commands[veh_id].command_type == Command.DEFAULT
+            ):
                 NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
         return NADE_control_commands
 
