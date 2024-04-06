@@ -60,7 +60,7 @@ class SafeTestNADE(BaseEnv):
         # clear vehicle context dicts
         veh_ctx_dicts = {}
         # Make NDE decisions for all vehicles
-        control_cmds, veh_ctx_dicts = EnvTemplate.make_decisions(ctx)
+        control_cmds, veh_ctx_dicts = EnvTemplate.make_decisions(self, ctx)
         # first_vehicle_veh = list(control_cmds.keys())[0]
         # for veh_id in control_cmds:
         #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
@@ -110,6 +110,7 @@ class SafeTestNADE(BaseEnv):
                 veh_id in NADE_control_commands
                 and NADE_control_commands[veh_id].command_type == Command.DEFAULT
             ):
+                NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
                 NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
         return NADE_control_commands
 
