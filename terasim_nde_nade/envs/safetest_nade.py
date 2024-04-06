@@ -91,7 +91,7 @@ class SafeTestNADE(BaseEnv):
                 ITE_control_cmds, trajectory_dicts
             )
             if hasattr(self, "nnde_make_decisions"):
-                nnde_control_commands, _ = self.nnde_make_decisions(self, ctx)
+                nnde_control_commands, _ = self.nnde_make_decisions(ctx)
                 ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
                     ITE_control_cmds, nnde_control_commands
                 )
