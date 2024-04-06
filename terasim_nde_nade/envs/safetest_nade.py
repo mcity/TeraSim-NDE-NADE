@@ -54,8 +54,6 @@ class SafeTestNADE(BaseEnv):
         for base in self.__class__.__bases__:
             base.on_start(self, ctx)
 
-
-
     # @profile
     def on_step(self, ctx):
         self.cache_history_tls_data()
