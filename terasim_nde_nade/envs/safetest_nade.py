@@ -176,12 +176,6 @@ class SafeTestNADE(BaseEnv):
             ),
         }
 
-    def get_observation_dicts(self):
-        obs_dicts = {
-            vehicle.id: vehicle.observation for vehicle in self.vehicle_list.values()
-        }
-        return obs_dicts
-
     def get_time_to_collision(self, distance, speed):
         if distance <= 0:
             ttc = 0

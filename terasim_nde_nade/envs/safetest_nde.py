@@ -32,6 +32,12 @@ class SafeTestNDE(EnvTemplate):
         self.sumo_warmup(self.warmup_time)
         return super().on_start(ctx)
 
+    def get_observation_dicts(self):
+        obs_dicts = {
+            vehicle.id: vehicle.observation for vehicle in self.vehicle_list.values()
+        }
+        return obs_dicts
+
     def executeMove(self, ctx, control_cmds=None, veh_ctx_dicts=None, obs_dicts=None):
         for veh_id in traci.vehicle.getIDList():
             traci.vehicle.setSpeed(veh_id, -1)
