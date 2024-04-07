@@ -70,7 +70,7 @@ class NDEEgoSensor(EgoSensor):
                     return history_array
                 else:
                     logger.error(
-                        f"history time is right but length is {len(history_array)}, history_array is {history_array}"
+                        f"history time is right but length is {len(history_array)}, history_array is {history_array}, current_time is {current_time}, starting_time is {starting_time}, history_start_time is {self._history[0][0]}"
                     )
                     return None
             else:  # history is not long enough, fill with nan
