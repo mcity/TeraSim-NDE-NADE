@@ -63,7 +63,7 @@ class NDEEgoSensor(EgoSensor):
         ), f"Current time is {current_time}, last time is {self._history[-1][0]}"
         if self.cache_history:
             if isclose(
-                self._history[0][0], starting_time, rel_tol=1e-3
+                self._history[0][0], starting_time, abs_tol=1e-3
             ):  # history is long enough and up-to-date
                 if len(history_array) == self.cache_length:
                     logger.trace("History is long enough and up-to-date")
