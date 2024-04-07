@@ -68,6 +68,8 @@ class NDEEgoSensor(EgoSensor):
                 logger.trace("History is long enough and up-to-date")
                 return history_array
             else:  # history is not long enough, fill with nan
+                logger.debug("History is not long enough, return None")
+                return None
                 expected_row_number = self.cache_length
                 actual_row_number = history_array.shape[0]
                 history_array = np.vstack(
