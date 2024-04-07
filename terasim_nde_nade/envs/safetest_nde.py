@@ -3,6 +3,7 @@ import terasim.utils as utils
 import numpy as np
 from terasim.overlay import traci
 from loguru import logger
+from collections import deque
 
 
 class SafeTestNDE(EnvTemplate):
@@ -26,6 +27,8 @@ class SafeTestNDE(EnvTemplate):
         self.final_log = None
         self.log_dir = log_dir
         self.log_flag = log_flag
+        self.tls_info_cache = {}
+        self.history_length = 10
         super().__init__(vehicle_factory, info_extractor, *args, **kwargs)
 
     def on_start(self, ctx):
