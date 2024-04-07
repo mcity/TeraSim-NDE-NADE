@@ -65,8 +65,13 @@ class NDEEgoSensor(EgoSensor):
             if isclose(
                 self._history[0][0], starting_time, rel_tol=1e-3
             ):  # history is long enough and up-to-date
-                logger.trace("History is long enough and up-to-date")
-                return history_array
+                if len(history_array) == self.cache_length:
+                    logger.trace("History is long enough and up-to-date")
+                    return history_array
+                else:
+                    logger.error(
+                        f"history time is right but length is {len(history_array)}, history_array is {history_array}"
+                    )
             else:  # history is not long enough, fill with nan
                 logger.debug("History is not long enough, return None")
                 return None
