@@ -51,8 +51,7 @@ class SafeTestNADE(BaseEnv):
             1e-2  # the factor to reduce the probability of the anavoidable collision
         )
         self.log = Dict()
-        for base in self.__class__.__bases__:
-            base.on_start(self, ctx)
+        return super().on_start(ctx)
 
     # @profile
     def on_step(self, ctx):
