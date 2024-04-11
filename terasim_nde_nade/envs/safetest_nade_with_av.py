@@ -27,11 +27,13 @@ class SafeTestNADEWithAV(SafeTestNADE):
                     veh_id
                 ].observation  # get the observation of the vehicle to cache it
             # filter the cached_veh_ids by the controlled radius to controlled_veh_ids
-            controlled_veh_ids = [
-                veh_id
-                for veh_id, distance in cav_context.items()
-                if distance < self.control_radius
-            ]
+            controlled_veh_ids = []
+            for veh_id in cav_context:
+                if (
+                    cav_context[veh_id][traci.constants.VAR_DISTANCE]
+                    <= self.control_radius
+                ):
+                    controlled_veh_ids.append(veh_id)
             return cached_veh_ids, controlled_veh_ids
         else:
             raise ValueError("CAV context is empty")
@@ -61,7 +63,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
     def on_step(self, ctx):
         cached_veh_ids, controlled_veh_ids = self.cache_vehicle_history()
-        ctx["terasim_controlled_vehicle_ids"] = set(controlled_veh_ids)
+        # ctx["terasim_controlled_vehicle_ids"] = set(controlled_veh_ids)
         return super().on_step(ctx)
 
     def reroute_vehicle_if_necessary(self, veh_id, veh_ctx_dicts, obs_dicts):
