@@ -7,6 +7,14 @@ from scipy.interpolate import interp1d
 from loguru import logger
 
 
+def get_lane_id(veh_id):
+    traci_lane_result = traci.vehicle.getLaneID(veh_id)
+    if traci_lane_result is not "":
+        return traci_lane_result
+    else:
+        return traci.vehicle.getRoadID(veh_id) + "_0"
+
+
 class NDEEgoSensor(EgoSensor):
     DEFAULT_PARAMS = dict(
         fields={
@@ -16,7 +24,7 @@ class NDEEgoSensor(EgoSensor):
             "lane_position": traci.vehicle.getLanePosition,
             "heading": traci.vehicle.getAngle,
             "edge_id": traci.vehicle.getRoadID,
-            "lane_id": traci.vehicle.getLaneID,
+            "lane_id": get_lane_id,
             "lane_index": traci.vehicle.getLaneIndex,
             "acceleration": traci.vehicle.getAcceleration,
             "next_links": traci.vehicle.getNextLinks,
