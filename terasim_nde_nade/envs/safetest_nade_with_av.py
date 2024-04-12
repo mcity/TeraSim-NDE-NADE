@@ -13,7 +13,7 @@ from loguru import logger
 
 class SafeTestNADEWithAV(SafeTestNADE):
 
-    def __init__(self, cache_radius=100, control_radius=None, *args, **kwargs):
+    def __init__(self, cache_radius=100, control_radius=50, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cache_radius = cache_radius
         self.control_radius = control_radius
