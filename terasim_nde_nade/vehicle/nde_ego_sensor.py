@@ -7,12 +7,13 @@ from scipy.interpolate import interp1d
 from loguru import logger
 
 
-def get_lane_id(veh_id):
-    traci_lane_result = traci.vehicle.getLaneID(veh_id)
-    if traci_lane_result is not "":
-        return traci_lane_result
-    else:
-        return traci.vehicle.getRoadID(veh_id) + "_0"
+def get_lane_id(vehicle_id):
+
+    lane_id = traci.vehicle.getLaneID(vehicle_id)
+    if lane_id == "":
+        lane_id = traci.vehicle.getRoadID(vehicle_id) + "_0"
+
+    return lane_id
 
 
 class NDEEgoSensor(EgoSensor):
