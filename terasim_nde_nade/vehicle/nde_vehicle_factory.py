@@ -18,7 +18,10 @@ class NDEVehicleFactory(VehicleFactory):
         ]
         if veh_id == "CAV":
             decision_model = NDEDecisionModel(
-                MOBIL_lc_flag=True, stochastic_acc_flag=False
+                MOBIL_lc_flag=True,
+                stochastic_acc_flag=False,
+                reroute=False,
+                dynamically_change_vtype=False,
             )
         else:
             decision_model = ConflictGenerationModel(

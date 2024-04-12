@@ -22,6 +22,11 @@ from addict import Dict
 
 
 class NDEDecisionModel(IDMModel):
+    def __init__(self, reroute=True, dynamically_change_vtype=True, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reroute = reroute
+        self.dynamically_change_vtype = dynamically_change_vtype
+
     @staticmethod
     def change_vehicle_type_according_to_location(veh_id, vehicle_location):
         if "CAV" in veh_id:
@@ -59,13 +64,15 @@ class NDEDecisionModel(IDMModel):
             obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
         )
         # for highway and urban scenarios, change the vehicle type
-        self.change_vehicle_type_according_to_location(
-            obs_dict["ego"]["veh_id"], vehicle_location
-        )
-        # if the vehicle needs to be rerouted (e.g., emergency lane change caused by negligence model), reroute it
-        self.reroute_vehicle_if_necessary(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
-        )
+        if self.dynamically_change_vtype:
+            self.change_vehicle_type_according_to_location(
+                obs_dict["ego"]["veh_id"], vehicle_location
+            )
+            # if the vehicle needs to be rerouted (e.g., emergency lane change caused by negligence model), reroute it
+        if self.reroute:
+            self.reroute_vehicle_if_necessary(
+                obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
+            )
         # let the vehicle to be controlled by SUMO
         return NDECommand(command_type=Command.DEFAULT, prob=1), {
             "ndd_command_distribution": {
