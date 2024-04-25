@@ -114,7 +114,7 @@ class SafeTestNADE(BaseEnv):
             self.align_record_event_with_collision()
             moniotr_json_path = self.log_dir / "monitor.json"
             with open(moniotr_json_path, "w") as f:
-                json.dump(self.record, f)
+                json.dump(self.record, f, indent=4)
         return super().on_stop(ctx)
 
     # find the corresponding event that lead to the final result (e.g., collisions)
