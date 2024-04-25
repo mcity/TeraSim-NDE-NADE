@@ -26,6 +26,7 @@ args = parser.parse_args()
 env = SafeTestNADE(
     vehicle_factory=NDEVehicleFactory(),
     info_extractor=InfoExtractor,
+    log_flag=True,
     log_dir=f"{args.dir}/{args.name}/raw_data/{args.nth}",
     warmup_time_lb=100,
     warmup_time_ub=200,
