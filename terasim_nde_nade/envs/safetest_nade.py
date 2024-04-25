@@ -960,8 +960,8 @@ def is_link_intersect(veh1_obs, veh2_obs):
     if veh1_next_lane_id_set.intersection(veh2_next_lane_id_set):
         return True
 
-    veh1_foe_lane_id_set = veh1_obs["ego"]["upcoming_foe_lane_id_set"]
-    veh2_foe_lane_id_set = veh2_obs["ego"]["upcoming_foe_lane_id_set"]
+    veh1_foe_lane_id_set = set(veh1_obs["ego"]["upcoming_foe_lane_id_list"])
+    veh2_foe_lane_id_set = set(veh2_obs["ego"]["upcoming_foe_lane_id_list"])
 
     # if the next lane of the two vehicles are intersected
     if veh1_foe_lane_id_set.intersection(

@@ -134,7 +134,7 @@ class NDEEgoSensor(EgoSensor):
         original_dict["upcoming_lanes"] += get_next_lane_id_set_from_next_links(
             next_links
         )  # include current lane
-        original_dict["upcoming_foe_lane_id_set"] = get_upcoming_foe_lane_id_set(
+        original_dict["upcoming_foe_lane_id_list"] = get_upcoming_foe_lane_id_list(
             original_dict["upcoming_lanes"]
         )
         original_dict["length"] = self.length
@@ -143,13 +143,13 @@ class NDEEgoSensor(EgoSensor):
         return original_dict
 
 
-def get_upcoming_foe_lane_id_set(upcoming_lanes):
+def get_upcoming_foe_lane_id_list(upcoming_lanes):
     veh1_foe_lane_id_set = set()
     for lane_id in upcoming_lanes:
         veh1_foe_lane_id_set = veh1_foe_lane_id_set.union(
             set(traci.lane.getInternalFoes(lane_id))
         )
-    return veh1_foe_lane_id_set
+    return list(veh1_foe_lane_id_set)
 
 
 def get_next_lane_id_set_from_next_links(next_links):

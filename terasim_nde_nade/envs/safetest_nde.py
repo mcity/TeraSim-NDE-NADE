@@ -132,7 +132,9 @@ class SafeTestNDE(EnvTemplate):
             self.record.update(
                 {
                     "veh_1_id": veh_1_id,
+                    "veh_1_obs": self.vehicle_list[veh_1_id].observation,
                     "veh_2_id": veh_2_id,
+                    "veh_2_obs": self.vehicle_list[veh_2_id].observation,
                     "warmup_time": self.warmup_time,
                     "run_time": self.run_time,
                     "finish_reason": "collision",
