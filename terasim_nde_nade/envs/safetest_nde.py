@@ -40,13 +40,6 @@ class SafeTestNDE(EnvTemplate):
         self.sumo_warmup(self.warmup_time)
         return super().on_start(ctx)
 
-    def on_stop(self, ctx) -> bool:
-        if self.log_flag:
-            moniotr_json_path = self.log_dir + "/monitor.json"
-            with open(moniotr_json_path, "w") as f:
-                json.dump(self.record, f)
-        return super().on_stop(ctx)
-
     def get_observation_dicts(self):
         obs_dicts = {
             vehicle.id: vehicle.observation for vehicle in self.vehicle_list.values()

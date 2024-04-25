@@ -22,11 +22,19 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_inter
 from loguru import logger
 from addict import Dict
 from terasim.envs.template import EnvTemplate
+import json
 
 veh_length = 5.0
 veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2 - (veh_width / 2) ** 2)
+IS_MAGNITUDE_DEFAULT = 100
+IS_MAGNITUDE_MULTIPLIER = 10
+IS_MAGNITUDE_MAPPING = {
+    "roundabout": "IS_MAGNITUDE_ROUNDABOUT",
+    "highway": "IS_MAGNITUDE_HIGHWAY",
+    "intersection": "IS_MAGNITUDE_INTERSECTION",
+}
 
 
 class Point:
@@ -99,6 +107,35 @@ class SafeTestNADE(BaseEnv):
 
         self.record_step_data(veh_ctx_dicts)
         return should_continue_simulation_flag
+
+    def on_stop(self, ctx) -> bool:
+        if self.log_flag:
+            self.record.weight = self.importance_sampling_weight
+            self.align_record_event_with_collision()
+            moniotr_json_path = self.log_dir / "monitor.json"
+            with open(moniotr_json_path, "w") as f:
+                json.dump(self.record, f)
+        return super().on_stop(ctx)
+
+    # find the corresponding event that lead to the final result (e.g., collisions)
+    def align_record_event_with_collision(self):
+        if self.record["finish_reason"] == "collision":
+            veh_1_id = self.record["veh_1_id"]
+            veh_2_id = self.record["veh_2_id"]
+            # find if one of veh_1_id or veh_2_id is in the record.event_info negligence_pair_dict
+            for timestep in self.record.event_info:
+                negligence_pair_dict = self.record.event_info[
+                    timestep
+                ].negligence_pair_dict
+                negligence_related_vehicle_set = set()
+                for neglecting_veh_id in negligence_pair_dict:
+                    negligence_related_vehicle_set.add(neglecting_veh_id)
+                    negligence_related_vehicle_set.update(
+                        negligence_pair_dict[neglecting_veh_id]
+                    )
+                if set([veh_1_id, veh_2_id]).issubset(negligence_related_vehicle_set):
+                    self.record.negligence_event_time = timestep
+                    self.record.negligence_event_info = self.record.event_info[timestep]
 
     def merge_NADE_NeuralNDE_control_commands(
         self, NADE_control_commands, NeuralNDE_control_commands
@@ -297,10 +334,12 @@ class SafeTestNADE(BaseEnv):
                 traci.vehicle.highlight(veh_id, (255, 255, 0, 255), duration=0.1)
 
     def get_ndd_distribution_from_vehicle_ctx(self, veh_ctx_dicts):
-        ndd_control_command_dicts = {
-            veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"]
-            for veh_id in veh_ctx_dicts
-        }
+        ndd_control_command_dicts = Dict(
+            {
+                veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"]
+                for veh_id in veh_ctx_dicts
+            }
+        )
         return ndd_control_command_dicts
 
     # @profile
@@ -505,17 +544,16 @@ class SafeTestNADE(BaseEnv):
             self.record.event_info[current_timestep].negligence_pair_dict = (
                 negligence_pair_dict
             )
-            self.record.event_info[current_timestep].negligence_command_dict = {
-                veh_id: veh_ctx_dicts[veh_id]["ndd_command_distribution"].get(
-                    "negligence", None
-                )
+            self.record.event_info[current_timestep].neglecting_vehicle_id = list(
+                negligence_pair_dict.keys()
+            )[0]
+            negligence_command_dict = {
+                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution.negligence
                 for veh_id in negligence_pair_dict
             }
             self.record.event_info[current_timestep].negligence_info_dict = {
                 veh_id: negligence_command.info
-                for veh_id, negligence_command in self.record.event_info[
-                    current_timestep
-                ].negligence_command_dict.items()
+                for veh_id, negligence_command in negligence_command_dict.items()
             }
             print("aaa")
 
@@ -545,7 +583,6 @@ class SafeTestNADE(BaseEnv):
                 veh_ctx_dicts[neglected_vehicle_id]["mode"] = "accept_collision"
                 self.record.event_info[utils.get_time()].update(
                     {
-                        "neglecting_vehicle_id": None,
                         "neglected_vehicle_id": neglected_vehicle_id,
                         "mode": "avoid_collision",
                     }
@@ -587,7 +624,6 @@ class SafeTestNADE(BaseEnv):
                         veh_ctx_dicts[neglected_vehicle_id]["mode"] = "avoid_collision"
                         self.record.event_info[utils.get_time()].update(
                             {
-                                "neglecting_vehicle_id": neglecting_vehicle_id,
                                 "neglected_vehicle_id": neglected_vehicle_id,
                                 "mode": "avoid_collision",
                             }
@@ -610,7 +646,6 @@ class SafeTestNADE(BaseEnv):
                     veh_ctx_dicts[neglected_vehicle_id]["mode"] = "accept_collision"
                     self.record.event_info[utils.get_time()].update(
                         {
-                            "neglecting_vehicle_id": neglecting_vehicle_id,
                             "neglected_vehicle_id": neglected_vehicle_id,
                             "mode": "accept_collision",
                         }
@@ -644,17 +679,17 @@ class SafeTestNADE(BaseEnv):
         """
         weight = 1.0
         # intialize the ITE control command dict with the same keys as the ndd_control_command_dict
-        ITE_control_command_dict = {
-            veh_id: ndd_control_command_dicts[veh_id]["normal"]
-            for veh_id in ndd_control_command_dicts
-        }
+        ITE_control_command_dict = Dict(
+            {
+                veh_id: ndd_control_command_dicts[veh_id]["normal"]
+                for veh_id in ndd_control_command_dicts
+            }
+        )
 
         for veh_id in maneuver_challenge_dicts:
             if maneuver_challenge_dicts[veh_id].get("negligence"):
-                ndd_normal_prob = ndd_control_command_dicts[veh_id]["normal"].prob
-                ndd_negligence_prob = ndd_control_command_dicts[veh_id][
-                    "negligence"
-                ].prob
+                ndd_normal_prob = ndd_control_command_dicts[veh_id].normal.prob
+                ndd_negligence_prob = ndd_control_command_dicts[veh_id].negligence.prob
                 assert (
                     ndd_normal_prob + ndd_negligence_prob == 1
                 ), "The sum of the probabilities of the normal and negligence control commands should be 1."
@@ -673,7 +708,7 @@ class SafeTestNADE(BaseEnv):
                     weight *= ndd_negligence_prob / IS_prob
                     ITE_control_command_dict[veh_id] = ndd_control_command_dicts[
                         veh_id
-                    ]["negligence"]
+                    ].negligence
                     veh_ctx_dicts[veh_id]["mode"] = "negligence"
                     traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
                     logger.info(
@@ -692,69 +727,67 @@ class SafeTestNADE(BaseEnv):
     def get_IS_prob(
         self, veh_id, ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
     ):
-        if maneuver_challenge_dicts[veh_id].get("negligence"):
-            if veh_ctx_dicts[veh_id].get("avoidable", True) is False:
-                IS_magnitude = 0.1
-            IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 100))
-            try:
-                predicted_collision_type = ndd_control_command_dicts[veh_id][
-                    "negligence"
-                ].info["predicted_collision_type"]
+        if not maneuver_challenge_dicts[veh_id].get("negligence"):
+            raise ValueError("The vehicle is not in the negligence mode.")
 
-                # get the importance sampling magnitude according to the predicted collision type
-                if "roundabout" in predicted_collision_type:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_ROUNDABOUT", 100))
-                    logger.trace(f"IS_magnitude: {IS_magnitude} for roundabout")
-                elif "highway" in predicted_collision_type:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_HIGHWAY", 100))
-                    logger.trace(f"IS_magnitude: {IS_magnitude} for highway")
-                else:
-                    IS_magnitude = float(os.getenv("IS_MAGNITUDE_INTERSECTION", 100))
-                    logger.trace(f"IS_magnitude: {IS_magnitude} for intersection")
+        IS_magnitude = IS_MAGNITUDE_DEFAULT
+        try:
+            predicted_collision_type = ndd_control_command_dicts[
+                veh_id
+            ].negligence.info["predicted_collision_type"]
 
-                # if the vehicle is not avoidable, increase the importance sampling magnitude
-                if not veh_ctx_dicts[veh_id].get("avoidable", True):
-                    IS_magnitude = IS_magnitude * 10
-            except Exception as e:
-                logger.critical(
-                    f"Error in getting the importance sampling magnitude: {e}"
-                )
-                pass
-            return np.clip(
-                ndd_control_command_dicts[veh_id]["negligence"].prob * IS_magnitude,
-                0,
-                self.max_importance_sampling_prob,
-            )
-        else:
-            raise Exception("The vehicle is not in the negligence mode.")
+            # get the importance sampling magnitude according to the predicted collision type
+            for collision_type, env_var in IS_MAGNITUDE_MAPPING.items():
+                if collision_type in predicted_collision_type:
+                    IS_magnitude = float(os.getenv(env_var, IS_magnitude))
+                    logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
+                    break
+
+            # if the vehicle is not avoidable, increase the importance sampling magnitude
+            if not veh_ctx_dicts[veh_id].get("avoidable", True):
+                IS_magnitude *= IS_MAGNITUDE_MULTIPLIER
+        except Exception as e:
+            logger.critical(f"Error in getting the importance sampling magnitude: {e}")
+
+        return np.clip(
+            ndd_control_command_dicts[veh_id]["negligence"].prob * IS_magnitude,
+            0,
+            self.max_importance_sampling_prob,
+        )
 
     def get_avoidability_dicts(
         self, maneuver_challenge_dicts, trajectory_dicts, obs_dicts, veh_ctx_dicts
     ):
-        negligence_future_trajectory_dict = {
-            veh_id: trajectory_dicts[veh_id].get("negligence", None)
-            for veh_id in trajectory_dicts
-        }
-        avoidance_future_trajectory_dict = {
-            veh_id: trajectory_dicts[veh_id].get("avoid_collision", None)
-            for veh_id in trajectory_dicts
-        }
+        negligence_future_trajectory_dict = Dict(
+            {
+                veh_id: trajectory_dicts[veh_id].get("negligence", None)
+                for veh_id in trajectory_dicts
+            }
+        )
+        avoidance_future_trajectory_dict = Dict(
+            {
+                veh_id: trajectory_dicts[veh_id].get("avoid_collision", None)
+                for veh_id in trajectory_dicts
+            }
+        )
 
         # initialize the avoidability of each vehicle
         for veh_id in maneuver_challenge_dicts:
             veh_ctx_dicts[veh_id]["avoidable"] = True
 
         # get the maneuver challenge for the negligence vehicle future and the avoidance vehicle future
-        maneuver_challenge_avoidance_dicts = {}
+        maneuver_challenge_avoidance_dicts = Dict()
         for veh_id in maneuver_challenge_dicts:
             if maneuver_challenge_dicts[veh_id].get("negligence"):
                 conflict_vehicle_list = veh_ctx_dicts[veh_id].get(
                     "conflict_vehicle_list", []
                 )
-                conflict_vehicle_future_dict = {
-                    veh_id: avoidance_future_trajectory_dict[veh_id]
-                    for veh_id in conflict_vehicle_list
-                }
+                conflict_vehicle_future_dict = Dict(
+                    {
+                        veh_id: avoidance_future_trajectory_dict[veh_id]
+                        for veh_id in conflict_vehicle_list
+                    }
+                )
                 maneuver_challenge_avoidance_dicts[veh_id] = (
                     self.get_maneuver_challenge(
                         veh_id,
@@ -781,27 +814,33 @@ class SafeTestNADE(BaseEnv):
         Returns:
             maneuver_challenge_dict (dict): maneuver_challenge_dict[veh_id] = (num_affected_vehicles, affected_vehicles)
         """
-        normal_future_trajectory_dict = {
-            veh_id: trajectory_dicts[veh_id].get("normal", None)
-            for veh_id in trajectory_dicts
-        }
-        negligence_future_trajectory_dict = {
-            veh_id: trajectory_dicts[veh_id].get("negligence", None)
-            for veh_id in trajectory_dicts
-        }
+        normal_future_trajectory_dict = Dict(
+            {
+                veh_id: trajectory_dicts[veh_id].get("normal", None)
+                for veh_id in trajectory_dicts
+            }
+        )
+        negligence_future_trajectory_dict = Dict(
+            {
+                veh_id: trajectory_dicts[veh_id].get("negligence", None)
+                for veh_id in trajectory_dicts
+            }
+        )
 
         # get the maneuver challenge for each vehicle, check if the negligence future will collide with other vehicles' normal future
-        maneuver_challenge_dicts = {
-            veh_id: self.get_maneuver_challenge(
-                veh_id,
-                negligence_future_trajectory_dict[veh_id],
-                normal_future_trajectory_dict,
-                obs_dicts,
-                veh_ctx_dicts[veh_id],
-                record_in_ctx=True,
-            )
-            for veh_id in trajectory_dicts
-        }
+        maneuver_challenge_dicts = Dict(
+            {
+                veh_id: self.get_maneuver_challenge(
+                    veh_id,
+                    negligence_future_trajectory_dict[veh_id],
+                    normal_future_trajectory_dict,
+                    obs_dicts,
+                    veh_ctx_dicts[veh_id],
+                    record_in_ctx=True,
+                )
+                for veh_id in trajectory_dicts
+            }
+        )
 
         for veh_id in veh_ctx_dicts:
             veh_ctx_dicts[veh_id]["maneuver_challenge"] = (
@@ -810,16 +849,22 @@ class SafeTestNADE(BaseEnv):
                 else {"normal": 0}
             )
 
-        maneuver_challenge_dicts_shrinked = {
-            veh_id: maneuver_challenge_dicts[veh_id]
-            for veh_id in maneuver_challenge_dicts
-            if maneuver_challenge_dicts[veh_id].get("negligence")
-        }
-        conflict_vehicle_info = {
-            veh_id: veh_ctx_dicts[veh_id].get("conflict_vehicle_list")
-            for veh_id in veh_ctx_dicts
-            if veh_ctx_dicts[veh_id].get("conflict_vehicle_list")
-        }
+        maneuver_challenge_dicts_shrinked = Dict(
+            {
+                veh_id: maneuver_challenge_dicts[veh_id]
+                for veh_id in maneuver_challenge_dicts
+                if maneuver_challenge_dicts[veh_id].get("negligence")
+            }
+        )
+        for veh_id in maneuver_challenge_dicts_shrinked:
+            traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.5)
+        conflict_vehicle_info = Dict(
+            {
+                veh_id: veh_ctx_dicts[veh_id].get("conflict_vehicle_list")
+                for veh_id in veh_ctx_dicts
+                if veh_ctx_dicts[veh_id].get("conflict_vehicle_list")
+            }
+        )
         logger.trace(
             f"maneuver_challenge: {maneuver_challenge_dicts_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
         )

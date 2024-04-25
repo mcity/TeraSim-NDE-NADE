@@ -264,7 +264,7 @@ def lane_change_negligence(obs_dict, highlight_flag=False):
                     command_type=Command.RIGHT, duration=1.0
                 )
                 negligence_command_dict["RightFoll"].info.update(
-                    {"mode": "negligence", "detailed_mode": "RightFoll"}
+                    {"mode": "negligence", "negligence_mode": "RightFoll"}
                 )
                 if highlight_flag:
                     traci.vehicle.setColor(

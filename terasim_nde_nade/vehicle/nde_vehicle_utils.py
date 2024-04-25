@@ -21,131 +21,22 @@ from pydantic import BaseModel, validator
 from enum import Enum
 
 
-intersection_cutin_prob = (
-    1.0648925125333899e-04
-    * 0.10
-    * 0.61
-    * 1.5
-    * 2.9
-    * 0.5
-    * 0.73
-    * 1.38
-    * 1.05
-    * 0.86
-    * 0.87
-)
-intersection_neglect_conflict_lead_prob = (
-    5.5069126130818786e-05
-    * 2.67
-    * 0.61
-    * 1.39
-    * 0.89
-    * 1.57
-    * 0.7
-    * 1.48
-    * 0.82
-    * 0.8
-    * 2.35
-    * 0.6
-    * 0.8
-    * 0.5
-)
-intersection_rearend_prob = (
-    1.0149373787617288e-06
-    * 2.78
-    * 0.44
-    * 0.29
-    * 0.62
-    * 2
-    * 2
-    * 1.56
-    * 0.67
-    * 2
-    * 0.5
-    * 1.5
-    * 1.5
-    * 1.5
-    * 0.7
-)
-intersection_tfl_prob = (
-    8.797353696327892e-04
-    * 0.37
-    * 0.13
-    * 2.67
-    * 0.75
-    * 1.17
-    * 0.5
-    * 0.5
-    * 2
-    * 2
-    * 0.5
-    * 0.5
-    * 10
-    * 5
-    * 1.23
-    * 1.2
-)
-intersection_headon_prob = (
-    1.0113094565177164e-06
-    * 4.71
-    * 0.1
-    * 2.57
-    * 0.25
-    * 0.5
-    * 2
-    * 2
-    * 1.42
-    * 1.76
-    * 2
-    * 2
-    * 1.74
-    * 0.8
-    * 1.32
-    * 0.8
-)
+intersection_cutin_prob = 1.118159657654468e-05
+intersection_neglect_conflict_lead_prob = 6.677231589776039e-05
+intersection_rearend_prob = 2.204741193939959e-06
+intersection_tfl_prob = 0.0018291608034515015
+intersection_headon_prob = 8.994401291981026e-06
 
-roundabout_fail_to_yield_prob = 1e-7 * 10 * 2 * 2 * 2 * 2 * 0.9 * 1.1 * 0.81
-roundabout_cutin_prob = (
-    4.570171651138106e-05 * 0.35 * 0.6 * 0.5 * 2 * 0.77 * 2 * 0.63 * 1.34 * 1.2 * 0.9
-)
-roundabout_neglect_conflict_lead_prob = (
-    2.3721857594970477e-05 * 0.1 * 0.33 * 0.2 * 2 * 2 * 2 * 2 * 2 * 0.5 * 0.63 * 1.19
-)
-roundabout_rearend_prob = (
-    4.884970702773788e-07 * 0.2 * 5 * 0.5 * 2 * 2 * 0.5 * 0.84 * 0.5 * 1.4 * 0.8
-)
+roundabout_fail_to_yield_prob = 1.2830400000000002e-05
+roundabout_cutin_prob = 1.3475398926368317e-05
+roundabout_neglect_conflict_lead_prob = 1.8780196130730532e-06
+roundabout_rearend_prob = 2.2978902185847895e-07
 
-highway_cutin_prob = (
-    9.887380418491011e-05
-    * 0.232
-    * 1.65
-    * 1.23
-    * 0.36
-    * 2
-    * 1.27
-    * 0.5
-    * 1.34
-    * 2
-    * 0.5
-    * 0.75
-    * 1.1
-    * 1.1
-)
-highway_rearend_prob = (
-    1.0327637301820217e-04
-    * 3.64
-    * 1.21
-    * 1.63
-    * 2
-    * 2
-    * 2
-    * 0.5
-    * 0.5
-    * 1.4
-    * 0.83
-    * 0.81
-    * 0.92
-    * 1.15
+highway_cutin_prob = 2.5883079028671922e-05
+highway_rearend_prob = 0.00001476665560329975
+
+print(
+    f"intersection_cutin_prob: {intersection_cutin_prob}, intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, intersection_rearend_prob: {intersection_rearend_prob}, intersection_tfl_prob: {intersection_tfl_prob}, intersection_headon_prob: {intersection_headon_prob}, roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, roundabout_cutin_prob: {roundabout_cutin_prob}, roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, roundabout_rearend_prob: {roundabout_rearend_prob}, highway_cutin_prob: {highway_cutin_prob}, highway_rearend_prob: {highway_rearend_prob}"
 )
 
 
