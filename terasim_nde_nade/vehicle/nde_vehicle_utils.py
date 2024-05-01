@@ -11,6 +11,7 @@ import json
 from enum import Enum
 from collections import namedtuple
 from scipy.interpolate import interp1d
+from loguru import logger
 
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
@@ -328,6 +329,8 @@ def predict_future_distance_velocity_vectorized(
         cumulative_distances, 0, 0
     )  # Include starting point (distance=0)
 
+    # if any distant in cumulative distances is negative, log the error
+    logger.critical(f"negative distance in cumulative distances: {cumulative_distances}, {duration_array}, {velocity_array}, {average_velocities}, {time_differences}, {distance_increments}")
     return cumulative_distances, velocity_array
 
 
