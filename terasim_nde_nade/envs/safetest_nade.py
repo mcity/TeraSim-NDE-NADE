@@ -610,7 +610,8 @@ class SafeTestNADE(BaseEnv):
                 self.record.event_info[utils.get_time()].update(
                     {
                         "neglected_vehicle_id": neglected_vehicle_id,
-                        "mode": "avoid_collision",
+                        "mode": "accept_collision",
+                        "additiona_info": "all_avoidance_none",
                     }
                 )
             return ITE_control_command_dict, veh_ctx_dicts, weight
