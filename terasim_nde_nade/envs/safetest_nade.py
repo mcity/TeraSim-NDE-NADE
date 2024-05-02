@@ -556,10 +556,10 @@ class SafeTestNADE(BaseEnv):
             for neglected_vehicle_list in negligence_pair_dict.values():
                 neglected_vehicle_id_set.update(neglected_vehicle_list)
 
-            neglected_command_dict = {
-                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution
-                for veh_id in neglected_vehicle_id_set
-            }
+            # neglected_command_dict = {
+            #     veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution
+            #     for veh_id in neglected_vehicle_id_set
+            # }
 
             self.record.event_info[current_timestep].negligence_info_dict = {
                 veh_id: negligence_command.info
@@ -571,17 +571,17 @@ class SafeTestNADE(BaseEnv):
                 for veh_id, negligence_command in negligence_command_dict.items()
             }
 
-            neglected_command_dict = {
-                veh_id: str(neglected_command)
-                for veh_id, neglected_command in neglected_command_dict.items()
-            }
+            # neglected_command_dict = {
+            #     veh_id: str(neglected_command)
+            #     for veh_id, neglected_command in neglected_command_dict.items()
+            # }
 
             self.record.event_info[current_timestep].negligence_command = (
                 negligence_command_dict
             )
-            self.record.event_info[current_timestep].neglected_command = (
-                neglected_command_dict
-            )
+            # self.record.event_info[current_timestep].neglected_command = (
+            #     neglected_command_dict
+            # )
 
         # no vehicle neglected
         if len(negligence_pair_dict) == 0:
@@ -677,6 +677,11 @@ class SafeTestNADE(BaseEnv):
                         }
                     )
             weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
+        
+        self.record.event_info[utils.get_time()].neglected_command = {
+            str(ITE_control_command_dict[neglected_vehicle_id]) for neglected_vehicle_id in neglected_vehicle_set
+        }
+
         return ITE_control_command_dict, veh_ctx_dicts, weight
 
     def get_neglecting_vehicle_id(self, control_command_dict, maneuver_challenge_info):
