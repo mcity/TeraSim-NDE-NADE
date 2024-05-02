@@ -23,7 +23,6 @@ from loguru import logger
 from addict import Dict
 from terasim.envs.template import EnvTemplate
 import json
-import jsonpickle
 
 veh_length = 5.0
 veh_width = 1.85
@@ -115,7 +114,7 @@ class SafeTestNADE(BaseEnv):
             self.align_record_event_with_collision()
             moniotr_json_path = self.log_dir / "monitor.json"
             with open(moniotr_json_path, "w") as f:
-                f.write(jsonpickle.encode(self.record, indent=4))
+                json.dump(self.record, f, indent=4)
         return super().on_stop(ctx)
 
     # find the corresponding event that lead to the final result (e.g., collisions)
@@ -549,7 +548,7 @@ class SafeTestNADE(BaseEnv):
                 negligence_pair_dict.keys()
             )[0]
             negligence_command_dict = {
-                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution.negligence
+                veh_id: str(veh_ctx_dicts[veh_id].ndd_command_distribution.negligence)
                 for veh_id in negligence_pair_dict
             }
 
@@ -558,7 +557,7 @@ class SafeTestNADE(BaseEnv):
                 neglected_vehicle_id_set.update(neglected_vehicle_list)
 
             neglected_command_dict = {
-                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution for veh_id in neglected_vehicle_id_set
+                veh_id: str(veh_ctx_dicts[veh_id].ndd_command_distribution) for veh_id in neglected_vehicle_id_set
             }
 
             self.record.event_info[current_timestep].negligence_info_dict = {
