@@ -548,7 +548,7 @@ class SafeTestNADE(BaseEnv):
                 negligence_pair_dict.keys()
             )[0]
             negligence_command_dict = {
-                veh_id: str(veh_ctx_dicts[veh_id].ndd_command_distribution.negligence)
+                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution.negligence
                 for veh_id in negligence_pair_dict
             }
 
@@ -557,15 +557,31 @@ class SafeTestNADE(BaseEnv):
                 neglected_vehicle_id_set.update(neglected_vehicle_list)
 
             neglected_command_dict = {
-                veh_id: str(veh_ctx_dicts[veh_id].ndd_command_distribution) for veh_id in neglected_vehicle_id_set
+                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution
+                for veh_id in neglected_vehicle_id_set
             }
 
             self.record.event_info[current_timestep].negligence_info_dict = {
                 veh_id: negligence_command.info
                 for veh_id, negligence_command in negligence_command_dict.items()
             }
-            self.record.event_info[current_timestep].negligence_command = negligence_command_dict
-            self.record.event_info[current_timestep].neglected_command = neglected_command_dict
+
+            negligence_command_dict = {
+                veh_id: str(negligence_command)
+                for veh_id, negligence_command in negligence_command_dict.items()
+            }
+
+            neglected_command_dict = {
+                veh_id: str(neglected_command)
+                for veh_id, neglected_command in neglected_command_dict.items()
+            }
+
+            self.record.event_info[current_timestep].negligence_command = (
+                negligence_command_dict
+            )
+            self.record.event_info[current_timestep].neglected_command = (
+                neglected_command_dict
+            )
 
         # no vehicle neglected
         if len(negligence_pair_dict) == 0:

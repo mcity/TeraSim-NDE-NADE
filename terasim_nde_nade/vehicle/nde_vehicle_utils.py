@@ -330,7 +330,10 @@ def predict_future_distance_velocity_vectorized(
     )  # Include starting point (distance=0)
 
     # if any distant in cumulative distances is negative, log the error
-    logger.critical(f"negative distance in cumulative distances: {cumulative_distances}, {duration_array}, {velocity_array}, {average_velocities}, {time_differences}, {distance_increments}")
+    if np.any(cumulative_distances < 0):
+        logger.critical(
+            f"negative distance in cumulative distances: {cumulative_distances}, {duration_array}, {velocity_array}, {average_velocities}, {time_differences}, {distance_increments}"
+        )
     return cumulative_distances, velocity_array
 
 
