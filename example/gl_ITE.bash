@@ -35,7 +35,7 @@ DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_refactor_v7"
+experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_donot_use_trajectory_but_acceleration"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/aggregated_data
