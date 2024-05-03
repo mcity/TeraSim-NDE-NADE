@@ -98,6 +98,11 @@ class SafeTestNDE(EnvTemplate):
             traci.simulationStep()
             if traci.simulation.getTime() > warmup_time:
                 break
+        if traci.vehicle.getIDCount() > 110:
+            logger.warning(
+                f"Too many vehicles in the simulation: {traci.vehicle.getIDCount()}"
+            )
+            self.record.warmup_vehicle_num = traci.vehicle.getIDCount()
         self._vehicle_in_env_distance("before")
 
     def on_step(self, ctx):
