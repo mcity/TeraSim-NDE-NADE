@@ -94,9 +94,9 @@ class SafeTestNADE(BaseEnv):
             self.importance_sampling_weight *= (
                 weight  # update weight by collision avoidance
             )
-            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
-                ITE_control_cmds, trajectory_dicts
-            )
+            # ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+            #     ITE_control_cmds, trajectory_dicts
+            # )
             if hasattr(self, "nnde_make_decisions"):
                 nnde_control_commands, _ = self.nnde_make_decisions(ctx)
                 ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
@@ -389,7 +389,7 @@ class SafeTestNADE(BaseEnv):
                     ITE_control_cmds[veh_id].future_trajectory = trajectory_dicts[
                         veh_id
                     ][ITE_control_cmds[veh_id].info.get("mode")]
-                    logger.trace(
+                    logger.critical(
                         f"veh_id: {veh_id} is updated to trajectory command with mode: {ITE_control_cmds[veh_id].info.get('mode')}"
                     )
         return ITE_control_cmds

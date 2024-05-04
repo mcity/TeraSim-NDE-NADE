@@ -176,7 +176,7 @@ class NDEController(AgentController):
 
     @staticmethod
     def execute_acceleration_command(veh_id, control_command, obs_dict):
-        logger.critical("the acceleration command should not be executed")
+        # logger.critical("the acceleration command should not be executed")
         assert control_command.command_type == Command.ACCELERATION
         acceleration = control_command.acceleration
         final_speed = obs_dict["ego"]["velocity"] + acceleration * utils.get_step_size()
