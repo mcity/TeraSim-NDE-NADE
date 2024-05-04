@@ -29,7 +29,7 @@ veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2 - (veh_width / 2) ** 2)
 IS_MAGNITUDE_DEFAULT = 100
-IS_MAGNITUDE_MULTIPLIER = 10
+IS_MAGNITUDE_MULTIPLIER = 1
 IS_MAGNITUDE_MAPPING = {
     "roundabout": "IS_MAGNITUDE_ROUNDABOUT",
     "highway": "IS_MAGNITUDE_HIGHWAY",
@@ -63,6 +63,7 @@ class SafeTestNADE(BaseEnv):
 
     # @profile
     def on_step(self, ctx):
+        self.record.final_time = utils.get_time()  # update the final time at each step
         self.cache_history_tls_data()
         # clear vehicle context dicts
         veh_ctx_dicts = {}
@@ -678,9 +679,10 @@ class SafeTestNADE(BaseEnv):
                         }
                     )
             weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
-        
+
         self.record.event_info[utils.get_time()].neglected_command = {
-            str(ITE_control_command_dict[neglected_vehicle_id]) for neglected_vehicle_id in neglected_vehicle_set
+            str(ITE_control_command_dict[neglected_vehicle_id])
+            for neglected_vehicle_id in neglected_vehicle_set
         }
 
         return ITE_control_command_dict, veh_ctx_dicts, weight
