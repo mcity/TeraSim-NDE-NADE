@@ -9,5 +9,4 @@ setup(
         "terasim_nde_nade": ["**/*.so"],
     },
     zip_safe=False,
-    install_requires=["Cython>=3.0.8", "loguru>=0.5.3", "shapely>=2.0.3"],
 )
