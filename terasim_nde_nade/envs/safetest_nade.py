@@ -94,9 +94,9 @@ class SafeTestNADE(BaseEnv):
             self.importance_sampling_weight *= (
                 weight  # update weight by collision avoidance
             )
-            # ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
-            #     ITE_control_cmds, trajectory_dicts
-            # )
+            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+                ITE_control_cmds, trajectory_dicts
+            )
             if hasattr(self, "nnde_make_decisions"):
                 nnde_control_commands, _ = self.nnde_make_decisions(ctx)
                 ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
@@ -114,7 +114,7 @@ class SafeTestNADE(BaseEnv):
             self.align_record_event_with_collision()
             moniotr_json_path = self.log_dir / "monitor.json"
             with open(moniotr_json_path, "w") as f:
-                json.dump(self.record, f, indent=4)
+                json.dump(self.record, f, indent=4, default=str)
         return super().on_stop(ctx)
 
     # find the corresponding event that lead to the final result (e.g., collisions)
@@ -556,10 +556,10 @@ class SafeTestNADE(BaseEnv):
             for neglected_vehicle_list in negligence_pair_dict.values():
                 neglected_vehicle_id_set.update(neglected_vehicle_list)
 
-            # neglected_command_dict = {
-            #     veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution
-            #     for veh_id in neglected_vehicle_id_set
-            # }
+            neglected_command_dict = {
+                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution
+                for veh_id in neglected_vehicle_id_set
+            }
 
             self.record.event_info[current_timestep].negligence_info_dict = {
                 veh_id: negligence_command.info
@@ -571,17 +571,17 @@ class SafeTestNADE(BaseEnv):
                 for veh_id, negligence_command in negligence_command_dict.items()
             }
 
-            # neglected_command_dict = {
-            #     veh_id: str(neglected_command)
-            #     for veh_id, neglected_command in neglected_command_dict.items()
-            # }
+            neglected_command_dict = {
+                veh_id: str(neglected_command)
+                for veh_id, neglected_command in neglected_command_dict.items()
+            }
 
             self.record.event_info[current_timestep].negligence_command = (
                 negligence_command_dict
             )
-            # self.record.event_info[current_timestep].neglected_command = (
-            #     neglected_command_dict
-            # )
+            self.record.event_info[current_timestep].neglected_command = (
+                neglected_command_dict
+            )
 
         # no vehicle neglected
         if len(negligence_pair_dict) == 0:
