@@ -5,13 +5,18 @@ import SumoTrajVis
 from tqdm import tqdm
 import os
 import xml.etree.ElementTree as ET
+
 # Load net file and trajectory file
-traj_folder = Path("/gpfs/accounts/henryliu_root/henryliu98/shared_data/safetest-nade/ITE_refactor_test_v3/")
+traj_folder = Path(
+    "/gpfs/accounts/henryliu_root/henryliu98/shared_data/safetest-nade/ITE_refactor_test_v3/"
+)
 
 raw_data_folder = traj_folder / "raw_data"
 raw_data_file_folder_list = list(raw_data_folder.glob("*"))
 # filter the raw_data_file_folder_list, only keep the folders that have fcd_all.xml file
-raw_data_file_folder_list = [folder for folder in raw_data_file_folder_list if list(folder.glob("*fcd_all.xml"))]
+raw_data_file_folder_list = [
+    folder for folder in raw_data_file_folder_list if list(folder.glob("*fcd_all.xml"))
+]
 legal_collision_file_folder_list = []
 collision_lane_list = []
 

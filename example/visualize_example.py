@@ -8,11 +8,15 @@ import xml.etree.ElementTree as ET
 
 # Load net file and trajectory file
 net = SumoTrajVis.Net("./example/maps/Mcity_safetest/mcity.net.xml")
-traj_folder = Path("/gpfs/accounts/henryliu_root/henryliu98/shared_data/safetest-nade/ITE_refactor_test_v3/")
+traj_folder = Path(
+    "/gpfs/accounts/henryliu_root/henryliu98/shared_data/safetest-nade/ITE_refactor_test_v3/"
+)
 raw_data_folder = traj_folder / "raw_data"
 raw_data_file_folder_list = list(raw_data_folder.glob("*"))
 # filter the raw_data_file_folder_list, only keep the folders that have fcd_all.xml file
-raw_data_file_folder_list = [folder for folder in raw_data_file_folder_list if list(folder.glob("*fcd_all.xml"))]
+raw_data_file_folder_list = [
+    folder for folder in raw_data_file_folder_list if list(folder.glob("*fcd_all.xml"))
+]
 
 video_path = traj_folder / "videos"
 if not os.path.exists(video_path):
@@ -32,7 +36,7 @@ for raw_data_file_folder in tqdm(raw_data_file_folder_list):
         first_line = f.readline()
     # split the first line by space, get the second element, which is the last timestep, float it
     warmup_timestep = float(first_line.split(" ")[1])
-    
+
     # get the last timestep in collision xml file
     collision_tree = ET.parse(collision_file_path)
     collision_root = collision_tree.getroot()
@@ -57,9 +61,11 @@ for raw_data_file_folder in tqdm(raw_data_file_folder_list):
 
     # Show the generated trajectory video
     fig, ax = plt.subplots()
-    ax.set_aspect('equal', adjustable='box')
+    ax.set_aspect("equal", adjustable="box")
     artist_collection = net.plot(ax=ax)
-    plot_time_interaval = trajectories.timestep_range()[-100:] # only plot 10s before the end of the trajectories, can be modified later
+    plot_time_interaval = trajectories.timestep_range()[
+        -100:
+    ]  # only plot 10s before the end of the trajectories, can be modified later
     a = animation.FuncAnimation(
         fig,
         trajectories.plot_points,

@@ -156,3 +156,6 @@ example/videos
 example/output
 monitor_1.json
 monitor.json
+*.c
+/dist_pyarmor
+env_monitor.py
