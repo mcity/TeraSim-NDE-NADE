@@ -368,7 +368,7 @@ class SafeTestNADE(BaseEnv):
                     interpolate_resolution=0.5,
                     current_time=current_time,
                     veh_info=veh_info,
-                )
+                )[0]
                 for modality in control_command_dict
             }
             trajectory_dicts[veh_id] = trajectory_dict
@@ -504,7 +504,7 @@ class SafeTestNADE(BaseEnv):
                 veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"][
                     "avoid_collision"
                 ] = avoidance_command
-                trajectory_dicts[neglected_vehicle_id]["avoid_collision"] = (
+                trajectory_dicts[neglected_vehicle_id]["avoid_collision"], info = (
                     predict_future_trajectory(
                         neglected_vehicle_id,
                         obs_dicts[neglected_vehicle_id],
@@ -517,6 +517,7 @@ class SafeTestNADE(BaseEnv):
                         veh_info=None,
                     )
                 )
+                logger.debug(f"add avoidance command for vehicle: {neglected_vehicle_id}, with info {info}")
             logger.trace(
                 f"add avoidance command for vehicle: {neglected_vehicle_list} from vehicle: {neglecting_vehicle_id}"
             )

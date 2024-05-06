@@ -20,7 +20,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils_cython import *
 from typing import List, Tuple, Dict, Any, Optional, Callable
 from pydantic import BaseModel, validator
 from enum import Enum
-
+import addict
 
 intersection_cutin_prob = 1.118159657654468e-05
 intersection_neglect_conflict_lead_prob = 6.677231589776039e-05
@@ -360,6 +360,7 @@ def predict_future_trajectory(
     Returns:
         future_trajectory_dict (dict): the future trajectory of the vehicle
     """
+    info = addict.Dict()
     current_time = (
         current_time if current_time is not None else traci.simulation.getTime()
     )
@@ -368,6 +369,7 @@ def predict_future_trajectory(
         if veh_info is not None
         else get_vehicle_info(veh_id, obs_dict, sumo_net)
     )
+    info.veh_info = str(veh_info)
     # include the original position
     duration_array = np.array(
         [
@@ -375,22 +377,28 @@ def predict_future_trajectory(
             for time_horizon_id in range(time_horizon_step + 1)
         ]
     )
+    info.duration_array = str(duration_array)
     acceleration = (
         control_command.acceleration
         if control_command.command_type == Command.ACCELERATION
         else veh_info["acceleration"]
     )
+    info.acceleration = str(acceleration)
     max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
+    info.max_velocity = str(max_velocity)
     future_distance_array, future_velocity_array = (
         predict_future_distance_velocity_vectorized(
             veh_info["velocity"], acceleration, duration_array, max_velocity
         )
     )
+    info.future_distance_array = str(future_distance_array)
+    info.future_velocity_array = str(future_velocity_array)
     lateral_offset = 0
     if control_command.command_type == Command.LEFT:
         lateral_offset = 1
     elif control_command.command_type == Command.RIGHT:
         lateral_offset = -1
+    info.lateral_offset = str(lateral_offset)
 
     trajectory_array = np.array(
         [
@@ -469,13 +477,16 @@ def predict_future_trajectory(
                 ),
             )
         )
+        info.original_trajectory_array = str(trajectory_array)
+    
 
     future_trajectory_array = interpolate_future_trajectory(
         trajectory_array, interpolate_resolution
     )
+    info.interpolated_trajectory_array = str(future_trajectory_array)
 
     future_trajectory_array[:, -1] += current_time
-    return future_trajectory_array
+    return future_trajectory_array, info
 
 
 def get_future_position_on_route(
