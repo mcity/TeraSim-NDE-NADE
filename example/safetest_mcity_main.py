@@ -18,7 +18,7 @@ base_dir.mkdir(parents=True, exist_ok=True)
 logger.add(
     base_dir / "loguru_run.log",
     filter="terasim_nde_nade",
-    level="INFO",
+    level="TRACE",
 )
 
 env = SafeTestNADE(

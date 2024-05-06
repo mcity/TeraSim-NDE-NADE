@@ -95,9 +95,9 @@ class SafeTestNADE(BaseEnv):
             self.importance_sampling_weight *= (
                 weight  # update weight by collision avoidance
             )
-            # ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
-            #     ITE_control_cmds, trajectory_dicts
-            # )
+            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+                ITE_control_cmds, trajectory_dicts
+            )
             if hasattr(self, "nnde_make_decisions"):
                 nnde_control_commands, _ = self.nnde_make_decisions(ctx)
                 ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
@@ -940,6 +940,12 @@ class SafeTestNADE(BaseEnv):
                 )
                 if not link_intersection_flag:
                     continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
+
+                # if the negligence_veh_id is the header of the normal_veh_id, then the two vehicles will not collide
+                leader = traci.vehicle.getLeader(veh_id)
+                if leader is not None and leader[0] == negligence_veh_id:
+                    continue
+
                 collision_flag = is_intersect(
                     negligence_veh_future,
                     all_normal_veh_future[veh_id],
@@ -952,6 +958,9 @@ class SafeTestNADE(BaseEnv):
                     if "conflict_vehicle_list" not in veh_ctx_dict:
                         veh_ctx_dict["conflict_vehicle_list"] = []
                     veh_ctx_dict["conflict_vehicle_list"].append(veh_id)
+                    # logger.trace(
+                    #     f"veh_id: {negligence_veh_id} will collide with veh_id: {veh_id}"
+                    # )
             return {
                 "normal": 0,
                 "negligence": (1 if final_collision_flag else 0),

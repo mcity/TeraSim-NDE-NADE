@@ -11,14 +11,16 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.12"  # Specify your Python version requirements
+python = "^3.10"
 Cython = "^3.0.8"
-loguru = "^0.5.3"
 shapely = "^2.0.3"
-# terasim = { git = "git@github.com:michigan-traffic-lab/TeraSim.git", branch = "feature/simple_sensor_architecture" }
+toml = "^0.10.2"
+terasim = "*"
 
-[tool.poetry.dev-dependencies]
-terasim = { path = "../TeraSim", develop = true}
+[[tool.poetry.source]]
+name = "sdpi"
+url = "http://18.218.85.44:8080/"
+priority = "primary"
 
 [build-system]
 requires = ["poetry-core", "Cython", "setuptools", "wheel", "numpy"]
