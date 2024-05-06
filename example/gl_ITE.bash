@@ -31,11 +31,11 @@ export IS_MAGNITUDE_HIGHWAY=20
 export AVOID_COLLISION_IS_PROB=0.6
 
 
-DIR_NAME="/scratch/henryliu_root/henryliu98/shared_data/safetest-nade"
+DIR_NAME="/scratch/mcguireg_root/mcguireg98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_use_acceleration_new"
+experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_use_trajectory_result"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/aggregated_data
