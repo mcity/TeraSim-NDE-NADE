@@ -391,7 +391,7 @@ class SafeTestNADE(BaseEnv):
                         veh_id
                     ][ITE_control_cmds[veh_id].info.get("mode")]
                     logger.critical(
-                        f"veh_id: {veh_id} is updated to trajectory command with mode: {ITE_control_cmds[veh_id].info.get('mode')}"
+                        f"veh_id: {veh_id} is updated to trajectory command with mode: {ITE_control_cmds[veh_id].info.get('mode')}, trajectory: {ITE_control_cmds[veh_id].future_trajectory}"
                     )
         return ITE_control_cmds
 

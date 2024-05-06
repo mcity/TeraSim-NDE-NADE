@@ -160,6 +160,7 @@ class NDEController(AgentController):
             # angle=closest_timestep_trajectory[2],
             keepRoute=1,
         )
+        logger.info(f"Setting position of {veh_id} to {closest_timestep_trajectory[0], closest_timestep_trajectory[1]}, current position is {traci.vehicle.getPosition(veh_id)}")
         traci.vehicle.setPreviousSpeed(veh_id, closest_timestep_trajectory[3])
 
     @staticmethod

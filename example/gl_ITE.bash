@@ -44,11 +44,11 @@ del_mode="all" # all verbose off
 
 for i in {1..200}; do
     # write i to aggregated_data/SLURM_ARRAY_TASK_ID.txt
-    echo $i >> ${DIR_NAME}/${experiment_name}/aggregated_data/${SLURM_ARRAY_TASK_ID}.txt
+    # echo $i >> ${DIR_NAME}/${experiment_name}/aggregated_data/${SLURM_ARRAY_TASK_ID}.txt
     exp_nth=${SLURM_ARRAY_TASK_ID}_${i}
     mkdir -p ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}
     # test record
-    python safetest_mcity_main.py --dir ${DIR_NAME} --name ${experiment_name} --nth ${exp_nth} > ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/res.txt
+    python safetest_mcity_main.py --dir ${DIR_NAME} --name ${experiment_name} --nth ${exp_nth} --aggregateddir ${DIR_NAME}/${experiment_name}/aggregated_data/${SLURM_ARRAY_TASK_ID} > ${DIR_NAME}/${experiment_name}/raw_data/${exp_nth}/res.txt
     python merge_json.py --dir ${DIR_NAME} --name ${experiment_name} --nth ${exp_nth} || true
     # remove if no collision happens (no victim) or the victim is in the wrong junction
     if [ "${del_mode}" = "off" ]; then # no deletion
