@@ -21,13 +21,13 @@ aggregated_log_dir = Path(args.aggregateddir) / "loguru_run.log"
 
 logger.add(
     base_dir / "loguru_run.log",
-    filter="terasim_nde_nade",
+    # filter="terasim_nde_nade",
     level="TRACE",
 )
 
 logger.add(
     aggregated_log_dir,
-    filter="terasim_nde_nade",
+    # filter="terasim_nde_nade",
     level="INFO",
 )
 
@@ -52,9 +52,10 @@ sim = Simulator(
 )
 sim.bind_env(env)
 
-logger.info(f"Experiment started {args.nth}")
+terasim_logger = logger.bind(name="terasim_nde_nade")
+terasim_logger.info(f"terasim_nde_nade: Experiment started {args.nth}")
 
 try:
     sim.run()
 except Exception as e:
-    logger.exception(f"Running error catched, {e} at {args.nth} experiment")
+    terasim_logger.exception(f"terasim_nde_nade: Running error catched, {e} at {args.nth} experiment")
