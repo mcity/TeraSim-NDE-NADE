@@ -547,15 +547,15 @@ def get_vehicle_info(veh_id, obs_dict, sumo_net):
     ego_obs = obs_dict["ego"]
     veh_info = VehicleInfoForPredict(
         id=veh_id,
-        acceleration=ego_obs["acceleration"],
+        acceleration=traci.vehicle.getAcceleration(veh_id),
         route=traci.vehicle.getRoute(veh_id),
         route_index=traci.vehicle.getRouteIndex(veh_id),
-        edge_id=ego_obs["edge_id"],
-        lane_id=ego_obs["lane_id"],
-        lane_index=ego_obs["lane_index"],
+        edge_id=traci.vehicle.getRoadID(veh_id),
+        lane_id=traci.vehicle.getLaneID(veh_id),
+        lane_index=traci.vehicle.getLaneIndex(veh_id),
         position=traci.vehicle.getPosition(veh_id),
-        velocity=ego_obs["velocity"],
-        heading=ego_obs["heading"],
+        velocity=traci.vehicle.getSpeed(veh_id),
+        heading=traci.vehicle.getAngle(veh_id),
         lane_position=traci.vehicle.getLanePosition(veh_id),
         length=traci.vehicle.getLength(veh_id),
     )

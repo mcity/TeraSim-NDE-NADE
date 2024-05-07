@@ -74,13 +74,13 @@ while True:
     traci.simulationStep()
     result = get_future_position_on_route(
         traci,
-        traci.vehicle.getRoadID(veh_id),
-        traci.vehicle.getLanePosition(veh_id),
-        traci.vehicle.getLaneIndex(veh_id),
-        traci.vehicle.getLaneID(veh_id),
-        route_id_list,
-        route_length_list,
-        3,
+        ':NODE_24_5',
+        0.3135676329972803,
+        0,
+        ':NODE_24_5_0',
+        ['EG_22_1_1', ':NODE_21_0', 'EG_21_1_14', ':NODE_31_1', 'EG_21_1_18', ':NODE_22_3', 'EG_21_1_1', ':NODE_19_2', 'EG_19_1_10', ':NODE_25_0', 'EG_25_2_7', ':NODE_24_5', 'EG_24_2_1'],
+        [36.64, 11.58, 10.79, 14.72, 8.95, 20.03, 8.04, 16.9, 18.46, 10.32, 34.72, 21.04, 34.08],
+        2.15334971 ,
         0,
     )
 
