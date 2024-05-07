@@ -23,6 +23,7 @@ from loguru import logger
 from addict import Dict
 from terasim.envs.template import EnvTemplate
 import json
+from terasim.overlay import profile
 
 veh_length = 5.0
 veh_width = 1.85
@@ -61,7 +62,7 @@ class SafeTestNADE(BaseEnv):
         self.log = Dict()
         return super().on_start(ctx)
 
-    # @profile
+    @profile
     def on_step(self, ctx):
         self.record.final_time = utils.get_time()  # update the final time at each step
         self.cache_history_tls_data()
@@ -219,7 +220,7 @@ class SafeTestNADE(BaseEnv):
             ttc = distance / speed
         return ttc
 
-    # @profile
+    @profile
     def NADE_decision(self, control_command_dicts, veh_ctx_dicts, obs_dicts):
         """NADE decision here.
 
@@ -262,9 +263,6 @@ class SafeTestNADE(BaseEnv):
                 maneuver_challenge_dicts, veh_ctx_dicts
             )
         )
-
-        # highlight the critical vehicles and calculate criticality
-        # self.highlight_critical_vehicles(maneuver_challenge_dicts, veh_ctx_dicts)
 
         criticality_dicts, veh_ctx_dicts = self.get_criticality_dicts(
             maneuver_challenge_dicts, veh_ctx_dicts
@@ -321,19 +319,6 @@ class SafeTestNADE(BaseEnv):
                     )
         return veh_ctx_dicts
 
-    def highlight_critical_vehicles(self, maneuver_challenge_dicts, veh_ctx_dicts):
-        for veh_id in maneuver_challenge_dicts:
-            if (
-                veh_ctx_dicts[veh_id].get("avoidable", True) is False
-            ):  # collision unavoidable
-                # highlight the vehicle with gray
-                traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
-            elif maneuver_challenge_dicts[veh_id].get(
-                "negligence"
-            ):  # avoidable collision
-                # highlight the vehicle with yellow
-                traci.vehicle.highlight(veh_id, (255, 255, 0, 255), duration=0.1)
-
     def get_ndd_distribution_from_vehicle_ctx(self, veh_ctx_dicts):
         ndd_control_command_dicts = Dict(
             {
@@ -343,7 +328,7 @@ class SafeTestNADE(BaseEnv):
         )
         return ndd_control_command_dicts
 
-    # @profile
+    @profile
     def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
         # predict future trajectories for each vehicle
         sumo_net = self.simulator.sumo_net
@@ -390,7 +375,7 @@ class SafeTestNADE(BaseEnv):
                     ITE_control_cmds[veh_id].future_trajectory = trajectory_dicts[
                         veh_id
                     ][ITE_control_cmds[veh_id].info.get("mode")]
-                    logger.critical(
+                    logger.debug(
                         f"veh_id: {veh_id} is updated to trajectory command with mode: {ITE_control_cmds[veh_id].info.get('mode')}, trajectory: {ITE_control_cmds[veh_id].future_trajectory}"
                     )
         return ITE_control_cmds
@@ -418,6 +403,7 @@ class SafeTestNADE(BaseEnv):
                     logger.trace(
                         f"{veh_id} is marked as unavoidable collision and the prob is reduced to {ndd_control_command_dicts[veh_id]['negligence'].prob}"
                     )
+                    traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
         return ndd_control_command_dicts, veh_ctx_dicts
 
     def get_negligence_pair_dict(self, veh_ctx_dicts, potential=False):
@@ -517,7 +503,9 @@ class SafeTestNADE(BaseEnv):
                         veh_info=None,
                     )
                 )
-                logger.debug(f"add avoidance command for vehicle: {neglected_vehicle_id}, with info {info}")
+                logger.trace(
+                    f"add avoidance command for vehicle: {neglected_vehicle_id}, with info {info}"
+                )
             logger.trace(
                 f"add avoidance command for vehicle: {neglected_vehicle_list} from vehicle: {neglecting_vehicle_id}"
             )
@@ -839,7 +827,7 @@ class SafeTestNADE(BaseEnv):
 
         return maneuver_challenge_avoidance_dicts, veh_ctx_dicts
 
-    # @profile
+    @profile
     def get_maneuver_challenge_dicts(self, trajectory_dicts, obs_dicts, veh_ctx_dicts):
         """Get the maneuver challenge for each vehicle when it is in the negligence mode while other vehicles are in the normal mode.
 
@@ -892,7 +880,7 @@ class SafeTestNADE(BaseEnv):
             }
         )
         for veh_id in maneuver_challenge_dicts_shrinked:
-            traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.5)
+            traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
         conflict_vehicle_info = Dict(
             {
                 veh_id: veh_ctx_dicts[veh_id].get("conflict_vehicle_list")

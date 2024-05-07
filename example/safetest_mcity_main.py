@@ -6,11 +6,14 @@ from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 
+
 parser = argparse.ArgumentParser(description="Run simulation.")
 parser.add_argument("--dir", type=str, help="output directory", default="output")
 parser.add_argument("--name", type=str, help="experiment name", default="test")
 parser.add_argument("--nth", type=str, help="the nth epoch", default="0_0")
-parser.add_argument("--aggregateddir", type=str, help="aggregated directory", default="aggregated")
+parser.add_argument(
+    "--aggregateddir", type=str, help="aggregated directory", default="aggregated"
+)
 args = parser.parse_args()
 
 base_dir = Path(args.dir) / args.name / "raw_data" / args.nth
@@ -22,7 +25,7 @@ aggregated_log_dir = Path(args.aggregateddir) / "loguru_run.log"
 logger.add(
     base_dir / "loguru_run.log",
     # filter="terasim_nde_nade",
-    level="TRACE",
+    level="INFO",
 )
 
 logger.add(
@@ -58,4 +61,6 @@ terasim_logger.info(f"terasim_nde_nade: Experiment started {args.nth}")
 try:
     sim.run()
 except Exception as e:
-    terasim_logger.exception(f"terasim_nde_nade: Running error catched, {e} at {args.nth} experiment")
+    terasim_logger.exception(
+        f"terasim_nde_nade: Running error catched, {e} at {args.nth} experiment"
+    )
