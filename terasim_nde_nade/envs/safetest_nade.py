@@ -375,7 +375,7 @@ class SafeTestNADE(BaseEnv):
                     ITE_control_cmds[veh_id].future_trajectory = trajectory_dicts[
                         veh_id
                     ][ITE_control_cmds[veh_id].info.get("mode")]
-                    logger.debug(
+                    logger.info(
                         f"veh_id: {veh_id} is updated to trajectory command with mode: {ITE_control_cmds[veh_id].info.get('mode')}, trajectory: {ITE_control_cmds[veh_id].future_trajectory}"
                     )
         return ITE_control_cmds
@@ -823,7 +823,19 @@ class SafeTestNADE(BaseEnv):
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
                     veh_ctx_dicts[veh_id]["avoidable"] = False
-                    logger.trace(f"veh_id: {veh_id} is not avoidable")
+                    logger.info(
+                        f"timestep: {utils.get_time()}, veh_id: {veh_id} is not avoidable"
+                    )
+                else:
+                    logger.info(
+                        f"timestep: {utils.get_time()}, veh_id: {veh_id} is avoidable"
+                    )
+                logger.info(
+                    f"negligence vehicle observation {obs_dicts[veh_id]}, conflict vehicle observation {Dict({veh_id: obs_dicts[veh_id] for veh_id in conflict_vehicle_list})}"
+                )
+                logger.info(
+                    f"negligence future trajectory dict for {veh_id}: {negligence_future_trajectory_dict[veh_id]}, and conflict future trajectory dict for {conflict_vehicle_list}: {conflict_vehicle_future_dict}"
+                )
 
         return maneuver_challenge_avoidance_dicts, veh_ctx_dicts
 
