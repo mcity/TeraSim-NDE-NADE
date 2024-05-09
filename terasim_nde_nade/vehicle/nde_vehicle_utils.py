@@ -449,7 +449,7 @@ def predict_future_trajectory(
     ):
         if (
             lanechange_finish_trajectory_point is not None
-            and duration <= lanechange_finish_trajectory_point[3]
+            and duration <= lanechange_finish_trajectory_point[-1]
         ):
             continue
         future_position, future_heading = get_future_position_on_route(

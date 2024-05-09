@@ -819,6 +819,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts,
                         veh_ctx_dicts[veh_id],
                         record_in_ctx=False,
+                        buffer=0.25,  # 0.5m buffer to identify unavoidable collision
                     )
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
@@ -914,6 +915,7 @@ class SafeTestNADE(BaseEnv):
         veh_ctx_dict,
         record_in_ctx=False,
         highlight_flag=True,
+        buffer=0,
     ):
         """Get the maneuver challenge for the negligence vehicle.
 
@@ -952,7 +954,7 @@ class SafeTestNADE(BaseEnv):
                     all_normal_veh_future[veh_id],
                     veh_length,
                     tem_len,
-                    circle_r,
+                    circle_r + buffer,
                 )
                 final_collision_flag = final_collision_flag or collision_flag
                 if collision_flag and record_in_ctx:
