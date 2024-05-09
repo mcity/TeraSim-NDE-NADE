@@ -30,7 +30,7 @@ veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2 - (veh_width / 2) ** 2)
 IS_MAGNITUDE_DEFAULT = 100
-IS_MAGNITUDE_MULTIPLIER = 1
+IS_MAGNITUDE_MULTIPLIER = 10
 IS_MAGNITUDE_MAPPING = {
     "roundabout": "IS_MAGNITUDE_ROUNDABOUT",
     "highway": "IS_MAGNITUDE_HIGHWAY",
