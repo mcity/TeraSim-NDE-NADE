@@ -2,14 +2,8 @@
 
     <!-- <vType id="IDM_waymo_motion" length="5.00" width="1.85" minGap="3.28" maxSpeed="10.00" carFollowModel="IDM" accel="1.84" decel="4.00" tau="1.17" emergencyDecel="9.0" lcAccelLat="20000.0" latAlignment="center" lcSublane="1" lcSpeedGain="0" lcKeepRight="0" lcCooperative="0" /> -->
 
-    <vType id="NDE_URBAN" length="5.00" width="1.85" minGap="3.28" maxSpeed="10.00" carFollowModel="IDM" accel="1.84" decel="1.29" tau="1.17" emergencyDecel="7.06" lcKeepRight="0" speedFactor="normc(1,0.1,0.8,1.2)" lcSigma="0.1"/>
-    <vType id="NDE_HIGHWAY" length="5.00" width="1.85" minGap="5.92" maxSpeed="28.31" carFollowModel="IDM" accel="5.95" decel="5.96" tau="1.72" emergencyDecel="7.06" lcKeepRight="0" speedFactor="normc(1,0.1,0.8,1.2)" lcSigma="0.1"/>
-    <vType id="NDE_URBAN_with_SSM" length="5.00" width="1.85" minGap="3.28" maxSpeed="10.00" carFollowModel="IDM" accel="1.84" decel="1.29" tau="1.17" emergencyDecel="7.06" lcKeepRight="0" speedFactor="normc(1,0.1,0.8,1.2)" lcSigma="0.1">
-        <param key="has.ssm.device" value="true"/>
-    </vType>
-    <vType id="NDE_HIGHWAY_with_SSM" length="5.00" width="1.85" minGap="5.92" maxSpeed="28.31" carFollowModel="IDM" accel="5.95" decel="5.96" tau="1.72" emergencyDecel="7.06" lcKeepRight="0" speedFactor="normc(1,0.1,0.8,1.2)" lcSigma="0.1">
-        <param key="has.ssm.device" value="true"/>
-    </vType>
+    <vType id="NDE_URBAN" length="5.00" width="1.85" minGap="3.28" maxSpeed="10.00" carFollowModel="IDM" accel="1.84" decel="1.29" tau="1.17" emergencyDecel="7.06" lcSpeedGain="0" lcCooperative="0" lcKeepRight="1" speedFactor="normc(1,0.1,0.8,1.2)"/>
+    <vType id="NDE_HIGHWAY" length="5.00" width="1.85" minGap="5.92" maxSpeed="28.31" carFollowModel="IDM" accel="5.95" decel="5.96" tau="1.72" emergencyDecel="7.06" lcSpeedGain="0" lcCooperative="0" lcKeepRight="1" speedFactor="normc(1,0.1,0.8,1.2)"/>
 
     
 

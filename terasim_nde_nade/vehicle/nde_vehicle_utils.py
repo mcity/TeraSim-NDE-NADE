@@ -337,6 +337,15 @@ def predict_future_distance_velocity_vectorized(
     return cumulative_distances, velocity_array
 
 
+def get_lanechange_longitudinal_speed(
+    veh_id, current_speed, lane_width=None, lanechange_duration=1.0
+):
+    if lane_width is None:
+        lane_width = traci.lane.getWidth(traci.vehicle.getLaneID(veh_id))
+    lateral_speed = lane_width / lanechange_duration
+    return math.sqrt(max(current_speed**2 - lateral_speed**2, 0))
+
+
 @profile
 def predict_future_trajectory(
     veh_id,
@@ -386,18 +395,31 @@ def predict_future_trajectory(
     # info.acceleration = str(acceleration)
     max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
     # info.max_velocity = str(max_velocity)
+
+    # info.future_distance_array = str(future_distance_array)
+    # info.future_velocity_array = str(future_velocity_array)
+    lane_width = traci.lane.getWidth(veh_info["lane_id"])
+    lateral_offset = 0
+    if control_command.command_type == Command.LEFT:
+        lateral_offset = 1
+        veh_info.velocity = get_lanechange_longitudinal_speed(
+            veh_id,
+            veh_info.velocity,
+            lane_width,
+        )
+    elif control_command.command_type == Command.RIGHT:
+        lateral_offset = -1
+        veh_info.velocity = get_lanechange_longitudinal_speed(
+            veh_id,
+            veh_info.velocity,
+            lane_width,
+        )
+
     future_distance_array, future_velocity_array = (
         predict_future_distance_velocity_vectorized(
             veh_info["velocity"], acceleration, duration_array, max_velocity
         )
     )
-    # info.future_distance_array = str(future_distance_array)
-    # info.future_velocity_array = str(future_velocity_array)
-    lateral_offset = 0
-    if control_command.command_type == Command.LEFT:
-        lateral_offset = 1
-    elif control_command.command_type == Command.RIGHT:
-        lateral_offset = -1
     # info.lateral_offset = str(lateral_offset)
 
     trajectory_array = np.array(
