@@ -369,6 +369,7 @@ class SafeTestNADE(BaseEnv):
             if (
                 ITE_control_cmds[veh_id].info.get("mode") == "avoid_collision"
                 or ITE_control_cmds[veh_id].info.get("mode") == "negligence"
+                or ITE_control_cmds[veh_id].info.get("mode") == "accept_collision"
             ):
                 if ITE_control_cmds[veh_id].command_type == Command.ACCELERATION:
                     ITE_control_cmds[veh_id].command_type = Command.TRAJECTORY
@@ -601,9 +602,10 @@ class SafeTestNADE(BaseEnv):
                     {
                         "neglected_vehicle_id": neglected_vehicle_id,
                         "mode": "accept_collision",
-                        "additiona_info": "all_avoidance_none",
+                        "additional_info": "all_avoidance_none",
                     }
                 )
+                ITE_control_command_dict[neglected_vehicle_id] = self.get_accept_collision_command()
             return ITE_control_command_dict, veh_ctx_dicts, weight
 
         timestamp = utils.get_time()
@@ -667,6 +669,7 @@ class SafeTestNADE(BaseEnv):
                             "mode": "accept_collision",
                         }
                     )
+                    ITE_control_command_dict[neglected_vehicle_id] = self.get_accept_collision_command()
             weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
 
         self.record.event_info[utils.get_time()].neglected_command = {
@@ -675,6 +678,18 @@ class SafeTestNADE(BaseEnv):
         }
 
         return ITE_control_command_dict, veh_ctx_dicts, weight
+    
+    def get_accept_collision_command(self):
+        accept_command = NDECommand(
+            command_type=Command.ACCELERATION,
+            acceleration=0,
+            prob=0,
+            duration=2,
+        ) # the vehicle will accept the final collision
+        accept_command.info = {
+            "mode": "accept_collision"
+        }
+        return accept_command
 
     def get_neglecting_vehicle_id(self, control_command_dict, maneuver_challenge_info):
         neglect_pair_list = []
