@@ -24,17 +24,17 @@ import addict
 
 intersection_cutin_prob = 1.118159657654468e-05
 intersection_neglect_conflict_lead_prob = 6.677231589776039e-05
-intersection_rearend_prob = 2.204741193939959e-06
-intersection_tfl_prob = 0.0018291608034515015
-intersection_headon_prob = 8.994401291981026e-06
+intersection_rearend_prob = 2.204741193939959e-05
+intersection_tfl_prob = 0.0058291608034515015
+intersection_headon_prob = 2.994401291981026e-05
 
-roundabout_fail_to_yield_prob = 1.2830400000000002e-05
+roundabout_fail_to_yield_prob = 1.2830400000000002e-04
 roundabout_cutin_prob = 1.3475398926368317e-05
-roundabout_neglect_conflict_lead_prob = 1.8780196130730532e-06
-roundabout_rearend_prob = 2.2978902185847895e-07
+roundabout_neglect_conflict_lead_prob = 1.8780196130730532e-05
+roundabout_rearend_prob = 2.2978902185847895e-06
 
-highway_cutin_prob = 2.5883079028671922e-05
-highway_rearend_prob = 0.00001476665560329975
+highway_cutin_prob = 2.5883079028671922e-06
+highway_rearend_prob = 1.47e-4
 
 print(
     f"intersection_cutin_prob: {intersection_cutin_prob}, intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, intersection_rearend_prob: {intersection_rearend_prob}, intersection_tfl_prob: {intersection_tfl_prob}, intersection_headon_prob: {intersection_headon_prob}, roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, roundabout_cutin_prob: {roundabout_cutin_prob}, roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, roundabout_rearend_prob: {roundabout_rearend_prob}, highway_cutin_prob: {highway_cutin_prob}, highway_rearend_prob: {highway_rearend_prob}"
