@@ -241,7 +241,7 @@ class SafeTestNADE(BaseEnv):
         )
 
         # add collision avoidance command for the neglected vehicles, and predict the future trajectories for the avoidance command using the veh_ctx_dicts
-        trajectory_dicts, veh_ctx_dicts = self.add_collision_avoidance_command(
+        trajectory_dicts, veh_ctx_dicts = self.add_avoid_accept_collision_command(
             obs_dicts, trajectory_dicts, veh_ctx_dicts
         )
 
@@ -465,7 +465,7 @@ class SafeTestNADE(BaseEnv):
         )
         return avoidance_command
 
-    def add_collision_avoidance_command(
+    def add_avoid_accept_collision_command(
         self, obs_dicts, trajectory_dicts, veh_ctx_dicts
     ):
         potential_negligence_pair_dict = self.get_negligence_pair_dict(
@@ -504,6 +504,25 @@ class SafeTestNADE(BaseEnv):
                         veh_info=None,
                     )
                 )
+
+                accept_command = self.get_accept_collision_command()
+                veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"][
+                    "accept_collision"
+                ] = accept_command
+                trajectory_dicts[neglected_vehicle_id]["accept_collision"], info = (
+                    predict_future_trajectory(
+                        neglected_vehicle_id,
+                        obs_dicts[neglected_vehicle_id],
+                        accept_command,
+                        self.simulator.sumo_net,
+                        time_horizon_step=4,
+                        time_resolution=0.5,
+                        interpolate_resolution=0.5,
+                        current_time=None,
+                        veh_info=None,
+                    )
+                )
+
                 logger.trace(
                     f"add avoidance command for vehicle: {neglected_vehicle_id}, with info {info}"
                 )
@@ -605,7 +624,7 @@ class SafeTestNADE(BaseEnv):
                         "additional_info": "all_avoidance_none",
                     }
                 )
-                ITE_control_command_dict[neglected_vehicle_id] = self.get_accept_collision_command()
+                ITE_control_command_dict[neglected_vehicle_id] = veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"].get("accept_collision", None)
             return ITE_control_command_dict, veh_ctx_dicts, weight
 
         timestamp = utils.get_time()
@@ -669,7 +688,11 @@ class SafeTestNADE(BaseEnv):
                             "mode": "accept_collision",
                         }
                     )
-                    ITE_control_command_dict[neglected_vehicle_id] = self.get_accept_collision_command()
+                    ITE_control_command_dict[neglected_vehicle_id] = (
+                        veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"].get(
+                            "accept_collision", None
+                        )
+                    )
             weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
 
         self.record.event_info[utils.get_time()].neglected_command = {
@@ -846,10 +869,10 @@ class SafeTestNADE(BaseEnv):
                     logger.info(
                         f"timestep: {utils.get_time()}, veh_id: {veh_id} is avoidable"
                     )
-                logger.info(
+                logger.trace(
                     f"negligence vehicle observation {obs_dicts[veh_id]}, conflict vehicle observation {Dict({veh_id: obs_dicts[veh_id] for veh_id in conflict_vehicle_list})}"
                 )
-                logger.info(
+                logger.trace(
                     f"negligence future trajectory dict for {veh_id}: {negligence_future_trajectory_dict[veh_id]}, and conflict future trajectory dict for {conflict_vehicle_list}: {conflict_vehicle_future_dict}"
                 )
 
