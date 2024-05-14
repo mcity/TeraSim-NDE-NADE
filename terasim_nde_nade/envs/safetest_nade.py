@@ -30,7 +30,7 @@ veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2 - (veh_width / 2) ** 2)
 IS_MAGNITUDE_DEFAULT = 100
-IS_MAGNITUDE_MULTIPLIER = 10
+IS_MAGNITUDE_MULTIPLIER = 40
 IS_MAGNITUDE_MAPPING = {
     "roundabout": "IS_MAGNITUDE_ROUNDABOUT",
     "highway": "IS_MAGNITUDE_HIGHWAY",
@@ -57,7 +57,7 @@ class SafeTestNADE(BaseEnv):
         self.importance_sampling_weight = 1.0
         self.max_importance_sampling_prob = 5e-2
         self.unavoidable_collision_prob_factor = (
-            1e-2  # the factor to reduce the probability of the anavoidable collision
+            3e-4  # the factor to reduce the probability of the anavoidable collision
         )
         self.log = Dict()
         return super().on_start(ctx)
@@ -857,7 +857,6 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts,
                         veh_ctx_dicts[veh_id],
                         record_in_ctx=False,
-                        buffer=0.25,  # 0.5m buffer to identify unavoidable collision
                     )
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
