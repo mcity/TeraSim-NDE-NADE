@@ -17,10 +17,10 @@ shapely = "^2.0.3"
 toml = "^0.10.2"
 terasim = "*"
 
-[[tool.poetry.source]]
-name = "sdpi"
-url = "http://18.218.85.44:8080/"
-priority = "primary"
+# [[tool.poetry.source]]
+# name = "sdpi"
+# url = "http://18.218.85.44:8080/"
+# priority = "primary"
 
 [build-system]
 requires = ["poetry-core", "Cython", "setuptools", "wheel", "numpy"]

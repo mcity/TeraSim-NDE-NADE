@@ -443,6 +443,7 @@ def predict_future_trajectory(
         lanechange_finish_position, lanechange_finish_final_heading = (
             get_future_position_on_route(
                 traci,
+                veh_id,
                 veh_info["edge_id"],
                 veh_info["lane_position"],
                 veh_info["lane_index"],
@@ -451,6 +452,7 @@ def predict_future_trajectory(
                 veh_info["route_length_list"],
                 future_distance_array[lanechange_finish_timestep],
                 lateral_offset,
+                veh_info["upcoming_lane_id_list"],
             )
         )
         lanechange_finish_trajectory_point = np.array(
@@ -476,6 +478,7 @@ def predict_future_trajectory(
             continue
         future_position, future_heading = get_future_position_on_route(
             traci,
+            veh_id,
             veh_info["edge_id"],
             veh_info["lane_position"],
             veh_info["lane_index"],
@@ -484,6 +487,7 @@ def predict_future_trajectory(
             veh_info["route_length_list"],
             distance,
             lateral_offset,
+            veh_info["upcoming_lane_id_list"],
         )
         trajectory_array = np.vstack(
             (
@@ -512,6 +516,7 @@ def predict_future_trajectory(
 
 def get_future_position_on_route(
     traci,
+    veh_id: str,
     veh_edge_id: str,
     veh_lane_position: float,
     veh_lane_index: int,
@@ -520,6 +525,7 @@ def get_future_position_on_route(
     veh_route_length_list: List[float],
     future_distance: float,
     future_lateral_offset: int,
+    upcoming_lane_id_list: List[str],
 ) -> Tuple[Tuple[float, float], float]:
     """
     Given the current vehicle edge id, lane position, current lane id, and the future distance / future lateral offset, predict the future position of the vehicle.
@@ -539,20 +545,60 @@ def get_future_position_on_route(
         current_lane_length = veh_route_length_list[current_route_index]
 
     # calculate the new lane index
-    max_lane_index = traci.edge.getLaneNumber(veh_edge_id) - 1
-    original_lane_index = veh_lane_index
-    veh_lane_index = min(max_lane_index, max(0, veh_lane_index + future_lateral_offset))
-    vehicle_lane_id = veh_edge_id + f"_{veh_lane_index}"
+    veh_lane_id, veh_lane_index = get_future_lane_id_index(
+        veh_id,
+        veh_edge_id,
+        upcoming_lane_id_list,
+        veh_lane_index,
+        future_lateral_offset,
+    )
+
     veh_lane_position = min(
         veh_lane_position,
         current_lane_length,
-        traci.lane.getLength(vehicle_lane_id) - 0.1,
+        traci.lane.getLength(veh_lane_id) - 0.1,
     )
     future_position = traci.simulation.convert2D(
         veh_edge_id, veh_lane_position, veh_lane_index
     )
-    future_heading = traci.lane.getAngle(vehicle_lane_id, veh_lane_position)
+    future_heading = traci.lane.getAngle(veh_lane_id, veh_lane_position)
     return future_position, future_heading
+
+
+def get_future_lane_id_index(
+    veh_id, veh_edge_id, upcoming_lane_id_list, original_lane_index, lateral_offset
+):
+    if traci.edge.getLaneNumber(veh_edge_id) == 1:
+        veh_lane_index = 0
+        veh_lane_id = veh_edge_id + "_0"
+        return veh_lane_id, veh_lane_index
+    else:
+        if (
+            lateral_offset == 0
+            and traci.vehicle.getRoadID(veh_id) == "EG_1_3_1"
+            and "EG_1_3_1.61" in veh_edge_id
+        ):
+            print("aaa")
+        max_lane_index = traci.edge.getLaneNumber(veh_edge_id) - 1
+        predicted_vehicle_lane_id = get_vehicle_future_lane_id_from_edge(
+            veh_edge_id, upcoming_lane_id_list
+        )
+        if predicted_vehicle_lane_id is not None:
+            predicted_veh_lane_index = int(predicted_vehicle_lane_id.split("_")[-1])
+        else:
+            predicted_veh_lane_index = original_lane_index
+
+        veh_lane_index = min(
+            max_lane_index, max(0, predicted_veh_lane_index + lateral_offset)
+        )
+        veh_lane_id = veh_edge_id + f"_{veh_lane_index}"
+        return veh_lane_id, veh_lane_index
+
+
+def get_vehicle_future_lane_id_from_edge(edge_id, upcoming_lane_id_list):
+    return next(
+        (lane_id for lane_id in upcoming_lane_id_list if edge_id in lane_id), None
+    )
 
 
 @profile
@@ -586,7 +632,33 @@ def get_vehicle_info(veh_id, obs_dict, sumo_net):
     veh_info.route_length_list = [
         traci.lane.getLength(edge_id + "_0") for edge_id in veh_info.route_id_list
     ]
+    veh_info.upcoming_lane_id_list = get_upcoming_lane_id_list(veh_id)
     return veh_info
+
+
+def get_upcoming_lane_id_list(veh_id):
+    veh_next_links = traci.vehicle.getNextLinks(veh_id)
+    current_lane_id = traci.vehicle.getLaneID(veh_id)
+    lane_links = traci.lane.getLinks(current_lane_id)
+    upcoming_lane_id_list = [current_lane_id]
+    if traci.vehicle.getRoadID(veh_id) == "EG_1_3_1":
+        print("aaa")
+    if isinstance(lane_links, list) and len(lane_links) > 0:
+        for lane_link in lane_links:
+            lane_id = lane_link[0]
+            via_lane_id = lane_link[4]
+            if via_lane_id != "":
+                upcoming_lane_id_list.append(via_lane_id)
+            upcoming_lane_id_list.append(lane_id)
+
+    if len(veh_next_links) == 0:
+        return upcoming_lane_id_list
+    for link in veh_next_links:
+        lane_id = link[0]
+        via_lane_id = link[4]
+        upcoming_lane_id_list.append(via_lane_id)
+        upcoming_lane_id_list.append(lane_id)
+    return upcoming_lane_id_list
 
 
 from dataclasses import dataclass
@@ -609,6 +681,7 @@ class VehicleInfoForPredict:
     length: float
     route_id_list: Optional[List[str]] = None
     route_length_list: Optional[List[float]] = None
+    upcoming_lane_id_list: Optional[List[str]] = None
 
     def __getitem__(self, item):
         return self.__dict__[item]
