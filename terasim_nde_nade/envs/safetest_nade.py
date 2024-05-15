@@ -60,10 +60,13 @@ class SafeTestNADE(BaseEnv):
             3e-4  # the factor to reduce the probability of the anavoidable collision
         )
         self.log = Dict()
-        return super().on_start(ctx)
+        on_start_result = super().on_start(ctx)
+        self.distance_info = Dict({"before": self.update_distance(), "after": Dict()})
+        return on_start_result
 
     @profile
     def on_step(self, ctx):
+        self.distance_info.after.update(self.update_distance())
         self.record.final_time = utils.get_time()  # update the final time at each step
         self.cache_history_tls_data()
         # clear vehicle context dicts
@@ -112,12 +115,24 @@ class SafeTestNADE(BaseEnv):
 
     def on_stop(self, ctx) -> bool:
         if self.log_flag:
+            self.distance_info.after.update(self.update_distance())
             self.record.weight = self.importance_sampling_weight
+            self.record.total_distance = self.calculate_total_distance()
             self.align_record_event_with_collision()
             moniotr_json_path = self.log_dir / "monitor.json"
             with open(moniotr_json_path, "w") as f:
                 json.dump(self.record, f, indent=4, default=str)
         return super().on_stop(ctx)
+
+    def calculate_total_distance(self):
+        total_distance = 0
+        for veh_id in self.distance_info.after:
+            if veh_id not in self.distance_info.before:
+                total_distance += self.distance_info.after[veh_id]
+            else:
+                total_distance += self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
+        return total_distance
+    
 
     # find the corresponding event that lead to the final result (e.g., collisions)
     def align_record_event_with_collision(self):
@@ -172,6 +187,12 @@ class SafeTestNADE(BaseEnv):
 
         self.record.step_info[utils.get_time()] = step_log
         return step_log
+
+    def update_distance(self):
+        distance_info_dict = Dict()
+        for veh_id in traci.vehicle.getIDList():
+            distance_info_dict.veh_id = traci.vehicle.getDistance(veh_id)
+        return distance_info_dict
 
     def record_final_data(self, veh_ctx_dicts):
         # return False
@@ -857,6 +878,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts,
                         veh_ctx_dicts[veh_id],
                         record_in_ctx=False,
+                        buffer=0.25 # buffer for the collision avoidance, 0.5m
                     )
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
