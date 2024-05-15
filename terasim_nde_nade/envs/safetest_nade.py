@@ -118,6 +118,7 @@ class SafeTestNADE(BaseEnv):
             self.distance_info.after.update(self.update_distance())
             self.record.weight = self.importance_sampling_weight
             self.record.total_distance = self.calculate_total_distance()
+            logger.info(f"total distance: {self.record.total_distance}")
             self.align_record_event_with_collision()
             moniotr_json_path = self.log_dir / "monitor.json"
             with open(moniotr_json_path, "w") as f:
@@ -882,11 +883,11 @@ class SafeTestNADE(BaseEnv):
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
                     veh_ctx_dicts[veh_id]["avoidable"] = False
-                    logger.info(
+                    logger.debug(
                         f"timestep: {utils.get_time()}, veh_id: {veh_id} is not avoidable"
                     )
                 else:
-                    logger.info(
+                    logger.debug(
                         f"timestep: {utils.get_time()}, veh_id: {veh_id} is avoidable"
                     )
                 logger.trace(
