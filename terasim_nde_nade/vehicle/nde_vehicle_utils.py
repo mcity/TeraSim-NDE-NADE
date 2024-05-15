@@ -28,13 +28,13 @@ intersection_rearend_prob = 2.204741193939959e-04
 intersection_tfl_prob = 0.058291608034515015
 intersection_headon_prob = 2.994401291981026e-04
 
-roundabout_fail_to_yield_prob = 1.2830400000000002e-03
-roundabout_cutin_prob = 1.3475398926368317e-04
-roundabout_neglect_conflict_lead_prob = 1.8780196130730532e-04
+roundabout_fail_to_yield_prob = 1.2830400000000002e-03 / 2
+roundabout_cutin_prob = 5.3475398926368317e-05 / 2
+roundabout_neglect_conflict_lead_prob = 1.8780196130730532e-04 / 2
 roundabout_rearend_prob = 2.2978902185847895e-05
 
-highway_cutin_prob = 2.5883079028671922e-05
-highway_rearend_prob = 1.47e-3
+highway_cutin_prob = 5.5883079028671922e-06
+highway_rearend_prob = 3.47e-2
 
 print(
     f"intersection_cutin_prob: {intersection_cutin_prob}, intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, intersection_rearend_prob: {intersection_rearend_prob}, intersection_tfl_prob: {intersection_tfl_prob}, intersection_headon_prob: {intersection_headon_prob}, roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, roundabout_cutin_prob: {roundabout_cutin_prob}, roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, roundabout_rearend_prob: {roundabout_rearend_prob}, highway_cutin_prob: {highway_cutin_prob}, highway_rearend_prob: {highway_rearend_prob}"
