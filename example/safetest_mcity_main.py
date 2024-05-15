@@ -31,6 +31,7 @@ for log_file in log_files:
         level="INFO",
         enqueue=True,
         backtrace=True,
+        serialize=True,
     )
 
 env = SafeTestNADE(
