@@ -130,9 +130,10 @@ class SafeTestNADE(BaseEnv):
             if veh_id not in self.distance_info.before:
                 total_distance += self.distance_info.after[veh_id]
             else:
-                total_distance += self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
+                total_distance += (
+                    self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
+                )
         return total_distance
-    
 
     # find the corresponding event that lead to the final result (e.g., collisions)
     def align_record_event_with_collision(self):
@@ -191,7 +192,7 @@ class SafeTestNADE(BaseEnv):
     def update_distance(self):
         distance_info_dict = Dict()
         for veh_id in traci.vehicle.getIDList():
-            distance_info_dict.veh_id = traci.vehicle.getDistance(veh_id)
+            distance_info_dict[veh_id] = traci.vehicle.getDistance(veh_id)
         return distance_info_dict
 
     def record_final_data(self, veh_ctx_dicts):
@@ -645,7 +646,9 @@ class SafeTestNADE(BaseEnv):
                         "additional_info": "all_avoidance_none",
                     }
                 )
-                ITE_control_command_dict[neglected_vehicle_id] = veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"].get("accept_collision", None)
+                ITE_control_command_dict[neglected_vehicle_id] = veh_ctx_dicts[
+                    neglected_vehicle_id
+                ]["ndd_command_distribution"].get("accept_collision", None)
             return ITE_control_command_dict, veh_ctx_dicts, weight
 
         timestamp = utils.get_time()
@@ -709,11 +712,9 @@ class SafeTestNADE(BaseEnv):
                             "mode": "accept_collision",
                         }
                     )
-                    ITE_control_command_dict[neglected_vehicle_id] = (
-                        veh_ctx_dicts[neglected_vehicle_id]["ndd_command_distribution"].get(
-                            "accept_collision", None
-                        )
-                    )
+                    ITE_control_command_dict[neglected_vehicle_id] = veh_ctx_dicts[
+                        neglected_vehicle_id
+                    ]["ndd_command_distribution"].get("accept_collision", None)
             weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
 
         self.record.event_info[utils.get_time()].neglected_command = {
@@ -722,17 +723,15 @@ class SafeTestNADE(BaseEnv):
         }
 
         return ITE_control_command_dict, veh_ctx_dicts, weight
-    
+
     def get_accept_collision_command(self):
         accept_command = NDECommand(
             command_type=Command.ACCELERATION,
             acceleration=0,
             prob=0,
             duration=2,
-        ) # the vehicle will accept the final collision
-        accept_command.info = {
-            "mode": "accept_collision"
-        }
+        )  # the vehicle will accept the final collision
+        accept_command.info = {"mode": "accept_collision"}
         return accept_command
 
     def get_neglecting_vehicle_id(self, control_command_dict, maneuver_challenge_info):
@@ -878,7 +877,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts,
                         veh_ctx_dicts[veh_id],
                         record_in_ctx=False,
-                        buffer=0.25 # buffer for the collision avoidance, 0.5m
+                        buffer=0.25,  # buffer for the collision avoidance, 0.5m
                     )
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):

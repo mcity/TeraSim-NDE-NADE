@@ -573,12 +573,6 @@ def get_future_lane_id_index(
         veh_lane_id = veh_edge_id + "_0"
         return veh_lane_id, veh_lane_index
     else:
-        if (
-            lateral_offset == 0
-            and traci.vehicle.getRoadID(veh_id) == "EG_1_3_1"
-            and "EG_1_3_1.61" in veh_edge_id
-        ):
-            print("aaa")
         max_lane_index = traci.edge.getLaneNumber(veh_edge_id) - 1
         predicted_vehicle_lane_id = get_vehicle_future_lane_id_from_edge(
             veh_edge_id, upcoming_lane_id_list
@@ -641,8 +635,6 @@ def get_upcoming_lane_id_list(veh_id):
     current_lane_id = traci.vehicle.getLaneID(veh_id)
     lane_links = traci.lane.getLinks(current_lane_id)
     upcoming_lane_id_list = [current_lane_id]
-    if traci.vehicle.getRoadID(veh_id) == "EG_1_3_1":
-        print("aaa")
     if isinstance(lane_links, list) and len(lane_links) > 0:
         for lane_link in lane_links:
             lane_id = lane_link[0]
