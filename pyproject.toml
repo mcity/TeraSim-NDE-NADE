@@ -16,7 +16,7 @@ python = "^3.10"
 Cython = "^3.0.8"
 shapely = "^2.0.3"
 toml = "^0.10.2"
-terasim = { version = "*", source = "sdpi", develop = true}
+terasim = "*"
 
 [[tool.poetry.source]]
 name = "sdpi"
