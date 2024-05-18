@@ -30,7 +30,7 @@ veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2 - (veh_width / 2) ** 2)
 IS_MAGNITUDE_DEFAULT = 60
-IS_MAGNITUDE_MULTIPLIER = 100
+IS_MAGNITUDE_MULTIPLIER = 40
 IS_MAGNITUDE_MAPPING = {
     "roundabout": "IS_MAGNITUDE_ROUNDABOUT",
     "highway": "IS_MAGNITUDE_HIGHWAY",
@@ -371,7 +371,7 @@ class SafeTestNADE(BaseEnv):
                     obs_dict,
                     control_command_dict[modality],
                     sumo_net,
-                    time_horizon_step=4,
+                    time_horizon_step=6,
                     time_resolution=0.5,
                     interpolate_resolution=0.5,
                     current_time=current_time,
@@ -520,7 +520,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts[neglected_vehicle_id],
                         avoidance_command,
                         self.simulator.sumo_net,
-                        time_horizon_step=4,
+                        time_horizon_step=6,
                         time_resolution=0.5,
                         interpolate_resolution=0.5,
                         current_time=None,
