@@ -26,7 +26,7 @@ intersection_cutin_prob = 1.118159657654468e-04
 intersection_neglect_conflict_lead_prob = 6.677231589776039e-04
 intersection_rearend_prob = 2.204741193939959e-04
 intersection_tfl_prob = 0.058291608034515015
-intersection_headon_prob = 2.994401291981026e-03
+intersection_headon_prob = 2.994401291981026e-04
 
 roundabout_fail_to_yield_prob = 1.2830400000000002e-03 / 2
 roundabout_cutin_prob = 5.3475398926368317e-05 / 2
