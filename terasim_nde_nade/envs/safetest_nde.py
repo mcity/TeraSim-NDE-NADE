@@ -29,7 +29,8 @@ class SafeTestNDE(EnvTemplate):
         logger.info(f"warmup_time: {self.warmup_time}, run_time: {self.run_time}")
         self.final_log = None
         self.log_dir = log_dir
-        os.makedirs(self.log_dir, exist_ok=True)
+        if self.log_dir:
+            os.makedirs(self.log_dir, exist_ok=True)
         self.log_flag = log_flag
         self.tls_info_cache = {}
         self.history_length = 10
