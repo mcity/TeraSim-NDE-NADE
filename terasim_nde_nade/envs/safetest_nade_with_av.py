@@ -191,6 +191,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
         veh_ctx_dict,
         record_in_ctx=False,
         highlight_flag=True,
+        buffer=0,
     ):
         if negligence_veh_id != "CAV":
             cav_future = (
@@ -206,6 +207,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 veh_ctx_dict,
                 record_in_ctx,
                 highlight_flag,
+                buffer=buffer,
             )
         else:
             return super().get_maneuver_challenge(
@@ -216,6 +218,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 veh_ctx_dict,
                 record_in_ctx,
                 highlight_flag,
+                buffer=buffer,
             )
 
     def should_continue_simulation(self):
