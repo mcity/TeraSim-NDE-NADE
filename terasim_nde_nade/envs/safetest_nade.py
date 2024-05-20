@@ -427,8 +427,11 @@ class SafeTestNADE(BaseEnv):
                     logger.trace(
                         f"{veh_id} is marked as unavoidable collision and the prob is reduced to {ndd_control_command_dicts[veh_id]['negligence'].prob}"
                     )
-                    traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
+                    self.unavoidable_maneuver_challenge_hook(veh_id)
         return ndd_control_command_dicts, veh_ctx_dicts
+    
+    def unavoidable_maneuver_challenge_hook(veh_id):
+        traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
 
     def get_negligence_pair_dict(self, veh_ctx_dicts, potential=False):
         """Get the negligence pair dict.
@@ -792,7 +795,8 @@ class SafeTestNADE(BaseEnv):
                         veh_id
                     ].negligence
                     veh_ctx_dicts[veh_id]["mode"] = "negligence"
-                    traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
+
+                    self.negligence_hook(veh_id)
                     logger.info(
                         f"time: {utils.get_time()}, veh_id: {veh_id} select negligence control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )
@@ -805,6 +809,9 @@ class SafeTestNADE(BaseEnv):
                         f"time: {utils.get_time()}, veh_id: {veh_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )
         return ITE_control_command_dict, veh_ctx_dicts, weight
+    
+    def negligence_hook(self, veh_id):
+        traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
 
     def get_IS_prob(
         self, veh_id, ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
@@ -952,7 +959,7 @@ class SafeTestNADE(BaseEnv):
             }
         )
         for veh_id in maneuver_challenge_dicts_shrinked:
-            traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
+            self.avoidable_maneuver_challenge_hook(veh_id)
         conflict_vehicle_info = Dict(
             {
                 veh_id: veh_ctx_dicts[veh_id].get("conflict_vehicle_list")
@@ -964,6 +971,9 @@ class SafeTestNADE(BaseEnv):
             f"maneuver_challenge: {maneuver_challenge_dicts_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
         )
         return maneuver_challenge_dicts, veh_ctx_dicts
+    
+    def avoidable_maneuver_challenge_hook(self, veh_id):
+        traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
 
     def get_maneuver_challenge(
         self,
