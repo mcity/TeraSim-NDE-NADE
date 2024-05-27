@@ -62,6 +62,8 @@ class SafeTestNADE(BaseEnv):
         self.log = Dict()
         on_start_result = super().on_start(ctx)
         self.distance_info = Dict({"before": self.update_distance(), "after": Dict()})
+        self.allow_NADE_IS = True
+        self.latest_IS_time = -1
         return on_start_result
 
     @profile
@@ -295,11 +297,25 @@ class SafeTestNADE(BaseEnv):
         ndd_control_command_dicts = self.get_ndd_distribution_from_vehicle_ctx(
             veh_ctx_dicts
         )
-        ITE_control_command_dicts, veh_ctx_dicts, weight = (
-            self.NADE_importance_sampling(
-                ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
+        if self.allow_NADE_IS:
+            ITE_control_command_dicts, veh_ctx_dicts, weight, negligence_flag = (
+                self.NADE_importance_sampling(
+                    ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
+                )
             )
-        )
+            if negligence_flag:
+                self.latest_IS_time = utils.get_time()
+                self.allow_NADE_IS = False
+        else:
+            weight = 1.0
+            ITE_control_command_dicts = Dict(
+                {
+                    veh_id: ndd_control_command_dicts[veh_id]["normal"]
+                    for veh_id in ndd_control_command_dicts
+                }
+            )
+            if utils.get_time() - self.latest_IS_time >= 2.9:
+                self.allow_NADE_IS = True
 
         return (
             ITE_control_command_dicts,
@@ -429,7 +445,7 @@ class SafeTestNADE(BaseEnv):
                     )
                     self.unavoidable_maneuver_challenge_hook(veh_id)
         return ndd_control_command_dicts, veh_ctx_dicts
-    
+
     def unavoidable_maneuver_challenge_hook(self, veh_id):
         traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
 
@@ -770,6 +786,7 @@ class SafeTestNADE(BaseEnv):
                 for veh_id in ndd_control_command_dicts
             }
         )
+        negligence_flag = False
 
         for veh_id in maneuver_challenge_dicts:
             if maneuver_challenge_dicts[veh_id].get("negligence"):
@@ -800,6 +817,7 @@ class SafeTestNADE(BaseEnv):
                     logger.info(
                         f"time: {utils.get_time()}, veh_id: {veh_id} select negligence control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )
+                    negligence_flag = True
                 else:
                     weight *= ndd_normal_prob / (1 - IS_prob)
                     ITE_control_command_dict[veh_id] = ndd_control_command_dicts[
@@ -808,8 +826,8 @@ class SafeTestNADE(BaseEnv):
                     logger.trace(
                         f"time: {utils.get_time()}, veh_id: {veh_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )
-        return ITE_control_command_dict, veh_ctx_dicts, weight
-    
+        return ITE_control_command_dict, veh_ctx_dicts, weight, negligence_flag
+
     def negligence_hook(self, veh_id):
         traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
 
@@ -971,7 +989,7 @@ class SafeTestNADE(BaseEnv):
             f"maneuver_challenge: {maneuver_challenge_dicts_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
         )
         return maneuver_challenge_dicts, veh_ctx_dicts
-    
+
     def avoidable_maneuver_challenge_hook(self, veh_id):
         traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
 

@@ -194,7 +194,7 @@ def is_head_on(ego_obs, leader_info):
     start_angle = abs(ego_veh_lane_start_angle - lead_veh_lane_start_angle)
     end_angle = abs(ego_veh_lane_end_angle - lead_veh_lane_end_angle)
 
-    return (120 < start_angle < 240) and (120 < end_angle < 240)
+    return 120 < start_angle < 240
 
 
 def get_collision_type_and_prob(
