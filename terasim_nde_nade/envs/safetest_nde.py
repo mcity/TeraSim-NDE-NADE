@@ -4,6 +4,9 @@ import numpy as np
 from terasim.overlay import traci
 from loguru import logger
 from collections import deque
+from addict import Dict
+import json
+import os
 
 
 class SafeTestNDE(EnvTemplate):
@@ -26,9 +29,12 @@ class SafeTestNDE(EnvTemplate):
         logger.info(f"warmup_time: {self.warmup_time}, run_time: {self.run_time}")
         self.final_log = None
         self.log_dir = log_dir
+        if self.log_dir:
+            os.makedirs(self.log_dir, exist_ok=True)
         self.log_flag = log_flag
         self.tls_info_cache = {}
         self.history_length = 10
+        self.record = Dict()
         super().__init__(vehicle_factory, info_extractor, *args, **kwargs)
 
     def on_start(self, ctx):
@@ -90,9 +96,18 @@ class SafeTestNDE(EnvTemplate):
     def sumo_warmup(self, warmup_time):
         # TODO: change vehicle type during the warmup time (might make warmup time longer)
         while True:
-            traci.simulationStep()
-            if traci.simulation.getTime() > warmup_time:
+            while True:
+                traci.simulationStep()
+                if traci.simulation.getTime() > warmup_time:
+                    break
+            if traci.vehicle.getIDCount() > 90:
+                logger.warning(
+                    f"Too many vehicles in the simulation: {traci.vehicle.getIDCount()}, Restarting..."
+                )
+                traci.load(self.simulator.sumo_cmd[1:])
+            else:
                 break
+        self.record.warmup_vehicle_num = traci.vehicle.getIDCount()
         self._vehicle_in_env_distance("before")
 
     def on_step(self, ctx):
@@ -111,7 +126,6 @@ class SafeTestNDE(EnvTemplate):
     def _vehicle_in_env_distance(self, mode):
         veh_id_list = traci.vehicle.getIDList()
         distance_dist = self._get_distance(veh_id_list)
-        # self.monitor.update_distance(distance_dist, mode)
 
     def _get_distance(self, veh_id_list):
         distance_dist = {veh_id: utils.get_distance(veh_id) for veh_id in veh_id_list}
@@ -125,21 +139,27 @@ class SafeTestNDE(EnvTemplate):
             colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
-            self.final_log = {
-                "veh_1_id": veh_1_id,
-                "veh_2_id": veh_2_id,
-                "warmup_time": self.warmup_time,
-                "run_time": self.run_time,
-                "finish_reason": "collision",
-            }
+            self.record.update(
+                {
+                    "veh_1_id": veh_1_id,
+                    "veh_1_obs": self.vehicle_list[veh_1_id].observation,
+                    "veh_2_id": veh_2_id,
+                    "veh_2_obs": self.vehicle_list[veh_2_id].observation,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "collision",
+                }
+            )
             return False
         elif utils.get_time() >= self.warmup_time + self.run_time:
-            self.final_log = {
-                "veh_1_id": None,
-                "veh_2_id": None,
-                "warmup_time": self.warmup_time,
-                "run_time": self.run_time,
-                "finish_reason": "timeout",
-            }
+            self.record.update(
+                {
+                    "veh_1_id": None,
+                    "veh_2_id": None,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "timeout",
+                }
+            )
             return False
         return True

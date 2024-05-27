@@ -11,141 +11,33 @@ import json
 from enum import Enum
 from collections import namedtuple
 from scipy.interpolate import interp1d
+from loguru import logger
 
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
 from terasim_nde_nade.vehicle.nde_vehicle_utils_cython import *
-
+from terasim.overlay import profile
 from typing import List, Tuple, Dict, Any, Optional, Callable
 from pydantic import BaseModel, validator
 from enum import Enum
+import addict
 
+intersection_cutin_prob = 1.118159657654468e-04
+intersection_neglect_conflict_lead_prob = 6.677231589776039e-04
+intersection_rearend_prob = 2.204741193939959e-04
+intersection_tfl_prob = 0.058291608034515015
+intersection_headon_prob = 2.994401291981026e-04
 
-intersection_cutin_prob = (
-    1.0648925125333899e-04
-    * 0.10
-    * 0.61
-    * 1.5
-    * 2.9
-    * 0.5
-    * 0.73
-    * 1.38
-    * 1.05
-    * 0.86
-    * 0.87
-)
-intersection_neglect_conflict_lead_prob = (
-    5.5069126130818786e-05
-    * 2.67
-    * 0.61
-    * 1.39
-    * 0.89
-    * 1.57
-    * 0.7
-    * 1.48
-    * 0.82
-    * 0.8
-    * 2.35
-    * 0.6
-    * 0.8
-    * 0.5
-)
-intersection_rearend_prob = (
-    1.0149373787617288e-06
-    * 2.78
-    * 0.44
-    * 0.29
-    * 0.62
-    * 2
-    * 2
-    * 1.56
-    * 0.67
-    * 2
-    * 0.5
-    * 1.5
-    * 1.5
-    * 1.5
-    * 0.7
-)
-intersection_tfl_prob = (
-    8.797353696327892e-04
-    * 0.37
-    * 0.13
-    * 2.67
-    * 0.75
-    * 1.17
-    * 0.5
-    * 0.5
-    * 2
-    * 2
-    * 0.5
-    * 0.5
-    * 10
-    * 5
-    * 1.23
-    * 1.2
-)
-intersection_headon_prob = (
-    1.0113094565177164e-06
-    * 4.71
-    * 0.1
-    * 2.57
-    * 0.25
-    * 0.5
-    * 2
-    * 2
-    * 1.42
-    * 1.76
-    * 2
-    * 2
-    * 1.74
-    * 0.8
-    * 1.32
-    * 0.8
-)
+roundabout_fail_to_yield_prob = 1.2830400000000002e-03 / 2
+roundabout_cutin_prob = 5.3475398926368317e-05 / 2
+roundabout_neglect_conflict_lead_prob = 1.8780196130730532e-04 / 2
+roundabout_rearend_prob = 2.2978902185847895e-05
 
-roundabout_fail_to_yield_prob = 1e-7 * 10 * 2 * 2 * 2 * 2 * 0.9 * 1.1 * 0.81
-roundabout_cutin_prob = (
-    4.570171651138106e-05 * 0.35 * 0.6 * 0.5 * 2 * 0.77 * 2 * 0.63 * 1.34 * 1.2 * 0.9
-)
-roundabout_neglect_conflict_lead_prob = (
-    2.3721857594970477e-05 * 0.1 * 0.33 * 0.2 * 2 * 2 * 2 * 2 * 2 * 0.5 * 0.63 * 1.19
-)
-roundabout_rearend_prob = (
-    4.884970702773788e-07 * 0.2 * 5 * 0.5 * 2 * 2 * 0.5 * 0.84 * 0.5 * 1.4 * 0.8
-)
+highway_cutin_prob = 5.5883079028671922e-06
+highway_rearend_prob = 3.47e-2
 
-highway_cutin_prob = (
-    9.887380418491011e-05
-    * 0.232
-    * 1.65
-    * 1.23
-    * 0.36
-    * 2
-    * 1.27
-    * 0.5
-    * 1.34
-    * 2
-    * 0.5
-    * 0.75
-    * 1.1
-    * 1.1
-)
-highway_rearend_prob = (
-    1.0327637301820217e-04
-    * 3.64
-    * 1.21
-    * 1.63
-    * 2
-    * 2
-    * 2
-    * 0.5
-    * 0.5
-    * 1.4
-    * 0.83
-    * 0.81
-    * 0.92
-    * 1.15
+logger.info(
+    f"intersection_cutin_prob: {intersection_cutin_prob}, intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, intersection_rearend_prob: {intersection_rearend_prob}, intersection_tfl_prob: {intersection_tfl_prob}, intersection_headon_prob: {intersection_headon_prob}, roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, roundabout_cutin_prob: {roundabout_cutin_prob}, roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, roundabout_rearend_prob: {roundabout_rearend_prob}, highway_cutin_prob: {highway_cutin_prob}, highway_rearend_prob: {highway_rearend_prob}"
 )
 
 
@@ -302,7 +194,7 @@ def is_head_on(ego_obs, leader_info):
     start_angle = abs(ego_veh_lane_start_angle - lead_veh_lane_start_angle)
     end_angle = abs(ego_veh_lane_end_angle - lead_veh_lane_end_angle)
 
-    return (120 < start_angle < 240) and (120 < end_angle < 240)
+    return 120 < start_angle < 240
 
 
 def get_collision_type_and_prob(
@@ -437,10 +329,24 @@ def predict_future_distance_velocity_vectorized(
         cumulative_distances, 0, 0
     )  # Include starting point (distance=0)
 
+    # if any distant in cumulative distances is negative, log the error
+    if np.any(cumulative_distances < 0):
+        logger.critical(
+            f"negative distance in cumulative distances: {cumulative_distances}, {duration_array}, {velocity_array}, {average_velocities}, {time_differences}, {distance_increments}"
+        )
     return cumulative_distances, velocity_array
 
 
-# @profile
+def get_lanechange_longitudinal_speed(
+    veh_id, current_speed, lane_width=None, lanechange_duration=1.0
+):
+    if lane_width is None:
+        lane_width = traci.lane.getWidth(traci.vehicle.getLaneID(veh_id))
+    lateral_speed = lane_width / lanechange_duration
+    return math.sqrt(max(current_speed**2 - lateral_speed**2, 0))
+
+
+@profile
 def predict_future_trajectory(
     veh_id,
     obs_dict,
@@ -463,6 +369,7 @@ def predict_future_trajectory(
     Returns:
         future_trajectory_dict (dict): the future trajectory of the vehicle
     """
+    info = addict.Dict()
     current_time = (
         current_time if current_time is not None else traci.simulation.getTime()
     )
@@ -471,6 +378,7 @@ def predict_future_trajectory(
         if veh_info is not None
         else get_vehicle_info(veh_id, obs_dict, sumo_net)
     )
+    # info.veh_info = str(veh_info)
     # include the original position
     duration_array = np.array(
         [
@@ -478,22 +386,41 @@ def predict_future_trajectory(
             for time_horizon_id in range(time_horizon_step + 1)
         ]
     )
+    # info.duration_array = str(duration_array)
     acceleration = (
         control_command.acceleration
         if control_command.command_type == Command.ACCELERATION
         else veh_info["acceleration"]
     )
+    # info.acceleration = str(acceleration)
     max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
+    # info.max_velocity = str(max_velocity)
+
+    # info.future_distance_array = str(future_distance_array)
+    # info.future_velocity_array = str(future_velocity_array)
+    lane_width = traci.lane.getWidth(veh_info["lane_id"])
+    lateral_offset = 0
+    if control_command.command_type == Command.LEFT:
+        lateral_offset = 1
+        veh_info.velocity = get_lanechange_longitudinal_speed(
+            veh_id,
+            veh_info.velocity,
+            lane_width,
+        )
+    elif control_command.command_type == Command.RIGHT:
+        lateral_offset = -1
+        veh_info.velocity = get_lanechange_longitudinal_speed(
+            veh_id,
+            veh_info.velocity,
+            lane_width,
+        )
+
     future_distance_array, future_velocity_array = (
         predict_future_distance_velocity_vectorized(
             veh_info["velocity"], acceleration, duration_array, max_velocity
         )
     )
-    lateral_offset = 0
-    if control_command.command_type == Command.LEFT:
-        lateral_offset = 1
-    elif control_command.command_type == Command.RIGHT:
-        lateral_offset = -1
+    # info.lateral_offset = str(lateral_offset)
 
     trajectory_array = np.array(
         [
@@ -516,6 +443,7 @@ def predict_future_trajectory(
         lanechange_finish_position, lanechange_finish_final_heading = (
             get_future_position_on_route(
                 traci,
+                veh_id,
                 veh_info["edge_id"],
                 veh_info["lane_position"],
                 veh_info["lane_index"],
@@ -524,6 +452,7 @@ def predict_future_trajectory(
                 veh_info["route_length_list"],
                 future_distance_array[lanechange_finish_timestep],
                 lateral_offset,
+                veh_info["upcoming_lane_id_list"],
             )
         )
         lanechange_finish_trajectory_point = np.array(
@@ -544,11 +473,12 @@ def predict_future_trajectory(
     ):
         if (
             lanechange_finish_trajectory_point is not None
-            and duration <= lanechange_finish_trajectory_point[3]
+            and duration <= lanechange_finish_trajectory_point[-1]
         ):
             continue
         future_position, future_heading = get_future_position_on_route(
             traci,
+            veh_id,
             veh_info["edge_id"],
             veh_info["lane_position"],
             veh_info["lane_index"],
@@ -557,6 +487,7 @@ def predict_future_trajectory(
             veh_info["route_length_list"],
             distance,
             lateral_offset,
+            veh_info["upcoming_lane_id_list"],
         )
         trajectory_array = np.vstack(
             (
@@ -572,17 +503,20 @@ def predict_future_trajectory(
                 ),
             )
         )
+        # info.original_trajectory_array = str(trajectory_array)
 
     future_trajectory_array = interpolate_future_trajectory(
         trajectory_array, interpolate_resolution
     )
+    # info.interpolated_trajectory_array = str(future_trajectory_array)
 
     future_trajectory_array[:, -1] += current_time
-    return future_trajectory_array
+    return future_trajectory_array, info
 
 
 def get_future_position_on_route(
     traci,
+    veh_id: str,
     veh_edge_id: str,
     veh_lane_position: float,
     veh_lane_index: int,
@@ -591,6 +525,7 @@ def get_future_position_on_route(
     veh_route_length_list: List[float],
     future_distance: float,
     future_lateral_offset: int,
+    upcoming_lane_id_list: List[str],
 ) -> Tuple[Tuple[float, float], float]:
     """
     Given the current vehicle edge id, lane position, current lane id, and the future distance / future lateral offset, predict the future position of the vehicle.
@@ -610,23 +545,57 @@ def get_future_position_on_route(
         current_lane_length = veh_route_length_list[current_route_index]
 
     # calculate the new lane index
-    max_lane_index = traci.edge.getLaneNumber(veh_edge_id) - 1
-    original_lane_index = veh_lane_index
-    veh_lane_index = min(max_lane_index, max(0, veh_lane_index + future_lateral_offset))
-    vehicle_lane_id = veh_edge_id + f"_{veh_lane_index}"
+    veh_lane_id, veh_lane_index = get_future_lane_id_index(
+        veh_id,
+        veh_edge_id,
+        upcoming_lane_id_list,
+        veh_lane_index,
+        future_lateral_offset,
+    )
+
     veh_lane_position = min(
         veh_lane_position,
         current_lane_length,
-        traci.lane.getLength(vehicle_lane_id) - 0.1,
+        traci.lane.getLength(veh_lane_id) - 0.1,
     )
     future_position = traci.simulation.convert2D(
         veh_edge_id, veh_lane_position, veh_lane_index
     )
-    future_heading = traci.lane.getAngle(vehicle_lane_id, veh_lane_position)
+    future_heading = traci.lane.getAngle(veh_lane_id, veh_lane_position)
     return future_position, future_heading
 
 
-# @profile
+def get_future_lane_id_index(
+    veh_id, veh_edge_id, upcoming_lane_id_list, original_lane_index, lateral_offset
+):
+    if traci.edge.getLaneNumber(veh_edge_id) == 1:
+        veh_lane_index = 0
+        veh_lane_id = veh_edge_id + "_0"
+        return veh_lane_id, veh_lane_index
+    else:
+        max_lane_index = traci.edge.getLaneNumber(veh_edge_id) - 1
+        predicted_vehicle_lane_id = get_vehicle_future_lane_id_from_edge(
+            veh_edge_id, upcoming_lane_id_list
+        )
+        if predicted_vehicle_lane_id is not None:
+            predicted_veh_lane_index = int(predicted_vehicle_lane_id.split("_")[-1])
+        else:
+            predicted_veh_lane_index = original_lane_index
+
+        veh_lane_index = min(
+            max_lane_index, max(0, predicted_veh_lane_index + lateral_offset)
+        )
+        veh_lane_id = veh_edge_id + f"_{veh_lane_index}"
+        return veh_lane_id, veh_lane_index
+
+
+def get_vehicle_future_lane_id_from_edge(edge_id, upcoming_lane_id_list):
+    return next(
+        (lane_id for lane_id in upcoming_lane_id_list if edge_id in lane_id), None
+    )
+
+
+@profile
 def get_vehicle_info(veh_id, obs_dict, sumo_net):
     """Generate vehicle information for future trajectory prediction
 
@@ -639,15 +608,15 @@ def get_vehicle_info(veh_id, obs_dict, sumo_net):
     ego_obs = obs_dict["ego"]
     veh_info = VehicleInfoForPredict(
         id=veh_id,
-        acceleration=ego_obs["acceleration"],
+        acceleration=traci.vehicle.getAcceleration(veh_id),
         route=traci.vehicle.getRoute(veh_id),
         route_index=traci.vehicle.getRouteIndex(veh_id),
-        edge_id=ego_obs["edge_id"],
-        lane_id=ego_obs["lane_id"],
-        lane_index=ego_obs["lane_index"],
+        edge_id=traci.vehicle.getRoadID(veh_id),
+        lane_id=traci.vehicle.getLaneID(veh_id),
+        lane_index=traci.vehicle.getLaneIndex(veh_id),
         position=traci.vehicle.getPosition(veh_id),
-        velocity=ego_obs["velocity"],
-        heading=ego_obs["heading"],
+        velocity=traci.vehicle.getSpeed(veh_id),
+        heading=traci.vehicle.getAngle(veh_id),
         lane_position=traci.vehicle.getLanePosition(veh_id),
         length=traci.vehicle.getLength(veh_id),
     )
@@ -657,7 +626,31 @@ def get_vehicle_info(veh_id, obs_dict, sumo_net):
     veh_info.route_length_list = [
         traci.lane.getLength(edge_id + "_0") for edge_id in veh_info.route_id_list
     ]
+    veh_info.upcoming_lane_id_list = get_upcoming_lane_id_list(veh_id)
     return veh_info
+
+
+def get_upcoming_lane_id_list(veh_id):
+    veh_next_links = traci.vehicle.getNextLinks(veh_id)
+    current_lane_id = traci.vehicle.getLaneID(veh_id)
+    lane_links = traci.lane.getLinks(current_lane_id)
+    upcoming_lane_id_list = [current_lane_id]
+    if isinstance(lane_links, list) and len(lane_links) > 0:
+        for lane_link in lane_links:
+            lane_id = lane_link[0]
+            via_lane_id = lane_link[4]
+            if via_lane_id != "":
+                upcoming_lane_id_list.append(via_lane_id)
+            upcoming_lane_id_list.append(lane_id)
+
+    if len(veh_next_links) == 0:
+        return upcoming_lane_id_list
+    for link in veh_next_links:
+        lane_id = link[0]
+        via_lane_id = link[4]
+        upcoming_lane_id_list.append(via_lane_id)
+        upcoming_lane_id_list.append(lane_id)
+    return upcoming_lane_id_list
 
 
 from dataclasses import dataclass
@@ -680,6 +673,7 @@ class VehicleInfoForPredict:
     length: float
     route_id_list: Optional[List[str]] = None
     route_length_list: Optional[List[float]] = None
+    upcoming_lane_id_list: Optional[List[str]] = None
 
     def __getitem__(self, item):
         return self.__dict__[item]
