@@ -9,6 +9,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
     is_car_following,
 )
 from loguru import logger
+from addict import Dict
 
 
 class SafeTestNADEWithAV(SafeTestNADE):
@@ -77,10 +78,12 @@ class SafeTestNADEWithAV(SafeTestNADE):
             control_command_dicts, veh_ctx_dicts, obs_dicts
         )
         if predicted_CAV_control_command is not None:
-            veh_ctx_dicts["CAV"]["ndd_command_distribution"] = {
-                "negligence": predicted_CAV_control_command,
-                "normal": NDECommand(command_type=Command.DEFAULT, prob=0),
-            }
+            veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
+                {
+                    "negligence": predicted_CAV_control_command,
+                    "normal": NDECommand(command_type=Command.DEFAULT, prob=0),
+                }
+            )
         return super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
 
     def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
