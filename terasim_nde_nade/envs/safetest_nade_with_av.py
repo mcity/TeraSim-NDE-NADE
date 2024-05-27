@@ -78,13 +78,31 @@ class SafeTestNADEWithAV(SafeTestNADE):
             control_command_dicts, veh_ctx_dicts, obs_dicts
         )
         if predicted_CAV_control_command is not None:
+            if veh_ctx_dicts["CAV"] is None:
+                veh_ctx_dicts["CAV"] = Dict()
             veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
                 {
                     "negligence": predicted_CAV_control_command,
                     "normal": NDECommand(command_type=Command.DEFAULT, prob=0),
                 }
             )
-        return super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
+        (
+            ITE_control_command_dicts,
+            veh_ctx_dicts,
+            weight,
+            trajectory_dicts,
+            maneuver_challenge_dicts,
+            criticality_dicts,
+        ) = super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
+        ITE_control_command_dicts["CAV"] = control_command_dicts["CAV"]
+        return (
+            ITE_control_command_dicts,
+            veh_ctx_dicts,
+            weight,
+            trajectory_dicts,
+            maneuver_challenge_dicts,
+            criticality_dicts,
+        )
 
     def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
         # only consider the vehicles that are around the CAV (within 50m range)
