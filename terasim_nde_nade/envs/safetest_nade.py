@@ -430,7 +430,7 @@ class SafeTestNADE(BaseEnv):
                     self.unavoidable_maneuver_challenge_hook(veh_id)
         return ndd_control_command_dicts, veh_ctx_dicts
     
-    def unavoidable_maneuver_challenge_hook(veh_id):
+    def unavoidable_maneuver_challenge_hook(self, veh_id):
         traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
 
     def get_negligence_pair_dict(self, veh_ctx_dicts, potential=False):
