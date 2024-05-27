@@ -1,14 +1,15 @@
+[build-system]
+requires = [ "poetry-core", "Cython", "setuptools", "wheel", "numpy",]
+build-backend = "setuptools.build_meta"
+
 [tool.poetry]
 name = "terasim_nde_nade"
-version = "0.1.0"
+version = "2024.05.17.1644"
 description = "TeraSim NDE NADE package"
-authors = ["Haowei Sun <haoweis@umich.edu>"]
-license = "MIT"  # Specify your license
+authors = [ "Haowei Sun <haoweis@umich.edu>",]
+license = "CC BY-NC 4.0"
 repository = "https://github.com/michigan-traffic-lab/TeraSim-NDE-ITE"
-classifiers = [
-    "Programming Language :: Python :: 3",
-    "Operating System :: OS Independent",
-]
+classifiers = [ "Programming Language :: Python :: 3", "Operating System :: OS Independent",]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -17,14 +18,12 @@ shapely = "^2.0.3"
 toml = "^0.10.2"
 terasim = "*"
 
-# [[tool.poetry.source]]
-# name = "sdpi"
-# url = "http://18.218.85.44:8080/"
-# priority = "primary"
-
 [build-system]
 requires = ["poetry-core", "Cython", "setuptools", "wheel", "numpy"]
 build-backend = "setuptools.build_meta"
 
+[[tool.poetry.source]]
+name = "sdpi"
+url = "http://3.137.142.45:8082/"
 [tool.poetry.build]
-script = "build.py"  # This script will run Cythonize
+script = "build.py"
