@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=7gb
+#SBATCH --mem=500mb
 #SBATCH --array=0-499 # how many workers you are using
 #SBATCH --time=00-2:00:00 # time duration
 #SBATCH --account=mcguireg98
@@ -25,9 +25,9 @@ module load python3.10-anaconda/2023.03
 conda activate mcity_nade
 
 cd /home/haoweis/ASAP/TeraSim-NDE-ITE/example
-export IS_MAGNITUDE_INTERSECTION=20
-export IS_MAGNITUDE_ROUNDABOUT=20
-export IS_MAGNITUDE_HIGHWAY=20
+export IS_MAGNITUDE_INTERSECTION=10
+export IS_MAGNITUDE_ROUNDABOUT=40
+export IS_MAGNITUDE_HIGHWAY=40
 export AVOID_COLLISION_IS_PROB=0.6
 
 
@@ -35,7 +35,7 @@ DIR_NAME="/scratch/mcguireg_root/mcguireg98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_calibration_log_distance_10X_collision_json_log_improve_prediction_horizon"
+experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_calibration_5"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/aggregated_data
