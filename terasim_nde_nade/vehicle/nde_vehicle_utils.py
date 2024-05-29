@@ -24,19 +24,19 @@ import addict
 
 intersection_cutin_prob = 1.118159657654468e-04 * 0.5 * 2 * 1.2 * 1.5
 intersection_neglect_conflict_lead_prob = 6.677231589776039e-04 * 3.86 * 1 * 0.7 * 1.2
-intersection_rearend_prob = 2.204741193939959e-04 * 3.08 * 2.42 * 2 * 0.6 * 0.8
+intersection_rearend_prob = 2.204741193939959e-04 * 3.08 * 2.42 * 2 * 0.6 * 0.8 * 1.25
 intersection_tfl_prob = 0.058291608034515015 * 0.5 * 0.5 * 0.5 * 1.5
 intersection_headon_prob = 2.994401291981026e-04 * 0.2 * 0.2 * 0.5 * 1.5 * 0.8
 
-roundabout_fail_to_yield_prob = 1.2830400000000002e-03 / 2 * 1.5 * 0.8
-roundabout_cutin_prob = 5.3475398926368317e-05 / 2 * 1.17 * 3.07 * 1.5 * 0.8 * 0.8
+roundabout_fail_to_yield_prob = 1.2830400000000002e-03 / 2 * 1.5 * 0.8 * 1.25
+roundabout_cutin_prob = 5.3475398926368317e-05 / 2 * 1.17 * 3.07 * 1.5 * 0.8 * 0.8 * 0.8
 roundabout_neglect_conflict_lead_prob = (
-    1.8780196130730532e-04 / 2 * 4.15 * 2.49 * 0.7 * 0.8
+    1.8780196130730532e-04 / 2 * 4.15 * 2.49 * 0.7 * 0.8 * 1.25
 )
-roundabout_rearend_prob = 2.2978902185847895e-05 * 0.2 * 0.2 * 0.5 * 0.8 * 0.8
+roundabout_rearend_prob = 2.2978902185847895e-05 * 0.2 * 0.2 * 0.5 * 0.8 * 0.8 * 0.8
 
-highway_cutin_prob = 5.5883079028671922e-06 * 1.2 * 1.5 * 0.9 * 0.8
-highway_rearend_prob = 3.47e-2 * 5 * 5 * 0.8 * 0.8 * 1.1
+highway_cutin_prob = 5.5883079028671922e-06 * 1.2 * 1.5 * 0.9 * 0.8 * 1.25
+highway_rearend_prob = 3.47e-2 * 5 * 5 * 0.8 * 0.8 * 1.1 * 1.2
 
 logger.info(
     f"intersection_cutin_prob: {intersection_cutin_prob}, intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, intersection_rearend_prob: {intersection_rearend_prob}, intersection_tfl_prob: {intersection_tfl_prob}, intersection_headon_prob: {intersection_headon_prob}, roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, roundabout_cutin_prob: {roundabout_cutin_prob}, roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, roundabout_rearend_prob: {roundabout_rearend_prob}, highway_cutin_prob: {highway_cutin_prob}, highway_rearend_prob: {highway_rearend_prob}"
