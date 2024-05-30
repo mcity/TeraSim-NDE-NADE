@@ -188,7 +188,10 @@ class SafeTestNADE(BaseEnv):
                 )  # remove the avoidable key if it is True
         # pop the empty dict
         step_log = {k: v for k, v in step_log.items() if v}
-
+        step_log = {
+            "weight": self.importance_sampling_weight,
+            "vehicle_log": step_log,
+        }
         self.record.step_info[utils.get_time()] = step_log
         return step_log
 
