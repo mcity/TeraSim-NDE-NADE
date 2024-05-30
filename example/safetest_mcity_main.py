@@ -41,7 +41,7 @@ env = SafeTestNADE(
     log_dir=base_dir,
     warmup_time_lb=900,
     warmup_time_ub=1200,
-    run_time=60,
+    run_time=30,
 )
 
 dir_path = Path(__file__).parent
