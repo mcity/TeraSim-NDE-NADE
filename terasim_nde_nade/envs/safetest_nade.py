@@ -453,7 +453,7 @@ class SafeTestNADE(BaseEnv):
                     ndd_control_command_dicts[veh_id]["normal"].prob = (
                         1 - ndd_control_command_dicts[veh_id]["negligence"].prob
                     )
-                    logger.info(
+                    logger.trace(
                         f"{veh_id} is marked as unavoidable collision and the prob is reduced to {ndd_control_command_dicts[veh_id]['negligence'].prob}"
                     )
                     self.unavoidable_maneuver_challenge_hook(veh_id)
@@ -860,7 +860,7 @@ class SafeTestNADE(BaseEnv):
             for collision_type, env_var in IS_MAGNITUDE_MAPPING.items():
                 if collision_type in predicted_collision_type:
                     IS_magnitude = float(os.getenv(env_var, IS_magnitude))
-                    logger.info(f"IS_magnitude: {IS_magnitude} for {collision_type}")
+                    logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
                     break
 
             # if the vehicle is not avoidable, increase the importance sampling magnitude
