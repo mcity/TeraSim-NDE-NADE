@@ -291,7 +291,9 @@ class SafeTestNADE(BaseEnv):
                 maneuver_challenge_dicts, veh_ctx_dicts
             )
         )
-        veh_ctx_dicts = self.update_ndd_distribution_to_vehicle_ctx(veh_ctx_dicts, modified_ndd_control_command_dicts)
+        veh_ctx_dicts = self.update_ndd_distribution_to_vehicle_ctx(
+            veh_ctx_dicts, modified_ndd_control_command_dicts
+        )
 
         criticality_dicts, veh_ctx_dicts = self.get_criticality_dicts(
             maneuver_challenge_dicts, veh_ctx_dicts
@@ -400,7 +402,7 @@ class SafeTestNADE(BaseEnv):
                     obs_dict,
                     control_command_dict[modality],
                     sumo_net,
-                    time_horizon_step=6,
+                    time_horizon_step=5,
                     time_resolution=0.5,
                     interpolate_resolution=0.5,
                     current_time=current_time,
@@ -552,7 +554,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts[neglected_vehicle_id],
                         avoidance_command,
                         self.simulator.sumo_net,
-                        time_horizon_step=6,
+                        time_horizon_step=5,
                         time_resolution=0.5,
                         interpolate_resolution=0.5,
                         current_time=None,
@@ -570,7 +572,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts[neglected_vehicle_id],
                         accept_command,
                         self.simulator.sumo_net,
-                        time_horizon_step=4,
+                        time_horizon_step=5,
                         time_resolution=0.5,
                         interpolate_resolution=0.5,
                         current_time=None,
