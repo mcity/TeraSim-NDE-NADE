@@ -23,21 +23,46 @@ from enum import Enum
 import addict
 
 intersection_cutin_prob = (
-    1.118159657654468e-04 * 0.5 * 2 * 1.2 * 1.5 * 1.25 * 0.5 * 0.5 * 2
+    1.118159657654468e-04 * 0.5 * 2 * 1.2 * 1.5 * 1.25 * 0.5 * 0.5 * 2 * 0.7 * 0.5
 )
 intersection_neglect_conflict_lead_prob = (
-    6.677231589776039e-04 * 3.86 * 1 * 0.7 * 1.2 * 1.25 * 1.56 * 2 * 0.5
+    6.677231589776039e-04 * 3.86 * 1 * 0.7 * 1.2 * 1.25 * 1.56 * 2 * 0.5 * 1.5 * 2
 )
 intersection_rearend_prob = (
-    2.204741193939959e-04 * 3.08 * 2.42 * 2 * 0.6 * 0.8 * 1.25 * 1.25 * 0.5 * 1.61 * 0.5
+    2.204741193939959e-04
+    * 3.08
+    * 2.42
+    * 2
+    * 0.6
+    * 0.8
+    * 1.25
+    * 1.25
+    * 0.5
+    * 1.61
+    * 0.5
+    * 0.9
+    * 0.8
 )
-intersection_tfl_prob = 0.058291608034515015 * 0.5 * 0.5 * 0.5 * 1.5 * 0.9 * 1.7 * 2
+intersection_tfl_prob = (
+    0.058291608034515015 * 0.5 * 0.5 * 0.5 * 1.5 * 0.9 * 1.7 * 2 * 1.5 * 0.8
+)
 intersection_headon_prob = (
-    2.994401291981026e-04 * 0.2 * 0.2 * 0.5 * 1.5 * 0.8 * 1.25 * 0.5 * 0.5 * 0.5
+    2.994401291981026e-04
+    * 0.2
+    * 0.2
+    * 0.5
+    * 1.5
+    * 0.8
+    * 1.25
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
 )
 
 roundabout_fail_to_yield_prob = (
-    1.2830400000000002e-03 / 2 * 1.5 * 0.8 * 1.25 * 0.8 * 0.68 * 0.8 * 2
+    1.2830400000000002e-03 / 2 * 1.5 * 0.8 * 1.25 * 0.8 * 0.68 * 0.8 * 2 * 0.5
 )
 roundabout_cutin_prob = (
     5.3475398926368317e-05
@@ -52,18 +77,45 @@ roundabout_cutin_prob = (
     * 0.55
     * 2
     * 0.95
+    * 0.5
 )
 roundabout_neglect_conflict_lead_prob = (
-    1.8780196130730532e-04 / 2 * 4.15 * 2.49 * 0.7 * 0.8 * 1.25 * 0.8 * 0.5 * 0.5 * 1.05
+    1.8780196130730532e-04
+    / 2
+    * 4.15
+    * 2.49
+    * 0.7
+    * 0.8
+    * 1.25
+    * 0.8
+    * 0.5
+    * 0.5
+    * 1.05
+    * 1.3
+    * 0.5
 )
 roundabout_rearend_prob = (
-    2.2978902185847895e-05 * 0.2 * 0.2 * 0.5 * 0.8 * 0.8 * 0.8 * 0.8 * 0.5 * 0.5 * 0.5
+    2.2978902185847895e-05
+    * 0.2
+    * 0.2
+    * 0.5
+    * 0.8
+    * 0.8
+    * 0.8
+    * 0.8
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
 )
 
 highway_cutin_prob = (
-    5.5883079028671922e-06 * 1.2 * 1.5 * 0.9 * 0.8 * 1.25 * 1.25 * 0.75 * 0.5 * 2
+    5.5883079028671922e-06 * 1.2 * 1.5 * 0.9 * 0.8 * 1.25 * 1.25 * 0.75 * 0.5 * 2 * 1.5
 )
-highway_rearend_prob = 3.47e-2 * 5 * 5 * 0.8 * 0.8 * 1.1 * 1.2 * 1.25 * 0.85 * 0.5 * 0.5
+highway_rearend_prob = (
+    3.47e-2 * 5 * 5 * 0.8 * 0.8 * 1.1 * 1.2 * 1.25 * 0.85 * 0.5 * 0.5 * 1.5 * 0.8
+)
 
 logger.info(
     f"intersection_cutin_prob: {intersection_cutin_prob}, intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, intersection_rearend_prob: {intersection_rearend_prob}, intersection_tfl_prob: {intersection_tfl_prob}, intersection_headon_prob: {intersection_headon_prob}, roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, roundabout_cutin_prob: {roundabout_cutin_prob}, roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, roundabout_rearend_prob: {roundabout_rearend_prob}, highway_cutin_prob: {highway_cutin_prob}, highway_rearend_prob: {highway_rearend_prob}"
