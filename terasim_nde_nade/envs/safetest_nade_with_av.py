@@ -10,6 +10,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
 )
 from loguru import logger
 from addict import Dict
+import copy
 
 
 class SafeTestNADEWithAV(SafeTestNADE):
@@ -79,15 +80,23 @@ class SafeTestNADEWithAV(SafeTestNADE):
         predicted_CAV_control_command = self.predict_cav_control_command(
             control_command_dicts, veh_ctx_dicts, obs_dicts
         )
+        if veh_ctx_dicts["CAV"] is None:
+            veh_ctx_dicts["CAV"] = Dict()
         if predicted_CAV_control_command is not None:
-            if veh_ctx_dicts["CAV"] is None:
-                veh_ctx_dicts["CAV"] = Dict()
             veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
                 {
                     "negligence": predicted_CAV_control_command,
                     "normal": NDECommand(command_type=Command.DEFAULT, prob=0),
                 }
             )
+        else:
+            veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
+                {
+                    "normal": NDECommand(command_type=Command.DEFAULT, prob=1),
+                }
+            )
+        CAV_command_cache = copy.deepcopy(control_command_dicts["CAV"])
+        control_command_dicts["CAV"] = NDECommand(command_type=Command.DEFAULT, prob=1)
         (
             ITE_control_command_dicts,
             veh_ctx_dicts,
@@ -96,7 +105,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
             maneuver_challenge_dicts,
             criticality_dicts,
         ) = super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
-        ITE_control_command_dicts["CAV"] = control_command_dicts["CAV"]
+        ITE_control_command_dicts["CAV"] = CAV_command_cache
         return (
             ITE_control_command_dicts,
             veh_ctx_dicts,
