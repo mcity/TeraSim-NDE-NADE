@@ -115,6 +115,21 @@ class SafeTestNADEWithAV(SafeTestNADE):
             criticality_dicts,
         )
 
+    def update_control_cmds_from_predicted_trajectory(
+        self, ITE_control_cmds, trajectory_dicts
+    ):
+        # only apply this function to other vehicles except CAV
+        if "CAV" not in ITE_control_cmds:
+            return super().update_control_cmds_from_predicted_trajectory(
+                ITE_control_cmds, trajectory_dicts
+            )
+        cav_command_cache = ITE_control_cmds.pop("CAV")
+        ITE_control_cmds = super().update_control_cmds_from_predicted_trajectory(
+            ITE_control_cmds, trajectory_dicts
+        )
+        ITE_control_cmds["CAV"] = cav_command_cache
+        return ITE_control_cmds
+
     def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
         # only consider the vehicles that are around the CAV (within 50m range)
 
