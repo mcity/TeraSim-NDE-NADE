@@ -11,6 +11,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
 from loguru import logger
 from addict import Dict
 import copy
+from terasim.envs.template import EnvTemplate
 
 
 class SafeTestNADEWithAV(SafeTestNADE):
@@ -114,6 +115,58 @@ class SafeTestNADEWithAV(SafeTestNADE):
             maneuver_challenge_dicts,
             criticality_dicts,
         )
+
+    def on_step(self, ctx):
+        self.distance_info.after.update(self.update_distance())
+        self.record.final_time = utils.get_time()  # update the final time at each step
+        self.cache_history_tls_data()
+        # clear vehicle context dicts
+        veh_ctx_dicts = {}
+        # Make NDE decisions for all vehicles
+        control_cmds, veh_ctx_dicts = EnvTemplate.make_decisions(self, ctx)
+        CAV_control_command_cache = (
+            copy.deepcopy(control_cmds["CAV"]) if "CAV" in control_cmds else None
+        )
+        # first_vehicle_veh = list(control_cmds.keys())[0]
+        # for veh_id in control_cmds:
+        #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
+        obs_dicts = self.get_observation_dicts()
+        # Make ITE decision, includes the modification of NDD distribution according to avoidability
+        control_cmds, veh_ctx_dicts, obs_dicts, should_continue_simulation_flag = (
+            self.executeMove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
+        )
+        if "CAV" in traci.vehicle.getIDList():
+            (
+                ITE_control_cmds,
+                veh_ctx_dicts,
+                weight,
+                trajectory_dicts,
+                maneuver_challenge_dicts,
+                _,
+            ) = self.NADE_decision(
+                control_cmds, veh_ctx_dicts, obs_dicts
+            )  # enable ITE
+            self.importance_sampling_weight *= weight  # update weight by negligence
+            ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
+                trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
+            )
+            self.importance_sampling_weight *= (
+                weight  # update weight by collision avoidance
+            )
+            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+                ITE_control_cmds, trajectory_dicts
+            )
+            if hasattr(self, "nnde_make_decisions"):
+                nnde_control_commands, _ = self.nnde_make_decisions(ctx)
+                ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
+                    ITE_control_cmds, nnde_control_commands
+                )
+            self.refresh_control_commands_state()
+            if "CAV" in ITE_control_cmds and CAV_control_command_cache is not None:
+                ITE_control_cmds["CAV"] = CAV_control_command_cache
+            self.execute_control_commands(ITE_control_cmds)
+            self.record_step_data(veh_ctx_dicts)
+        return should_continue_simulation_flag
 
     def update_control_cmds_from_predicted_trajectory(
         self, ITE_control_cmds, trajectory_dicts

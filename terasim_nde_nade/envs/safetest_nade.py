@@ -83,34 +83,34 @@ class SafeTestNADE(BaseEnv):
         control_cmds, veh_ctx_dicts, obs_dicts, should_continue_simulation_flag = (
             self.executeMove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
         )
-        if should_continue_simulation_flag:
-            (
-                ITE_control_cmds,
-                veh_ctx_dicts,
-                weight,
-                trajectory_dicts,
-                maneuver_challenge_dicts,
-                _,
-            ) = self.NADE_decision(
-                control_cmds, veh_ctx_dicts, obs_dicts
-            )  # enable ITE
-            self.importance_sampling_weight *= weight  # update weight by negligence
-            ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
-                trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
+        # if should_continue_simulation_flag:
+        (
+            ITE_control_cmds,
+            veh_ctx_dicts,
+            weight,
+            trajectory_dicts,
+            maneuver_challenge_dicts,
+            _,
+        ) = self.NADE_decision(
+            control_cmds, veh_ctx_dicts, obs_dicts
+        )  # enable ITE
+        self.importance_sampling_weight *= weight  # update weight by negligence
+        ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
+            trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
+        )
+        self.importance_sampling_weight *= (
+            weight  # update weight by collision avoidance
+        )
+        ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+            ITE_control_cmds, trajectory_dicts
+        )
+        if hasattr(self, "nnde_make_decisions"):
+            nnde_control_commands, _ = self.nnde_make_decisions(ctx)
+            ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
+                ITE_control_cmds, nnde_control_commands
             )
-            self.importance_sampling_weight *= (
-                weight  # update weight by collision avoidance
-            )
-            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
-                ITE_control_cmds, trajectory_dicts
-            )
-            if hasattr(self, "nnde_make_decisions"):
-                nnde_control_commands, _ = self.nnde_make_decisions(ctx)
-                ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
-                    ITE_control_cmds, nnde_control_commands
-                )
-            self.refresh_control_commands_state()
-            self.execute_control_commands(ITE_control_cmds)
+        self.refresh_control_commands_state()
+        self.execute_control_commands(ITE_control_cmds)
 
         self.record_step_data(veh_ctx_dicts)
         return should_continue_simulation_flag
@@ -387,7 +387,7 @@ class SafeTestNADE(BaseEnv):
                     obs_dict,
                     control_command_dict[modality],
                     sumo_net,
-                    time_horizon_step=6,
+                    time_horizon_step=5,
                     time_resolution=0.5,
                     interpolate_resolution=0.5,
                     current_time=current_time,
@@ -539,7 +539,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts[neglected_vehicle_id],
                         avoidance_command,
                         self.simulator.sumo_net,
-                        time_horizon_step=6,
+                        time_horizon_step=5,
                         time_resolution=0.5,
                         interpolate_resolution=0.5,
                         current_time=None,
@@ -557,7 +557,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts[neglected_vehicle_id],
                         accept_command,
                         self.simulator.sumo_net,
-                        time_horizon_step=4,
+                        time_horizon_step=5,
                         time_resolution=0.5,
                         interpolate_resolution=0.5,
                         current_time=None,
