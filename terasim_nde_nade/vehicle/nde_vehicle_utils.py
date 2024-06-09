@@ -444,12 +444,22 @@ def get_collision_type_and_prob(
 from typing import List, Tuple
 
 
+def angle_difference(angle1, angle2):
+    # Compute the difference between the two angles and reduce it to the range [-180, 180]
+    diff = (angle1 - angle2 + 180) % 360 - 180
+    return abs(diff)
+
+
 def is_car_following(follow_id: str, leader_id: str) -> bool:
     # check if the follow_id is car following the leader_id using the traci API and detect the future links
     current_edge_id = traci.vehicle.getLaneID(follow_id)
     leader_edge_id = traci.vehicle.getLaneID(leader_id)
+    current_angle = traci.vehicle.getAngle(follow_id)
+    leader_angle = traci.vehicle.getAngle(leader_id)
     # the two vehicle are on the same link
     if current_edge_id == leader_edge_id:
+        return True
+    elif angle_difference(current_angle, leader_angle) <= 5:
         return True
     else:
         # the two vehicle are on different links, but the leader is on the future link of the follower
