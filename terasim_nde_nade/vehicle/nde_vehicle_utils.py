@@ -210,6 +210,7 @@ highway_cutin_prob = (
     * 0.7
     * 0.8
     * 1.5
+    * 1.1
 )
 highway_rearend_prob = (
     3.47e-2
@@ -229,6 +230,7 @@ highway_rearend_prob = (
     * 0.8
     * 1.2
     * 0.8
+    * 1.2
 )
 
 logger.info(
