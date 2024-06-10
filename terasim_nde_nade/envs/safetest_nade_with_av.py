@@ -109,6 +109,17 @@ class SafeTestNADEWithAV(SafeTestNADE):
             filtered_obs_dicts, filtered_veh_ctx_dicts
         )
 
+    def calculate_total_distance(self):
+        total_distance = 0
+        veh_id = "CAV"
+        if veh_id not in self.distance_info.before:
+            total_distance += self.distance_info.after[veh_id]
+        else:
+            total_distance += (
+                self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
+            )
+        return total_distance
+
     def predict_cav_control_command(
         self, control_command_dicts, veh_ctx_dicts, obs_dicts
     ):
