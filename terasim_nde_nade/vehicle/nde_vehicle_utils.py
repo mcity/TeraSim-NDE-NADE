@@ -41,6 +41,7 @@ intersection_cutin_prob = (
     * 0.85
     * 0.9
     * 0.8
+    * 0.9
 )
 intersection_neglect_conflict_lead_prob = (
     6.677231589776039e-04
@@ -59,6 +60,7 @@ intersection_neglect_conflict_lead_prob = (
     * 1.3
     * 0.85
     * 1.05
+    * 1.1
     * 1.1
 )
 intersection_rearend_prob = (
@@ -99,6 +101,7 @@ intersection_tfl_prob = (
     * 0.5
     * 1.3
     * 0.85
+    * 1.05
 )
 intersection_headon_prob = (
     2.994401291981026e-04
