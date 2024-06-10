@@ -22,21 +22,221 @@ from pydantic import BaseModel, validator
 from enum import Enum
 import addict
 
-intersection_cutin_prob = 1.118159657654468e-04 * 0.5 * 2 * 1.2 * 1.5
-intersection_neglect_conflict_lead_prob = 6.677231589776039e-04 * 3.86 * 1 * 0.7 * 1.2
-intersection_rearend_prob = 2.204741193939959e-04 * 3.08 * 2.42 * 2 * 0.6 * 0.8
-intersection_tfl_prob = 0.058291608034515015 * 0.5 * 0.5 * 0.5 * 1.5
-intersection_headon_prob = 2.994401291981026e-04 * 0.2 * 0.2 * 0.5 * 1.5 * 0.8
-
-roundabout_fail_to_yield_prob = 1.2830400000000002e-03 / 2 * 1.5 * 0.8
-roundabout_cutin_prob = 5.3475398926368317e-05 / 2 * 1.17 * 3.07 * 1.5 * 0.8 * 0.8
-roundabout_neglect_conflict_lead_prob = (
-    1.8780196130730532e-04 / 2 * 4.15 * 2.49 * 0.7 * 0.8
+intersection_cutin_prob = (
+    1.118159657654468e-04
+    * 0.5
+    * 2
+    * 1.2
+    * 1.5
+    * 1.25
+    * 0.5
+    * 0.5
+    * 2
+    * 0.7
+    * 0.5
+    * 1.5
+    * 1.3
+    * 1.1
+    * 1.3
+    * 0.85
+    * 0.9
+    * 0.8
+    * 0.9
+    * 0.9
 )
-roundabout_rearend_prob = 2.2978902185847895e-05 * 0.2 * 0.2 * 0.5 * 0.8 * 0.8
+intersection_neglect_conflict_lead_prob = (
+    6.677231589776039e-04
+    * 3.86
+    * 1
+    * 0.7
+    * 1.2
+    * 1.25
+    * 1.56
+    * 2
+    * 0.5
+    * 1.5
+    * 2
+    * 0.9
+    * 0.9
+    * 1.3
+    * 0.85
+    * 1.05
+    * 1.1
+    * 1.1
+    * 0.95
+)
+intersection_rearend_prob = (
+    2.204741193939959e-04
+    * 3.08
+    * 2.42
+    * 2
+    * 0.6
+    * 0.8
+    * 1.25
+    * 1.25
+    * 0.5
+    * 1.61
+    * 0.5
+    * 0.9
+    * 0.8
+    * 0.8
+    * 0.5
+    * 0.5
+    * 1.3
+    * 0.85
+)
+intersection_tfl_prob = (
+    0.058291608034515015
+    * 0.5
+    * 0.5
+    * 0.5
+    * 1.5
+    * 0.9
+    * 1.7
+    * 2
+    * 1.5
+    * 0.8
+    * 0.8
+    * 0.5
+    * 1.1
+    * 0.9
+    * 0.5
+    * 1.3
+    * 0.85
+    * 1.05
+)
+intersection_headon_prob = (
+    2.994401291981026e-04
+    * 0.2
+    * 0.2
+    * 0.5
+    * 1.5
+    * 0.8
+    * 1.25
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 1.3
+    * 0.85
+)
 
-highway_cutin_prob = 5.5883079028671922e-06 * 1.2 * 1.5 * 0.9 * 0.8
-highway_rearend_prob = 3.47e-2 * 5 * 5 * 0.8 * 0.8 * 1.1
+roundabout_fail_to_yield_prob = (
+    1.2830400000000002e-03
+    / 2
+    * 1.5
+    * 0.8
+    * 1.25
+    * 0.8
+    * 0.68
+    * 0.8
+    * 2
+    * 0.5
+    * 1.5
+    * 0.8
+)
+roundabout_cutin_prob = (
+    5.3475398926368317e-05
+    / 2
+    * 1.17
+    * 3.07
+    * 1.5
+    * 0.8
+    * 0.8
+    * 0.8
+    * 0.8
+    * 0.55
+    * 2
+    * 0.95
+    * 0.5
+    * 0.5
+    * 1.5
+)
+roundabout_neglect_conflict_lead_prob = (
+    1.8780196130730532e-04
+    / 2
+    * 4.15
+    * 2.49
+    * 0.7
+    * 0.8
+    * 1.25
+    * 0.8
+    * 0.5
+    * 0.5
+    * 1.05
+    * 1.3
+    * 0.5
+    * 1.5
+    * 1.5
+    * 0.5
+    * 2
+    * 1.3
+)
+roundabout_rearend_prob = (
+    2.2978902185847895e-05
+    * 0.2
+    * 0.2
+    * 0.5
+    * 0.8
+    * 0.8
+    * 0.8
+    * 0.8
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+    * 0.5
+)
+
+highway_cutin_prob = (
+    5.5883079028671922e-06
+    * 1.2
+    * 1.5
+    * 0.9
+    * 0.8
+    * 1.25
+    * 1.25
+    * 0.75
+    * 0.5
+    * 2
+    * 1.5
+    * 0.8
+    * 0.7
+    * 0.8
+    * 1.5
+    * 1.1
+)
+highway_rearend_prob = (
+    3.47e-2
+    * 5
+    * 5
+    * 0.8
+    * 0.8
+    * 1.1
+    * 1.2
+    * 1.25
+    * 0.85
+    * 0.5
+    * 0.5
+    * 1.5
+    * 0.8
+    * 1.2
+    * 0.8
+    * 1.2
+    * 0.8
+    * 1.2
+)
 
 logger.info(
     f"intersection_cutin_prob: {intersection_cutin_prob}, intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, intersection_rearend_prob: {intersection_rearend_prob}, intersection_tfl_prob: {intersection_tfl_prob}, intersection_headon_prob: {intersection_headon_prob}, roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, roundabout_cutin_prob: {roundabout_cutin_prob}, roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, roundabout_rearend_prob: {roundabout_rearend_prob}, highway_cutin_prob: {highway_cutin_prob}, highway_rearend_prob: {highway_rearend_prob}"
@@ -251,12 +451,22 @@ def get_collision_type_and_prob(
 from typing import List, Tuple
 
 
+def angle_difference(angle1, angle2):
+    # Compute the difference between the two angles and reduce it to the range [-180, 180]
+    diff = (angle1 - angle2 + 180) % 360 - 180
+    return abs(diff)
+
+
 def is_car_following(follow_id: str, leader_id: str) -> bool:
     # check if the follow_id is car following the leader_id using the traci API and detect the future links
     current_edge_id = traci.vehicle.getLaneID(follow_id)
     leader_edge_id = traci.vehicle.getLaneID(leader_id)
+    current_angle = traci.vehicle.getAngle(follow_id)
+    leader_angle = traci.vehicle.getAngle(leader_id)
     # the two vehicle are on the same link
     if current_edge_id == leader_edge_id:
+        return True
+    elif angle_difference(current_angle, leader_angle) <= 5:
         return True
     else:
         # the two vehicle are on different links, but the leader is on the future link of the follower

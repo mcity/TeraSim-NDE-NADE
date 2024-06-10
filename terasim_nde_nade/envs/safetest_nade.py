@@ -29,7 +29,7 @@ veh_length = 5.0
 veh_width = 1.85
 circle_r = 1.3
 tem_len = math.sqrt(circle_r**2 - (veh_width / 2) ** 2)
-IS_MAGNITUDE_DEFAULT = 60
+IS_MAGNITUDE_DEFAULT = 20
 IS_MAGNITUDE_MULTIPLIER = 40
 IS_MAGNITUDE_MAPPING = {
     "roundabout": "IS_MAGNITUDE_ROUNDABOUT",
@@ -188,7 +188,10 @@ class SafeTestNADE(BaseEnv):
                 )  # remove the avoidable key if it is True
         # pop the empty dict
         step_log = {k: v for k, v in step_log.items() if v}
-
+        step_log = {
+            "weight": self.importance_sampling_weight,
+            "vehicle_log": step_log,
+        }
         self.record.step_info[utils.get_time()] = step_log
         return step_log
 
@@ -288,6 +291,9 @@ class SafeTestNADE(BaseEnv):
                 maneuver_challenge_dicts, veh_ctx_dicts
             )
         )
+        veh_ctx_dicts = self.update_ndd_distribution_to_vehicle_ctx(
+            veh_ctx_dicts, modified_ndd_control_command_dicts
+        )
 
         criticality_dicts, veh_ctx_dicts = self.get_criticality_dicts(
             maneuver_challenge_dicts, veh_ctx_dicts
@@ -325,6 +331,15 @@ class SafeTestNADE(BaseEnv):
             maneuver_challenge_dicts,
             criticality_dicts,
         )
+
+    def update_ndd_distribution_to_vehicle_ctx(
+        self, veh_ctx_dicts, ndd_control_command_dicts
+    ):
+        for veh_id in ndd_control_command_dicts:
+            veh_ctx_dicts[veh_id]["ndd_command_distribution"] = (
+                ndd_control_command_dicts[veh_id]
+            )
+        return veh_ctx_dicts
 
     def remove_collision_avoidance_command_using_avoidability(
         self, obs_dicts, trajectory_dicts, veh_ctx_dicts

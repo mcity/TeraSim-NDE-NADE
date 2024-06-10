@@ -8,7 +8,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=500mb
 #SBATCH --array=0-499 # how many workers you are using
-#SBATCH --time=00-2:00:00 # time duration
+#SBATCH --time=00-8:00:00 # time duration
 #SBATCH --account=mcguireg98
 #SBATCH --partition=standard
 #SBATCH --output=/home/haoweis/safe_test.log # change to your directory
@@ -35,14 +35,14 @@ DIR_NAME="/scratch/mcguireg_root/mcguireg98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_calibration_5"
+experiment_name="NADE_IS_I_${IS_MAGNITUDE_INTERSECTION}_R_${IS_MAGNITUDE_ROUNDABOUT}_H_${IS_MAGNITUDE_HIGHWAY}_P_${AVOID_COLLISION_IS_PROB}_60s_calibration_30s_25_prediction_horizon_change_rearend_pred_fix_highway_v3"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/aggregated_data
 
 del_mode="all" # all verbose off
 
-for i in {1..200}; do
+for i in {1..1000}; do
     # write i to aggregated_data/SLURM_ARRAY_TASK_ID.txt
     # echo $i >> ${DIR_NAME}/${experiment_name}/aggregated_data/${SLURM_ARRAY_TASK_ID}.txt
     exp_nth=${SLURM_ARRAY_TASK_ID}_${i}
