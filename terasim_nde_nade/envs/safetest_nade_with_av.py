@@ -110,15 +110,16 @@ class SafeTestNADEWithAV(SafeTestNADE):
         )
 
     def calculate_total_distance(self):
-        total_distance = 0
-        veh_id = "CAV"
-        if veh_id not in self.distance_info.before:
-            total_distance += self.distance_info.after[veh_id]
-        else:
-            total_distance += (
-                self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
-            )
-        return total_distance
+        return traci.vehicle.getDistance("CAV")
+        # total_distance = 0
+        # veh_id = "CAV"
+        # if veh_id not in self.distance_info.before:
+        #     total_distance += self.distance_info.after[veh_id]
+        # else:
+        #     total_distance += (
+        #         self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
+        #     )
+        # return total_distance
 
     def predict_cav_control_command(
         self, control_command_dicts, veh_ctx_dicts, obs_dicts
@@ -236,16 +237,47 @@ class SafeTestNADEWithAV(SafeTestNADE):
             )
 
     def should_continue_simulation(self):
-        collision_id_list = traci.simulation.getCollidingVehiclesIDList()
-        if "CAV" not in traci.vehicle.getIDList():
-            logger.info("CAV left the simulation, stop the simulation.")
+        num_colliding_vehicles = self.simulator.get_colliding_vehicle_number()
+        self._vehicle_in_env_distance("after")
+
+        if num_colliding_vehicles >= 2:
+            colliding_vehicles = self.simulator.get_colliding_vehicles()
+            veh_1_id = colliding_vehicles[0]
+            veh_2_id = colliding_vehicles[1]
+            self.record.update(
+                {
+                    "veh_1_id": veh_1_id,
+                    "veh_1_obs": self.vehicle_list[veh_1_id].observation,
+                    "veh_2_id": veh_2_id,
+                    "veh_2_obs": self.vehicle_list[veh_2_id].observation,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "collision",
+                }
+            )
             return False
-        elif len(collision_id_list) >= 2 and "CAV" in collision_id_list:
-            logger.critical(
-                "Collision happens between CAV and other vehicles, stop the simulation."
+        elif "CAV" not in traci.vehicle.getIDList():
+            logger.info("CAV left the simulation, stop the simulation.")
+            self.record.update(
+                {
+                    "veh_1_id": None,
+                    "veh_2_id": None,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "CAV_left",
+                }
             )
             return False
         elif utils.get_time() >= self.warmup_time + self.run_time:
             logger.info("Simulation timeout, stop the simulation.")
+            self.record.update(
+                {
+                    "veh_1_id": None,
+                    "veh_2_id": None,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "timeout",
+                }
+            )
             return False
         return True
