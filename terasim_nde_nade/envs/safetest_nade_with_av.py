@@ -10,6 +10,8 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
 )
 from loguru import logger
 from addict import Dict
+import copy
+from terasim.envs.template import EnvTemplate
 
 
 class SafeTestNADEWithAV(SafeTestNADE):
@@ -43,15 +45,17 @@ class SafeTestNADEWithAV(SafeTestNADE):
         # initialize the surrogate model and add AV to env
         self.max_importance_sampling_prob = 0.01
         super().on_start(ctx)
-        if "CAV" not in traci.vehicle.getIDList():
-            self.add_vehicle(
-                veh_id="CAV",
-                route_id="cav_route",
-                lane="best",
-                lane_id="EG_35_1_14_0",
-                position=0,
-                speed=0,
-            )
+        self.add_cav()
+
+    def add_cav(self):
+        self.add_vehicle(
+            veh_id="CAV",
+            route_id="cav_route",
+            lane="best",
+            lane_id="EG_35_1_14_0",
+            position=0,
+            speed=0,
+        )
         # set the CAV with white color
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
 
@@ -77,6 +81,8 @@ class SafeTestNADEWithAV(SafeTestNADE):
         predicted_CAV_control_command = self.predict_cav_control_command(
             control_command_dicts, veh_ctx_dicts, obs_dicts
         )
+        if veh_ctx_dicts["CAV"] is None:
+            veh_ctx_dicts["CAV"] = Dict()
         if predicted_CAV_control_command is not None:
             veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
                 {
@@ -84,7 +90,98 @@ class SafeTestNADEWithAV(SafeTestNADE):
                     "normal": NDECommand(command_type=Command.DEFAULT, prob=0),
                 }
             )
-        return super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
+        else:
+            veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
+                {
+                    "normal": NDECommand(command_type=Command.DEFAULT, prob=1),
+                }
+            )
+        CAV_command_cache = copy.deepcopy(control_command_dicts["CAV"])
+        control_command_dicts["CAV"] = NDECommand(command_type=Command.DEFAULT, prob=1)
+        (
+            ITE_control_command_dicts,
+            veh_ctx_dicts,
+            weight,
+            trajectory_dicts,
+            maneuver_challenge_dicts,
+            criticality_dicts,
+        ) = super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
+        ITE_control_command_dicts["CAV"] = CAV_command_cache
+        return (
+            ITE_control_command_dicts,
+            veh_ctx_dicts,
+            weight,
+            trajectory_dicts,
+            maneuver_challenge_dicts,
+            criticality_dicts,
+        )
+
+    def on_step(self, ctx):
+        self.distance_info.after.update(self.update_distance())
+        self.record.final_time = utils.get_time()  # update the final time at each step
+        self.cache_history_tls_data()
+        # clear vehicle context dicts
+        veh_ctx_dicts = {}
+        # Make NDE decisions for all vehicles
+        control_cmds, veh_ctx_dicts = EnvTemplate.make_decisions(self, ctx)
+        CAV_control_command_cache = (
+            copy.deepcopy(control_cmds["CAV"]) if "CAV" in control_cmds else None
+        )
+        # first_vehicle_veh = list(control_cmds.keys())[0]
+        # for veh_id in control_cmds:
+        #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
+        obs_dicts = self.get_observation_dicts()
+        # Make ITE decision, includes the modification of NDD distribution according to avoidability
+        control_cmds, veh_ctx_dicts, obs_dicts, should_continue_simulation_flag = (
+            self.executeMove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
+        )
+        if "CAV" in traci.vehicle.getIDList():
+            (
+                ITE_control_cmds,
+                veh_ctx_dicts,
+                weight,
+                trajectory_dicts,
+                maneuver_challenge_dicts,
+                _,
+            ) = self.NADE_decision(
+                control_cmds, veh_ctx_dicts, obs_dicts
+            )  # enable ITE
+            self.importance_sampling_weight *= weight  # update weight by negligence
+            ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
+                trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
+            )
+            self.importance_sampling_weight *= (
+                weight  # update weight by collision avoidance
+            )
+            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
+                ITE_control_cmds, trajectory_dicts
+            )
+            if hasattr(self, "nnde_make_decisions"):
+                nnde_control_commands, _ = self.nnde_make_decisions(ctx)
+                ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
+                    ITE_control_cmds, nnde_control_commands
+                )
+            self.refresh_control_commands_state()
+            if "CAV" in ITE_control_cmds and CAV_control_command_cache is not None:
+                ITE_control_cmds["CAV"] = CAV_control_command_cache
+            self.execute_control_commands(ITE_control_cmds)
+            self.record_step_data(veh_ctx_dicts)
+        return should_continue_simulation_flag
+
+    def update_control_cmds_from_predicted_trajectory(
+        self, ITE_control_cmds, trajectory_dicts
+    ):
+        # only apply this function to other vehicles except CAV
+        if "CAV" not in ITE_control_cmds:
+            return super().update_control_cmds_from_predicted_trajectory(
+                ITE_control_cmds, trajectory_dicts
+            )
+        cav_command_cache = ITE_control_cmds.pop("CAV")
+        ITE_control_cmds = super().update_control_cmds_from_predicted_trajectory(
+            ITE_control_cmds, trajectory_dicts
+        )
+        ITE_control_cmds["CAV"] = cav_command_cache
+        return ITE_control_cmds
 
     def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
         # only consider the vehicles that are around the CAV (within 50m range)

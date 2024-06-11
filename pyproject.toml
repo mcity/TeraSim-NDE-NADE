@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.poetry]
 name = "terasim_nde_nade"
-version = "2024.05.17.1644"
+version = "2024.05.31.1626"
 description = "TeraSim NDE NADE package"
 authors = [ "Haowei Sun <haoweis@umich.edu>",]
 license = "CC BY-NC 4.0"
