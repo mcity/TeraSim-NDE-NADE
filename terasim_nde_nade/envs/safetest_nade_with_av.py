@@ -43,8 +43,8 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
     def on_start(self, ctx):
         # initialize the surrogate model and add AV to env
-        self.max_importance_sampling_prob = 0.01
         super().on_start(ctx)
+        self.max_importance_sampling_prob = 0.01
         self.add_cav()
 
     def add_cav(self):
@@ -207,16 +207,18 @@ class SafeTestNADEWithAV(SafeTestNADE):
         )
 
     def calculate_total_distance(self):
-        return traci.vehicle.getDistance("CAV")
-        # total_distance = 0
-        # veh_id = "CAV"
-        # if veh_id not in self.distance_info.before:
-        #     total_distance += self.distance_info.after[veh_id]
-        # else:
-        #     total_distance += (
-        #         self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
-        #     )
-        # return total_distance
+        try:
+            CAV_distance = traci.vehicle.getDistance("CAV")
+        except:
+            CAV_distance = 0
+            veh_id = "CAV"
+            if veh_id not in self.distance_info.before:
+                CAV_distance += self.distance_info.after[veh_id]
+            else:
+                CAV_distance += (
+                    self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
+                )
+        return CAV_distance
 
     def predict_cav_control_command(
         self, control_command_dicts, veh_ctx_dicts, obs_dicts
