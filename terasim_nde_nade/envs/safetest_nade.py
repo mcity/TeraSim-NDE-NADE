@@ -589,7 +589,10 @@ class SafeTestNADE(BaseEnv):
         return trajectory_dicts, veh_ctx_dicts
 
     def apply_collision_avoidance(
-        self, trajectory_dicts, veh_ctx_dicts, ITE_control_command_dict
+        self,
+        trajectory_dicts,
+        veh_ctx_dicts,
+        ITE_control_command_dict,
     ):
         """after the NADE decision, apply collision avoidance for the neglected vehicles.
 
@@ -782,7 +785,11 @@ class SafeTestNADE(BaseEnv):
         return neglect_pair_list
 
     def NADE_importance_sampling(
-        self, ndd_control_command_dicts, maneuver_challenge_dicts, veh_ctx_dicts
+        self,
+        ndd_control_command_dicts,
+        maneuver_challenge_dicts,
+        veh_ctx_dicts,
+        exclude_IS_veh_set=None,
     ):
         """Importance sampling for NADE.
 
@@ -803,7 +810,7 @@ class SafeTestNADE(BaseEnv):
         )
         negligence_flag = False
 
-        for veh_id in maneuver_challenge_dicts:
+        for veh_id in maneuver_challenge_dicts and veh_id not in exclude_IS_veh_set:
             if maneuver_challenge_dicts[veh_id].get("negligence"):
                 ndd_normal_prob = ndd_control_command_dicts[veh_id].normal.prob
                 ndd_negligence_prob = ndd_control_command_dicts[veh_id].negligence.prob

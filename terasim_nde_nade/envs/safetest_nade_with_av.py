@@ -44,7 +44,6 @@ class SafeTestNADEWithAV(SafeTestNADE):
     def on_start(self, ctx):
         # initialize the surrogate model and add AV to env
         super().on_start(ctx)
-        self.max_importance_sampling_prob = 0.01
         self.add_cav()
 
     def add_cav(self):
@@ -114,6 +113,36 @@ class SafeTestNADEWithAV(SafeTestNADE):
             trajectory_dicts,
             maneuver_challenge_dicts,
             criticality_dicts,
+        )
+
+    def NADE_importance_sampling(
+        self,
+        ndd_control_command_dicts,
+        maneuver_challenge_dicts,
+        veh_ctx_dicts,
+        exclude_IS_veh_set=None,
+    ):
+        exclude_IS_veh_set = set(["CAV"])
+        return super().NADE_importance_sampling(
+            ndd_control_command_dicts,
+            maneuver_challenge_dicts,
+            veh_ctx_dicts,
+            exclude_IS_veh_set,
+        )
+
+    def apply_collision_avoidance(
+        self, trajectory_dicts, veh_ctx_dicts, ITE_control_command_dict
+    ):
+        # add another layer, if CAV is contained in the neglected vehicle list, then does not apply the collision avoidance (as AV will never be controlled)
+        negligence_pair_dict = self.get_negligence_pair_dict(veh_ctx_dicts)
+        if len(negligence_pair_dict):
+            neglected_vehicle_id_set = set()
+            for neglected_vehicle_list in negligence_pair_dict.values():
+                neglected_vehicle_id_set.update(neglected_vehicle_list)
+        if "CAV" in neglected_vehicle_id_set:
+            return ITE_control_command_dict, veh_ctx_dicts, 1.0
+        return super().apply_collision_avoidance(
+            trajectory_dicts, veh_ctx_dicts, ITE_control_command_dict
         )
 
     def on_step(self, ctx):
@@ -286,15 +315,6 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 {"predicted_collision_type": predicted_collision_type}
             )
         return CAV_command
-
-    def get_IS_prob(
-        self,
-        veh_id,
-        ndd_control_command_dicts,
-        maneuver_challenge_dicts,
-        veh_ctx_dicts,
-    ):
-        return self.max_importance_sampling_prob
 
     def get_maneuver_challenge(
         self,
