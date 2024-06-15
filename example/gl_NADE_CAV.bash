@@ -35,7 +35,7 @@ DIR_NAME="/scratch/mcguireg_root/mcguireg98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_CAV_D2RL_collect_data_fix_is_unavoidance_problem"
+experiment_name="NADE_CAV_D2RL_collect_data_fix_is_unavoidance_problem_v2"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/aggregated_data

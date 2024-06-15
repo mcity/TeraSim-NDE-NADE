@@ -810,7 +810,9 @@ class SafeTestNADE(BaseEnv):
         )
         negligence_flag = False
 
-        for veh_id in maneuver_challenge_dicts and veh_id not in exclude_IS_veh_set:
+        for veh_id in maneuver_challenge_dicts:
+            if veh_id in exclude_IS_veh_set:
+                continue
             if maneuver_challenge_dicts[veh_id].get("negligence"):
                 ndd_normal_prob = ndd_control_command_dicts[veh_id].normal.prob
                 ndd_negligence_prob = ndd_control_command_dicts[veh_id].negligence.prob
