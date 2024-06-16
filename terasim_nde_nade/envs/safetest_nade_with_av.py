@@ -134,12 +134,12 @@ class SafeTestNADEWithAV(SafeTestNADE):
         self, trajectory_dicts, veh_ctx_dicts, ITE_control_command_dict
     ):
         # add another layer, if CAV is contained in the neglected vehicle list, then does not apply the collision avoidance (as AV will never be controlled)
-        logger.critical("Apply CAV-related collision avoidance!")
         negligence_pair_dict = self.get_negligence_pair_dict(veh_ctx_dicts)
         veh_ctx_dicts = self.record_negligence_related_information(
             negligence_pair_dict, veh_ctx_dicts
         )
         if len(negligence_pair_dict):
+            logger.critical("Apply CAV-related collision avoidance!")
             neglected_vehicle_id_set = set()
             for neglected_vehicle_list in negligence_pair_dict.values():
                 neglected_vehicle_id_set.update(neglected_vehicle_list)
