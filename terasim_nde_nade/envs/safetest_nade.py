@@ -588,6 +588,53 @@ class SafeTestNADE(BaseEnv):
             )
         return trajectory_dicts, veh_ctx_dicts
 
+    def record_negligence_related_information(
+        self, negligence_pair_dict, veh_ctx_dicts
+    ):
+        if len(negligence_pair_dict):
+            self.record.event_info[utils.get_time()].negligence_pair_dict = (
+                negligence_pair_dict
+            )
+            self.record.event_info[utils.get_time()].neglecting_vehicle_id = list(
+                negligence_pair_dict.keys()
+            )[0]
+            negligence_command_dict = {
+                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution.negligence
+                for veh_id in negligence_pair_dict
+            }
+
+            neglected_vehicle_id_set = set()
+            for neglected_vehicle_list in negligence_pair_dict.values():
+                neglected_vehicle_id_set.update(neglected_vehicle_list)
+
+            neglected_command_dict = {
+                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution
+                for veh_id in neglected_vehicle_id_set
+            }
+
+            self.record.event_info[utils.get_time()].negligence_info_dict = {
+                veh_id: negligence_command.info
+                for veh_id, negligence_command in negligence_command_dict.items()
+            }
+
+            negligence_command_dict = {
+                veh_id: str(negligence_command)
+                for veh_id, negligence_command in negligence_command_dict.items()
+            }
+
+            neglected_command_dict = {
+                veh_id: str(neglected_command)
+                for veh_id, neglected_command in neglected_command_dict.items()
+            }
+
+            self.record.event_info[utils.get_time()].negligence_command = (
+                negligence_command_dict
+            )
+            self.record.event_info[utils.get_time()].neglected_command = (
+                neglected_command_dict
+            )
+        return veh_ctx_dicts
+
     def apply_collision_avoidance(
         self,
         trajectory_dicts,
@@ -608,51 +655,9 @@ class SafeTestNADE(BaseEnv):
         avoid_collision_IS_prob = float(os.getenv("AVOID_COLLISION_IS_PROB", 0.2))
         avoid_collision_ndd_prob = 0.99
         weight = 1.0
-        current_timestep = utils.get_time()
-
-        if len(negligence_pair_dict):
-            self.record.event_info[current_timestep].negligence_pair_dict = (
-                negligence_pair_dict
-            )
-            self.record.event_info[current_timestep].neglecting_vehicle_id = list(
-                negligence_pair_dict.keys()
-            )[0]
-            negligence_command_dict = {
-                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution.negligence
-                for veh_id in negligence_pair_dict
-            }
-
-            neglected_vehicle_id_set = set()
-            for neglected_vehicle_list in negligence_pair_dict.values():
-                neglected_vehicle_id_set.update(neglected_vehicle_list)
-
-            neglected_command_dict = {
-                veh_id: veh_ctx_dicts[veh_id].ndd_command_distribution
-                for veh_id in neglected_vehicle_id_set
-            }
-
-            self.record.event_info[current_timestep].negligence_info_dict = {
-                veh_id: negligence_command.info
-                for veh_id, negligence_command in negligence_command_dict.items()
-            }
-
-            negligence_command_dict = {
-                veh_id: str(negligence_command)
-                for veh_id, negligence_command in negligence_command_dict.items()
-            }
-
-            neglected_command_dict = {
-                veh_id: str(neglected_command)
-                for veh_id, neglected_command in neglected_command_dict.items()
-            }
-
-            self.record.event_info[current_timestep].negligence_command = (
-                negligence_command_dict
-            )
-            self.record.event_info[current_timestep].neglected_command = (
-                neglected_command_dict
-            )
-
+        veh_ctx_dicts = self.record_negligence_related_information(
+            negligence_pair_dict, veh_ctx_dicts
+        )
         # no vehicle neglected
         if len(negligence_pair_dict) == 0:
             return ITE_control_command_dict, veh_ctx_dicts, weight
