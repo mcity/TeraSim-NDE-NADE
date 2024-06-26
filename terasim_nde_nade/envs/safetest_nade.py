@@ -844,7 +844,7 @@ class SafeTestNADE(BaseEnv):
 
                     self.negligence_hook(veh_id)
                     logger.info(
-                        f"time: {utils.get_time()}, veh_id: {veh_id} select negligence control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
+                        f"time: {utils.get_time()}, veh_id: {veh_id} select negligence control command, IS_prob: {IS_prob}, ndd_prob: {ndd_negligence_prob}, weight: {self.importance_sampling_weight}"
                     )
                     negligence_flag = True
                 else:
@@ -876,12 +876,19 @@ class SafeTestNADE(BaseEnv):
             for collision_type, env_var in IS_MAGNITUDE_MAPPING.items():
                 if collision_type in predicted_collision_type:
                     IS_magnitude = float(os.getenv(env_var, IS_magnitude))
-                    logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
                     break
 
             # if the vehicle is not avoidable, increase the importance sampling magnitude
             if not veh_ctx_dicts[veh_id].get("avoidable", True):
                 IS_magnitude *= IS_MAGNITUDE_MULTIPLIER
+            logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
+            logger.trace(f"Original prob: {ndd_control_command_dicts[veh_id]["negligence"].prob}")
+            logger.trace(f"final IS prob for veh_id: {np.clip(
+                ndd_control_command_dicts[veh_id]["negligence"].prob * IS_magnitude,
+                0,
+                self.max_importance_sampling_prob,
+            )}")
+
         except Exception as e:
             logger.critical(f"Error in getting the importance sampling magnitude: {e}")
 

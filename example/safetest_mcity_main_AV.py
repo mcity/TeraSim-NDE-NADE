@@ -21,18 +21,19 @@ base_dir.mkdir(parents=True, exist_ok=True)
 Path(args.aggregateddir).mkdir(parents=True, exist_ok=True)
 aggregated_log_dir = Path(args.aggregateddir) / "loguru_run.log"
 
-log_files = [base_dir / "loguru_run.log", aggregated_log_dir]
-log_levels = ["TRACE", "INFO"]
-
-for log_file, log_level in zip(log_files, log_levels):
-    logger.add(
-        log_file,
-        # filter="terasim_nde_nade",
-        level=log_level,
-        enqueue=True,
-        backtrace=True,
-        serialize=True,
-    )
+logger.add(
+    base_dir / "loguru_run.log",
+    level="TRACE",
+    enqueue=True,
+    backtrace=True,
+)
+logger.add(
+    aggregated_log_dir,
+    level="INFO",
+    enqueue=True,
+    backtrace=True,
+    serialize=True,
+)
 
 env = SafeTestNADEWithAV(
     vehicle_factory=NDEVehicleFactory(),

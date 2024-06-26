@@ -25,9 +25,9 @@ module load python3.10-anaconda/2023.03
 conda activate mcity_nade
 
 cd /home/haoweis/ASAP/TeraSim-NDE-ITE/example
-export IS_MAGNITUDE_INTERSECTION=100
-export IS_MAGNITUDE_ROUNDABOUT=400
-export IS_MAGNITUDE_HIGHWAY=400
+export IS_MAGNITUDE_INTERSECTION=10
+export IS_MAGNITUDE_ROUNDABOUT=40
+export IS_MAGNITUDE_HIGHWAY=40
 export AVOID_COLLISION_IS_PROB=0.6
 
 
@@ -35,7 +35,7 @@ DIR_NAME="/scratch/mcguireg_root/mcguireg98/shared_data/safetest-nade"
 export USE_LIBSUMO=1
 
 # add time stamp to experiment name
-experiment_name="NADE_CAV_D2RL_collect_data_fix_is_unavoidance_problem_v4"
+experiment_name="NADE_CAV_D2RL_collect_data_fix_is_unavoidance_problem_v5_logmore"
 mkdir -p ${DIR_NAME}/${experiment_name}
 mkdir -p ${DIR_NAME}/${experiment_name}/raw_data
 mkdir -p ${DIR_NAME}/${experiment_name}/aggregated_data
