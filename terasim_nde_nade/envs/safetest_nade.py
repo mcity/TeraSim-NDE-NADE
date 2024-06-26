@@ -883,11 +883,12 @@ class SafeTestNADE(BaseEnv):
                 IS_magnitude *= IS_MAGNITUDE_MULTIPLIER
             logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
             logger.trace(f"Original prob: {ndd_control_command_dicts[veh_id]["negligence"].prob}")
-            logger.trace(f"final IS prob for veh_id: {np.clip(
+            final_is_prob = np.clip(
                 ndd_control_command_dicts[veh_id]["negligence"].prob * IS_magnitude,
                 0,
                 self.max_importance_sampling_prob,
-            )}")
+            )
+            logger.trace(f"final IS prob for veh_id: {final_is_prob}")
 
         except Exception as e:
             logger.critical(f"Error in getting the importance sampling magnitude: {e}")
