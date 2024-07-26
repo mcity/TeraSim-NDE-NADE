@@ -806,6 +806,7 @@ class SafeTestNADE(BaseEnv):
             weight (float): the importance sampling weight
         """
         weight = 1.0
+        epsilon = 1.0
         # intialize the ITE control command dict with the same keys as the ndd_control_command_dict
         ITE_control_command_dict = Dict(
             {
@@ -832,6 +833,7 @@ class SafeTestNADE(BaseEnv):
                     maneuver_challenge_dicts,
                     veh_ctx_dicts,
                 )
+                epsilon = 1-IS_prob
 
                 # update the importance sampling weight and the ITE control command
                 sampled_prob = np.random.uniform(0, 1)
@@ -855,6 +857,8 @@ class SafeTestNADE(BaseEnv):
                     logger.trace(
                         f"time: {utils.get_time()}, veh_id: {veh_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )
+        self.step_weight = weight
+        self.step_epsilon = epsilon
         return ITE_control_command_dict, veh_ctx_dicts, weight, negligence_flag
 
     def negligence_hook(self, veh_id):

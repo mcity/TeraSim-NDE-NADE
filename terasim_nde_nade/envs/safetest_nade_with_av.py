@@ -411,3 +411,78 @@ class SafeTestNADEWithAV(SafeTestNADE):
             )
             return False
         return True
+    
+    def record_step_data(self, veh_ctx_dicts):
+        step_log = Dict()
+        bv_criticality_list = []
+        for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
+            maneuver_challenge = veh_ctx_dict.get("maneuver_challenge", None)
+            if maneuver_challenge and maneuver_challenge.get("negligence", None):
+                step_log[veh_id]["maneuver_challenge"] = maneuver_challenge
+
+            keys = ["avoidable", "conflict_vehicle_list", "mode"]
+            step_log[veh_id].update(
+                {key: veh_ctx_dict[key] for key in keys if veh_ctx_dict.get(key)}
+            )
+            if step_log[veh_id].get("avoidable"):
+                step_log[veh_id].pop(
+                    "avoidable"
+                )  # remove the avoidable key if it is True
+            if veh_id != "CAV":
+                criticality = 0.0
+                if "criticality" in veh_ctx_dict and "negligence" in veh_ctx_dict["criticality"]:
+                    criticality = veh_ctx_dict["criticality"]["negligence"]
+                bv_criticality_list.append(criticality)
+        # pop the empty dict
+        step_log = {k: v for k, v in step_log.items() if v}
+        step_log = {
+            "weight": self.importance_sampling_weight,
+            "vehicle_log": step_log,
+        }
+        time_step = utils.get_time()
+        self.record.step_info[time_step] = step_log
+        self.record.weight_step_info[time_step] = self.step_weight
+        if self.step_weight<0.99:
+            print()
+        self.record.epsilon_step_info[time_step] = self.step_epsilon
+        self.record.criticality_step_info[time_step] = sum(bv_criticality_list)
+        self.record.drl_obs[time_step] = self.collect_drl_obs(veh_ctx_dicts).tolist()
+
+        return step_log
+
+    def collect_drl_obs(self, veh_ctx_dicts):
+        CAV_global_position = list(traci.vehicle.getPosition("CAV"))
+        CAV_speed = traci.vehicle.getSpeed("CAV")
+        CAV_heading = traci.vehicle.getAngle("CAV")
+        CAV_driving_distance = traci.vehicle.getDistance("CAV")
+        # position x, position y, CAV driving distance, velocity, heading
+        vehicle_info_list = []
+        controlled_bv_num = 1
+        for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
+            if veh_id == "CAV":
+                continue
+            if "criticality" in veh_ctx_dict and "negligence" in veh_ctx_dict["criticality"]:
+                criticality = veh_ctx_dict["criticality"]["negligence"]
+                if criticality > 0:
+                    vehicle_local_position = list(traci.vehicle.getPosition(veh_id))
+                    vehicle_relative_position = [vehicle_local_position[0]-CAV_global_position[0], vehicle_local_position[1]-CAV_global_position[1]]
+                    vehicle_speed = traci.vehicle.getSpeed(veh_id)
+                    vehicle_heading = traci.vehicle.getAngle(veh_id)
+                    vehicle_info_list.extend(vehicle_relative_position + [vehicle_speed] + [vehicle_heading])
+            
+        if not vehicle_info_list:
+            vehicle_info_list.extend([-100, -100, 0, 0])
+
+        velocity_lb, velocity_ub = 0, 10
+        CAV_position_lb, CAV_position_ub = [0, 0], [240, 400]
+        driving_distance_lb, driving_distance_ub = 0, 1000
+        heading_lb, heading_ub = 0, 360
+        vehicle_info_lb, vehicle_info_ub = [-20, -20, 0, 0], [20, 20, 10, 360]
+
+        lb_array = np.array(CAV_position_lb + [velocity_lb] + [driving_distance_lb] + [heading_lb] + vehicle_info_lb)
+        ub_array = np.array(CAV_position_ub + [velocity_ub] + [driving_distance_ub] + [heading_ub] + vehicle_info_ub)
+        total_obs_for_DRL_ori = np.array(CAV_global_position + [CAV_speed] + [CAV_driving_distance] + [CAV_heading] + vehicle_info_list)
+        
+        total_obs_for_DRL = 2 * (total_obs_for_DRL_ori - lb_array)/(ub_array - lb_array) - 1
+        total_obs_for_DRL = np.clip(total_obs_for_DRL, -5, 5)
+        return np.array(total_obs_for_DRL).astype(float)
