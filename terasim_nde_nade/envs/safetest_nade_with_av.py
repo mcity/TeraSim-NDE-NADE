@@ -469,6 +469,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
                     vehicle_speed = traci.vehicle.getSpeed(veh_id)
                     vehicle_heading = traci.vehicle.getAngle(veh_id)
                     vehicle_info_list.extend(vehicle_relative_position + [vehicle_speed] + [vehicle_heading])
+                    break
             
         if not vehicle_info_list:
             vehicle_info_list.extend([-100, -100, 0, 0])
