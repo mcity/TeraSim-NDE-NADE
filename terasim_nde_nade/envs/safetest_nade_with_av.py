@@ -441,9 +441,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
         }
         time_step = utils.get_time()
         self.record.step_info[time_step] = step_log
-        self.record.weight_step_info[time_step] = self.step_weight
-        if self.step_weight<0.99:
-            print()
+        self.record.weight_step_info[time_step] = self.importance_sampling_weight
         self.record.epsilon_step_info[time_step] = self.step_epsilon
         self.record.criticality_step_info[time_step] = sum(bv_criticality_list)
         self.record.drl_obs[time_step] = self.collect_drl_obs(veh_ctx_dicts).tolist()

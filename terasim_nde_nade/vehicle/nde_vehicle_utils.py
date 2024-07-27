@@ -22,6 +22,7 @@ from pydantic import BaseModel, validator
 from enum import Enum
 import addict
 
+# 6.085993383090184e-05
 intersection_cutin_prob = (
     1.118159657654468e-04
     * 0.5
@@ -44,6 +45,7 @@ intersection_cutin_prob = (
     * 0.9
     * 0.9
 )
+# 0.013682468839095184
 intersection_neglect_conflict_lead_prob = (
     6.677231589776039e-04
     * 3.86
@@ -65,6 +67,7 @@ intersection_neglect_conflict_lead_prob = (
     * 1.1
     * 0.95
 )
+# 0.00015787218253532532
 intersection_rearend_prob = (
     2.204741193939959e-04
     * 3.08
@@ -85,6 +88,7 @@ intersection_rearend_prob = (
     * 1.3
     * 0.85
 )
+# 0.009219911404943987
 intersection_tfl_prob = (
     0.058291608034515015
     * 0.5
@@ -105,6 +109,7 @@ intersection_tfl_prob = (
     * 0.85
     * 1.05
 )
+# 9.693789338786234e-09
 intersection_headon_prob = (
     2.994401291981026e-04
     * 0.2
@@ -126,7 +131,7 @@ intersection_headon_prob = (
     * 1.3
     * 0.85
 )
-
+# 0.0005025411072000003
 roundabout_fail_to_yield_prob = (
     1.2830400000000002e-03
     / 2
@@ -141,6 +146,7 @@ roundabout_fail_to_yield_prob = (
     * 1.5
     * 0.8
 )
+# 2.3123152310029683e-05
 roundabout_cutin_prob = (
     5.3475398926368317e-05
     / 2
@@ -158,6 +164,7 @@ roundabout_cutin_prob = (
     * 0.5
     * 1.5
 )
+# 0.00027119028871789013
 roundabout_neglect_conflict_lead_prob = (
     1.8780196130730532e-04
     / 2
@@ -178,6 +185,7 @@ roundabout_neglect_conflict_lead_prob = (
     * 2
     * 1.3
 )
+# 1.8383121748678325e-10
 roundabout_rearend_prob = (
     2.2978902185847895e-05
     * 0.2
@@ -198,7 +206,7 @@ roundabout_rearend_prob = (
     * 0.5
     * 0.5
 )
-
+# 9.410654625349324e-06
 highway_cutin_prob = (
     5.5883079028671922e-06
     * 1.2
@@ -217,6 +225,7 @@ highway_cutin_prob = (
     * 1.5
     * 1.1
 )
+# 0.258343354368
 highway_rearend_prob = (
     3.47e-2
     * 5
