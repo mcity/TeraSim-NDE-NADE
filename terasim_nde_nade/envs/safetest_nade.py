@@ -944,7 +944,7 @@ class SafeTestNADE(BaseEnv):
                         obs_dicts,
                         veh_ctx_dicts[veh_id],
                         record_in_ctx=False,
-                        buffer=0.25,  # buffer for the collision avoidance, 0.5m
+                        buffer=0.5,  # buffer for the collision avoidance, 1m
                     )
                 )
                 if maneuver_challenge_avoidance_dicts[veh_id].get("negligence"):
