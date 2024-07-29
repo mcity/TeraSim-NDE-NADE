@@ -304,6 +304,7 @@ class SafeTestNADE(BaseEnv):
             veh_ctx_dicts
         )
         self.step_epsilon = 1.0
+        self.step_weight = 1.0
         if self.allow_NADE_IS:
             ITE_control_command_dicts, veh_ctx_dicts, weight, negligence_flag = (
                 self.NADE_importance_sampling(
@@ -859,6 +860,7 @@ class SafeTestNADE(BaseEnv):
                         f"time: {utils.get_time()}, veh_id: {veh_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                     )
         self.step_epsilon = epsilon
+        self.step_weight = weight
         return ITE_control_command_dict, veh_ctx_dicts, weight, negligence_flag
 
     def negligence_hook(self, veh_id):

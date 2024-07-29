@@ -36,6 +36,7 @@ class SafeTestNDE(EnvTemplate):
         self.history_length = 10
         self.record = Dict()
         self.step_epsilon = 1.0
+        self.step_weight = 1.0
         super().__init__(vehicle_factory, info_extractor, *args, **kwargs)
 
     def on_start(self, ctx):
