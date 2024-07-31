@@ -27,10 +27,12 @@ class ConflictGenerationModel(BaseModel):
         )
 
         if "EG_1_3_1.136" in obs_dict["ego"]["lane_id"]: # the roundabout part
-            return safe_nde_control_command, {"normal": NDECommand(
-                    command_type=Command.DEFAULT,
-                    prob=1,
-                    info={"vehicle_location": vehicle_location})}
+            return NDECommand(command_type=Command.DEFAULT, prob=1), {
+            "ndd_command_distribution": {
+                "normal": NDECommand(command_type=Command.DEFAULT, prob=1)
+            }
+        }
+
 
         leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
         current_acceleration = obs_dict["ego"]["acceleration"]
