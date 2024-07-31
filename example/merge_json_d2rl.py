@@ -31,5 +31,5 @@ def merge_json(dir: str):
 
 
 if __name__ == "__main__":
-    experiment_path = "/home/zhijie/results/output_local/Autoware.Universe"
+    experiment_path = "/home/zhijie/terasim/Driving-Intelligence-Test/output_aws/v10"
     merge_json(experiment_path)
