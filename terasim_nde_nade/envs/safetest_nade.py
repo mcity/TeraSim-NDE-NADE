@@ -817,6 +817,7 @@ class SafeTestNADE(BaseEnv):
             }
         )
         negligence_flag = False
+        exclude_IS_veh_set = set() if exclude_IS_veh_set is None else exclude_IS_veh_set
 
         for veh_id in maneuver_challenge_dicts:
             if veh_id in exclude_IS_veh_set:
