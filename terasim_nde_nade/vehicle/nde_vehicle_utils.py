@@ -44,6 +44,7 @@ intersection_cutin_prob = (
     * 0.8
     * 0.9
     * 0.9
+    * 1.1
 )
 # 0.013682468839095184
 intersection_neglect_conflict_lead_prob = (
@@ -66,6 +67,7 @@ intersection_neglect_conflict_lead_prob = (
     * 1.1
     * 1.1
     * 0.95
+    * 1.1
 )
 # 0.00015787218253532532
 intersection_rearend_prob = (
@@ -87,6 +89,7 @@ intersection_rearend_prob = (
     * 0.5
     * 1.3
     * 0.85
+    * 1.1
 )
 # 0.009219911404943987
 intersection_tfl_prob = (
@@ -108,6 +111,7 @@ intersection_tfl_prob = (
     * 1.3
     * 0.85
     * 1.05
+    * 1.1
 )
 # 9.693789338786234e-09
 intersection_headon_prob = (
@@ -130,6 +134,7 @@ intersection_headon_prob = (
     * 0.5
     * 1.3
     * 0.85
+    * 1.1
 )
 # 0.0005025411072000003
 roundabout_fail_to_yield_prob = (
@@ -224,6 +229,8 @@ highway_cutin_prob = (
     * 0.8
     * 1.5
     * 1.1
+    * 2
+    * 1.7
 )
 # 0.258343354368
 highway_rearend_prob = (
@@ -245,6 +252,8 @@ highway_rearend_prob = (
     * 1.2
     * 0.8
     * 1.2
+    * 2
+    * 1.7
 )
 
 logger.info(

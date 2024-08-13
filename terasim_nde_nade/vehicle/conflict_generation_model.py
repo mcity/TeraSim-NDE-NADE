@@ -26,12 +26,19 @@ class ConflictGenerationModel(BaseModel):
             obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
         )
 
-        # if "EG_1_3_1.136" in obs_dict["ego"]["lane_id"]: # the roundabout part
-        #     return safe_nde_control_command, {
-        #         "ndd_command_distribution": {"normal": NDECommand(
-        #             command_type=Command.DEFAULT,
-        #             prob=1,
-        #             info={"vehicle_location": vehicle_location})}}
+        if (
+            "EG_1_3_1.136" in obs_dict["ego"]["lane_id"]
+            and obs_dict["ego"]["position"][1] > 305
+        ):
+            return safe_nde_control_command, {
+                "ndd_command_distribution": {
+                    "normal": NDECommand(
+                        command_type=Command.DEFAULT,
+                        prob=1,
+                        info={"vehicle_location": vehicle_location},
+                    )
+                }
+            }
 
         leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
         current_acceleration = obs_dict["ego"]["acceleration"]
