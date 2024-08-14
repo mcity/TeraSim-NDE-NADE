@@ -445,6 +445,11 @@ class SafeTestNADEWithAV(SafeTestNADE):
         self.record.epsilon_step_info[time_step] = self.step_epsilon
         self.record.criticality_step_info[time_step] = sum(bv_criticality_list)
         self.record.drl_obs[time_step] = self.collect_drl_obs(veh_ctx_dicts).tolist()
+        overall_avoidable = True
+        for veh_id in veh_ctx_dicts:
+            if not veh_ctx_dicts[veh_id].get("avoidable", True):
+                overall_avoidable = False
+        self.record.avoidable[time_step] = overall_avoidable
 
         return step_log
 
