@@ -836,7 +836,7 @@ class SafeTestNADE(BaseEnv):
                     maneuver_challenge_dicts,
                     veh_ctx_dicts,
                 )
-                epsilon = 1-IS_prob
+                epsilon = 1 - IS_prob
 
                 # update the importance sampling weight and the ITE control command
                 sampled_prob = np.random.uniform(0, 1)

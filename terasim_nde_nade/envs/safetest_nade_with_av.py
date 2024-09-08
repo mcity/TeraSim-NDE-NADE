@@ -12,6 +12,7 @@ from loguru import logger
 from addict import Dict
 import copy
 from terasim.envs.template import EnvTemplate
+import random
 
 
 class SafeTestNADEWithAV(SafeTestNADE):
@@ -44,16 +45,19 @@ class SafeTestNADEWithAV(SafeTestNADE):
     def on_start(self, ctx):
         # initialize the surrogate model and add AV to env
         super().on_start(ctx)
-        self.add_cav()
+        self.add_cav_safe()
 
-    def add_cav(self):
+    def add_cav_unsafe(self, edge_id="EG_35_1_14", lane_id=None, position=0, speed=0):
+        if lane_id is None:
+            lane_id = edge_id + "_0"
+
         self.add_vehicle(
             veh_id="CAV",
             route_id="cav_route",
             lane="best",
-            lane_id="EG_35_1_14_0",
-            position=0,
-            speed=0,
+            lane_id=lane_id,
+            position=position,
+            speed=speed,
         )
         # set the CAV with white color
         traci.vehicle.setColor("CAV", (255, 255, 255, 255))
@@ -64,6 +68,60 @@ class SafeTestNADEWithAV(SafeTestNADE):
             self.cache_radius,
             [traci.constants.VAR_DISTANCE],
         )
+
+    def add_cav_safe(self):
+        # edge_id = "EG_35_1_14" # highway
+        edge_id = "EG_17_1_1"  # intersection
+        lanes = traci.edge.getLaneNumber(edge_id)
+        max_attempts = 10
+        min_safe_distance = 10  # Minimum safe distance from other vehicles
+
+        for attempt in range(max_attempts):
+            lane = random.randint(0, lanes - 1)
+            lane_id = f"{edge_id}_{lane}"
+            lane_length = traci.lane.getLength(lane_id)
+            position = random.uniform(0, lane_length)
+
+            if self.is_position_safe(lane_id, position, min_safe_distance):
+                self.add_cav_unsafe(edge_id, lane_id, position)
+                logger.info(f"CAV added safely at lane {lane_id}, position {position}")
+                return
+
+        logger.warning("Unable to find a safe position for CAV, using fallback method")
+        self.add_cav_fallback()
+
+    def is_position_safe(self, lane_id, position, min_safe_distance):
+        # Check vehicles on the same lane
+        vehicles = traci.lane.getLastStepVehicleIDs(lane_id)
+        for veh in vehicles:
+            veh_pos = traci.vehicle.getLanePosition(veh)
+            if abs(veh_pos - position) < min_safe_distance:
+                return False
+        return True
+
+    def add_cav_fallback(self):
+        edge_id = "EG_35_1_14"
+        lane = random.randint(0, traci.edge.getLaneNumber(edge_id) - 1)
+        lane_id = f"{edge_id}_{lane}"
+        position = traci.lane.getLength(lane_id) / 2
+
+        # Clear area around the chosen position
+        self.clear_area_around_position(
+            lane_id, position, 10
+        )  # Clear 10m around the position
+
+        self.add_cav_unsafe(edge_id, lane_id, position)
+        logger.warning(
+            f"CAV added using fallback method at lane {lane_id}, position {position}"
+        )
+
+    def clear_area_around_position(self, lane_id, position, clear_distance):
+        vehicles = traci.lane.getLastStepVehicleIDs(lane_id)
+        for veh in vehicles:
+            veh_pos = traci.vehicle.getLanePosition(veh)
+            if abs(veh_pos - position) < clear_distance:
+                traci.vehicle.remove(veh)
+        logger.info(f"Cleared area around position {position} on lane {lane_id}")
 
     def on_step(self, ctx):
         cached_veh_ids, controlled_veh_ids = self.cache_vehicle_history()
@@ -411,7 +469,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
             )
             return False
         return True
-    
+
     def record_step_data(self, veh_ctx_dicts):
         step_log = Dict()
         bv_criticality_list = []
@@ -430,7 +488,10 @@ class SafeTestNADEWithAV(SafeTestNADE):
                 )  # remove the avoidable key if it is True
             if veh_id != "CAV":
                 criticality = 0.0
-                if "criticality" in veh_ctx_dict and "negligence" in veh_ctx_dict["criticality"]:
+                if (
+                    "criticality" in veh_ctx_dict
+                    and "negligence" in veh_ctx_dict["criticality"]
+                ):
                     criticality = veh_ctx_dict["criticality"]["negligence"]
                 bv_criticality_list.append(criticality)
         # pop the empty dict
@@ -464,16 +525,24 @@ class SafeTestNADEWithAV(SafeTestNADE):
         for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
             if veh_id == "CAV":
                 continue
-            if "criticality" in veh_ctx_dict and "negligence" in veh_ctx_dict["criticality"]:
+            if (
+                "criticality" in veh_ctx_dict
+                and "negligence" in veh_ctx_dict["criticality"]
+            ):
                 criticality = veh_ctx_dict["criticality"]["negligence"]
                 if criticality > 0:
                     vehicle_local_position = list(traci.vehicle.getPosition(veh_id))
-                    vehicle_relative_position = [vehicle_local_position[0]-CAV_global_position[0], vehicle_local_position[1]-CAV_global_position[1]]
+                    vehicle_relative_position = [
+                        vehicle_local_position[0] - CAV_global_position[0],
+                        vehicle_local_position[1] - CAV_global_position[1],
+                    ]
                     vehicle_speed = traci.vehicle.getSpeed(veh_id)
                     vehicle_heading = traci.vehicle.getAngle(veh_id)
-                    vehicle_info_list.extend(vehicle_relative_position + [vehicle_speed] + [vehicle_heading])
+                    vehicle_info_list.extend(
+                        vehicle_relative_position + [vehicle_speed] + [vehicle_heading]
+                    )
                     break
-            
+
         if not vehicle_info_list:
             vehicle_info_list.extend([-100, -100, 0, 0])
 
@@ -483,10 +552,30 @@ class SafeTestNADEWithAV(SafeTestNADE):
         heading_lb, heading_ub = 0, 360
         vehicle_info_lb, vehicle_info_ub = [-20, -20, 0, 0], [20, 20, 10, 360]
 
-        lb_array = np.array(CAV_position_lb + [velocity_lb] + [driving_distance_lb] + [heading_lb] + vehicle_info_lb)
-        ub_array = np.array(CAV_position_ub + [velocity_ub] + [driving_distance_ub] + [heading_ub] + vehicle_info_ub)
-        total_obs_for_DRL_ori = np.array(CAV_global_position + [CAV_speed] + [CAV_driving_distance] + [CAV_heading] + vehicle_info_list)
-        
-        total_obs_for_DRL = 2 * (total_obs_for_DRL_ori - lb_array)/(ub_array - lb_array) - 1
+        lb_array = np.array(
+            CAV_position_lb
+            + [velocity_lb]
+            + [driving_distance_lb]
+            + [heading_lb]
+            + vehicle_info_lb
+        )
+        ub_array = np.array(
+            CAV_position_ub
+            + [velocity_ub]
+            + [driving_distance_ub]
+            + [heading_ub]
+            + vehicle_info_ub
+        )
+        total_obs_for_DRL_ori = np.array(
+            CAV_global_position
+            + [CAV_speed]
+            + [CAV_driving_distance]
+            + [CAV_heading]
+            + vehicle_info_list
+        )
+
+        total_obs_for_DRL = (
+            2 * (total_obs_for_DRL_ori - lb_array) / (ub_array - lb_array) - 1
+        )
         total_obs_for_DRL = np.clip(total_obs_for_DRL, -5, 5)
         return np.array(total_obs_for_DRL).astype(float)
