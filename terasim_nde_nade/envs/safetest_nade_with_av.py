@@ -70,8 +70,9 @@ class SafeTestNADEWithAV(SafeTestNADE):
         )
 
     def add_cav_safe(self):
-        # edge_id = "EG_35_1_14" # highway
-        edge_id = "EG_17_1_1"  # intersection
+        # Get the first edge of the CAV route
+        cav_route = traci.route.getEdges("cav_route")
+        edge_id = cav_route[0]
         lanes = traci.edge.getLaneNumber(edge_id)
         max_attempts = 10
         min_safe_distance = 10  # Minimum safe distance from other vehicles
