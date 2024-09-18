@@ -80,41 +80,44 @@ class ConflictGenerationModel(BaseModel):
             Dict(lane_change_negligence(obs_dict, highlight_flag=highlight_flag))
         )
 
-        # If there are no negligence commands, use the default command with probability 1
-        command_dict = {"normal": safe_nde_control_command}
-
-        # If there are negligence commands, update the command_dict with the negligence command and the normal command with the remaining probability
-        negligence_command = None
-        if negligence_command_dict:
-            # traci.vehicle.setColor(obs_dict["ego"]["veh_id"], (255, 0, 0, 255)) # highlight the vehicle with red
-            negligence_command = list(negligence_command_dict.values())[0]
-            negligence_command.prob, predicted_collision_type = (
-                get_collision_type_and_prob(
-                    obs_dict, negligence_command, vehicle_location
+        # Filter out negligence commands with zero probability
+        filtered_negligence_commands = {}
+        for key, command in negligence_command_dict.items():
+            prob, predicted_collision_type = get_collision_type_and_prob(
+                obs_dict, command, vehicle_location
+            )
+            if prob > 0:
+                command.prob = prob
+                command.info.update(
+                    {
+                        "predicted_collision_type": predicted_collision_type,
+                        "vehicle_location": vehicle_location,
+                    }
                 )
-            )
-            negligence_command.info.update(
-                {
-                    "predicted_collision_type": predicted_collision_type,
-                    "vehicle_location": vehicle_location,
-                }
-            )
-            command_dict = {
-                "negligence": negligence_command,
-                "normal": NDECommand(
-                    command_type=Command.DEFAULT,
-                    prob=1 - negligence_command.prob,
-                    info={"vehicle_location": vehicle_location},
-                ),
-            }
+                filtered_negligence_commands[key] = command
 
-        # sample final command based on the probability in command_dict
+        # Create command_dict based on filtered negligence commands
+        command_dict = {}
+        if filtered_negligence_commands:
+            negligence_command = list(filtered_negligence_commands.values())[0]
+            command_dict["negligence"] = negligence_command
+            normal_prob = 1 - negligence_command.prob
+        else:
+            normal_prob = 1
+
+        command_dict["normal"] = NDECommand(
+            command_type=Command.DEFAULT,
+            prob=normal_prob,
+            info={"vehicle_location": vehicle_location},
+        )
+
+        # Sample final command based on the probability in command_dict
         command = random.choices(
             list(command_dict.values()),
-            weights=[command_dict[key].prob for key in command_dict],
+            weights=[cmd.prob for cmd in command_dict.values()],
             k=1,
         )[0]
-        # command = NDECommand(command_type=Command.DEFAULT, prob=1)
+
         return command, {"ndd_command_distribution": command_dict}
 
 
