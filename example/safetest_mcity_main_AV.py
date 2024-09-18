@@ -50,6 +50,7 @@ sim = Simulator(
     sumo_config_file_path=dir_path / "maps" / "Mcity_safetest" / "mcity.sumocfg",
     num_tries=10,
     gui_flag=False,
+    realtime_flag=True,
     output_path=base_dir,
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )

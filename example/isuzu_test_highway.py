@@ -1,10 +1,16 @@
 from loguru import logger
 from terasim.simulator import Simulator
+
 from terasim_nde_nade.envs.safetest_nade_with_av import SafeTestNADEWithAV
+from terasim_nde_nade.envs.safetest_nade_with_av_cosim import SafeTestNADEWithAVCosim
+
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 from pathlib import Path
 import argparse
+
+from terasim_cosim.terasim_plugin.terasim_cosim_plugin import TeraSimCoSimPlugin
+from terasim_cosim.terasim_plugin.terasim_tls_plugin import TeraSimTLSPlugin
 
 parser = argparse.ArgumentParser(description="Run simulation.")
 parser.add_argument("--dir", type=str, help="output directory", default="output_cav")
@@ -35,24 +41,38 @@ logger.add(
     serialize=True,
 )
 
-env = SafeTestNADEWithAV(
+env = SafeTestNADEWithAVCosim(
     vehicle_factory=NDEVehicleFactory(),
     info_extractor=InfoExtractor,
     log_flag=True,
     log_dir=base_dir,
-    warmup_time_lb=100,
-    warmup_time_ub=200,
-    run_time=1200,
+    warmup_time_lb=90,
+    warmup_time_ub=120,
+    run_time=240,
 )
 dir_path = Path(__file__).parent
 sim = Simulator(
     sumo_net_file_path=dir_path / "maps" / "ISUZU_test" / "mcity.net.xml",
     sumo_config_file_path=dir_path / "maps" / "ISUZU_test" / "mcity_highway.sumocfg",
     num_tries=10,
-    gui_flag=True,
+    gui_flag=False,
+    realtime_flag=True ,
     output_path=base_dir,
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
+
+sim.add_plugin(
+    TeraSimCoSimPlugin(
+    	control_cav=False, cosim_controlled_vehicle_keys=[""]
+    )
+)
+
+sim.add_plugin(
+    TeraSimTLSPlugin(
+        control_tls=True
+    )
+)
+
 sim.bind_env(env)
 terasim_logger = logger.bind(name="terasim_nde_nade")
 terasim_logger.info(f"terasim_nde_nade: Experiment started {args.nth}")
