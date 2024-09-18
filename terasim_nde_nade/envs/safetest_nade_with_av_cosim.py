@@ -10,8 +10,8 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
 
     def on_start(self, ctx):
         super().on_start(ctx)
-        self.redis_cli = redis.Redis(host="localhost", port=6379, db=0)
-        self.redis_cli.set("terasim_status", 1)
+        self.redis_client = redis.Redis(host="localhost", port=6379, db=0)
+        self.redis_client.set("terasim_status", 1)
 
     def get_IS_prob(
         self,
@@ -29,18 +29,35 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
         upper_bound = 0.1
 
         # predicted_collision_type = ndd_control_command_dicts[veh_id].negligence.info["predicted_collision_type"]
-        
+
         # return np.clip(
         #     ndd_control_command_dicts[veh_id]["negligence"].prob * IS_magnitude,
         #     lower_bound,
         #     upper_bound,
         # )
-    
-        return 0.05 
-    
+
+        return 0.05
+
         # return self.max_importance_sampling_prob
 
     def should_continue_simulation(self):
+
+        terminate_flag = self.redis_client.get("terminate_TeraSim")
+        if terminate_flag and int(terminate_flag) == 1:
+            logger.info(
+                "Received termination signal from Redis, stopping the simulation."
+            )
+            self.record.update(
+                {
+                    "veh_1_id": None,
+                    "veh_2_id": None,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "redis_termination",
+                }
+            )
+            return False
+
         location = traci.vehicle.getPosition3D("CAV")
         x, y = location[0], location[1]
 
@@ -58,7 +75,7 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
                 }
             )
             return False
-        
+
         elif utils.get_time() >= self.warmup_time + self.run_time:
             logger.info("Simulation timeout, stop the simulation.")
             self.record.update(
@@ -101,5 +118,5 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
                 }
             )
             return False
-        
+
         return True
