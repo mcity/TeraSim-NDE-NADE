@@ -23,10 +23,10 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
         if not maneuver_challenge_dicts[veh_id].get("negligence"):
             raise ValueError("The vehicle is not in the negligence mode.")
 
-        IS_magnitude = 10000000
+        # IS_magnitude = 10000000
 
-        lower_bound = 0.0
-        upper_bound = 0.1
+        # lower_bound = 0.0
+        # upper_bound = 0.1
 
         # predicted_collision_type = ndd_control_command_dicts[veh_id].negligence.info["predicted_collision_type"]
 
@@ -41,25 +41,10 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
         # return self.max_importance_sampling_prob
 
     def should_continue_simulation(self):
-
-        terminate_flag = self.redis_client.get("terminate_TeraSim")
-        if terminate_flag and int(terminate_flag) == 1:
-            logger.info(
-                "Received termination signal from Redis, stopping the simulation."
-            )
-            self.record.update(
-                {
-                    "veh_1_id": None,
-                    "veh_2_id": None,
-                    "warmup_time": self.warmup_time,
-                    "run_time": self.run_time,
-                    "finish_reason": "redis_termination",
-                }
-            )
-            return False
-
         location = traci.vehicle.getPosition3D("CAV")
         x, y = location[0], location[1]
+
+        terminate_flag = self.redis_client.get("terminate_TeraSim")
 
         num_colliding_vehicles = self.simulator.get_colliding_vehicle_number()
 
@@ -106,8 +91,10 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
             )
             return False
 
-        elif y > 310.0:
-            logger.info("CAV reached the destination, stop the simulation.")
+        if terminate_flag and int(terminate_flag) == 1:
+            logger.info(
+                "Received termination signal from Redis, stopping the simulation."
+            )
             self.record.update(
                 {
                     "veh_1_id": None,
@@ -118,5 +105,18 @@ class SafeTestNADEWithAVCosim(SafeTestNADEWithAV):
                 }
             )
             return False
+
+        # elif y > 310.0:
+        #     logger.info("CAV reached the destination, stop the simulation.")
+        #     self.record.update(
+        #         {
+        #             "veh_1_id": None,
+        #             "veh_2_id": None,
+        #             "warmup_time": self.warmup_time,
+        #             "run_time": self.run_time,
+        #             "finish_reason": "finished",
+        #         }
+        #     )
+        #     return False
 
         return True

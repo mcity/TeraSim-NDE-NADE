@@ -55,23 +55,17 @@ sim = Simulator(
     sumo_net_file_path=dir_path / "maps" / "ISUZU_test" / "mcity.net.xml",
     sumo_config_file_path=dir_path / "maps" / "ISUZU_test" / "mcity_highway.sumocfg",
     num_tries=10,
-    gui_flag=False,
-    realtime_flag=True ,
+    gui_flag=True,
+    realtime_flag=True,
     output_path=base_dir,
     sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
 )
 
 sim.add_plugin(
-    TeraSimCoSimPlugin(
-    	control_cav=False, cosim_controlled_vehicle_keys=[""]
-    )
+    TeraSimCoSimPlugin(control_cav=False, cosim_controlled_vehicle_keys=[""])
 )
 
-sim.add_plugin(
-    TeraSimTLSPlugin(
-        control_tls=True
-    )
-)
+sim.add_plugin(TeraSimTLSPlugin(control_tls=True))
 
 sim.bind_env(env)
 terasim_logger = logger.bind(name="terasim_nde_nade")
