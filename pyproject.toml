@@ -16,10 +16,6 @@ python = "^3.10"
 Cython = "^3.0.8"
 shapely = "^2.0.3"
 toml = "^0.10.2"
-terasim = "*"
 
-[[tool.poetry.source]]
-name = "sdpi"
-url = "http://3.137.142.45:8082/"
-[tool.poetry.build]
-script = "build.py"
+# [tool.poetry.build]
+#script = "build.py"
