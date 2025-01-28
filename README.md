@@ -32,11 +32,16 @@ Also, please refer to the README of TeraSim for the installation of SUMO and oth
 
 ### Installation and Configuration Steps
 
+First, install Poetry if you haven't already:
+```bash
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+Then install the project using Poetry:
 ```bash
 git clone https://github.com/michigan-traffic-lab/TeraSim-NDE-ITE
 cd TeraSim-NDE-ITE
-pip install -e .
-cd ..
+poetry install
 ```
 
 ## Usage

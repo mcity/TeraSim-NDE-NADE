@@ -17,5 +17,5 @@ Cython = "^3.0.8"
 shapely = "^2.0.3"
 toml = "^0.10.2"
 
-[tool.poetry.build]
-script = "build.py"
+# [tool.poetry.build]
+#script = "build.py"
