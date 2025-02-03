@@ -25,7 +25,7 @@ class NDEVehicleFactory(VehicleFactory):
             )
         else:
             decision_model = ConflictGenerationModel(
-                MOBIL_lc_flag=True, stochastic_acc_flag=False
+                MOBIL_lc_flag=True, stochastic_acc_flag=False, dynamically_change_vtype=False
             )
 
         controller = NDEController(simulator)

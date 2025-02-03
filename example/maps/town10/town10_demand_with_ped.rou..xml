@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on 2024-07-13 21:53:13 by Eclipse SUMO netedit Version 1.20.0
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <!-- Routes -->
+
+    <vType id="NDE_URBAN" length="5.00" width="1.85" minGap="3.28" maxSpeed="10.00" carFollowModel="IDM" accel="1.84" decel="1.29" tau="1.17" emergencyDecel="7.06" lcSpeedGain="0" lcCooperative="0" lcKeepRight="1" speedFactor="normc(1,0.1,0.8,1.2)"/>
+    <vType id="NDE_HIGHWAY" length="5.00" width="1.85" minGap="5.92" maxSpeed="28.31" carFollowModel="IDM" accel="5.95" decel="5.96" tau="1.72" emergencyDecel="7.06" lcSpeedGain="0" lcCooperative="0" lcKeepRight="1" speedFactor="normc(1,0.1,0.8,1.2)"/>
+
+
+    <route id="r_0" edges="15 31 30 34 33 19 20 32 25 23 39"/>
+    <route id="r_1" edges="13 14 35 24 44 17 5 6"/>
+    <route id="r_2" edges="18 10 11 13 14 16 0 2 9 43 42 41 40 21 1 12"/>
+    <route id="r_3" edges="37 36 34 33 19 15 31 30 29 28 18 10 11 13"/>
+    <!-- Vehicles, persons and containers (sorted by depart) -->
+    <vType id="CAVs" maxSpeed="10"/>
+    <vehicle id="CAV" type="CAVs" route="r_2" depart="0">
+        <stop edge="18" endPos="10" duration="10"/>
+    </vehicle>
+    <flow id="f_0" begin="0.00" from="18" to="35" via="10 11 13 14" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_1" begin="0.00" from="12" to="17" via="16 0 2 42 41 5 27 26 24" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_2" begin="0.00" from="5" to="19" via="6 8 38 20 23 37 36 34 33" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_3" begin="0.00" from="24" to="42" via="18 10 8 38" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_4" begin="0.00" from="12" to="1" via=" 16 43 42 41" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_5" type="DEFAULT_BIKETYPE" begin="0.00" from="37" to="39" via="36 34 33 19 20 25" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_6" type="DEFAULT_BIKETYPE" begin="0.00" from="24" to="35" via="17 18 10 11 13 14" end="3600.00" vehsPerHour="200"/>
+    <flow id="f_7" type="DEFAULT_BIKETYPE" begin="0.00" from="22" to="36" via="14 16 2 9 43 42 11 7 8 20 32 25 23 39 37" end="3600.00" vehsPerHour="200"/>
+    <personFlow id="pf_0" begin="0.00" end="3600.00" personsPerHour="300">
+        <walk route="r_0"/>
+    </personFlow>
+    <personFlow id="pf_1" begin="0.00" end="3600.00" personsPerHour="300">
+        <walk route="r_0"/>
+    </personFlow>
+    <personFlow id="pf_2" begin="0.00" end="3600.00" personsPerHour="300">
+        <walk route="r_2"/>
+    </personFlow>
+    <personFlow id="pf_3" begin="0.00" end="3600.00" personsPerHour="300">
+        <walk edges="37 36 7 8 38"/>
+    </personFlow>
+    <personFlow id="pf_5" begin="0.00" end="3600.00" personsPerHour="300">
+        <walk edges="42 10 11 29 28"/>
+    </personFlow>
+    <personFlow id="pf_6" begin="0.00" end="3600.00" personsPerHour="300">
+        <walk route="r_1"/>
+    </personFlow>
+    <personFlow id="pf_7" begin="0.00" end="3600.00" personsPerHour="300">
+        <walk edges="27 26"/>
+    </personFlow>
+     <personFlow id="pf_8" type="DEFAULT_BIKETYPE" begin="0.00" end="3600.00" personsPerHour="100">
+        <walk edges="24 17 18 10 11 13 14 35"/>
+    </personFlow>
+    <personFlow id="pf_9" type="DEFAULT_BIKETYPE" begin="0.00" end="3600.00" personsPerHour="100">
+        <walk edges="22 14 16 2 9 43 42 11 7 8 20 32 25 23 39 37 36"/>
+    </personFlow>
+    <!-- <vehicle id="vp35" depart="9.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp6" depart="12.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="683.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp31" depart="79.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="794.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp32" depart="81.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="547.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp56" depart="88.00" route="r_2">
+        <stop parkingArea="parking_area_13_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp49" depart="96.00" route="r_0">
+        <stop parkingArea="parking_area_15_2" duration="455.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp52" depart="108.00" route="r_2">
+        <stop parkingArea="parking_area_13_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp41" depart="111.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="457.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp23" depart="112.00" route="r_0">
+        <stop parkingArea="parking_area_20_2" duration="387.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp10" depart="120.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp46" depart="129.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp45" depart="130.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp21" depart="139.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="568.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp11" depart="141.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="716.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp19" depart="145.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="678.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp50" depart="156.00" route="r_0">
+        <stop parkingArea="parking_area_15_2" duration="596.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp25" depart="158.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp12" depart="169.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="684.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp18" depart="178.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp37" depart="209.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="669.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp7" depart="235.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp9" depart="244.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="617.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp15" depart="263.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp44" depart="274.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="739.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp36" depart="352.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp27" depart="357.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp26" depart="362.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="427.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp53" depart="365.00" route="r_2">
+        <stop parkingArea="parking_area_13_2" duration="730.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp42" depart="371.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp57" depart="402.00" route="r_2">
+        <stop parkingArea="parking_area_13_2" duration="781.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp30" depart="417.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="747.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp47" depart="420.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp39" depart="433.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp4" depart="438.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="636.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp8" depart="484.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp1" depart="485.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="795.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp51" depart="499.00" route="r_0">
+        <stop parkingArea="parking_area_15_2" duration="663.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp55" depart="500.00" route="r_2">
+        <stop parkingArea="parking_area_13_2" duration="654.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp17" depart="542.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="461.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp14" depart="548.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="360.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp38" depart="592.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="528.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp20" depart="644.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp40" depart="663.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="662.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp13" depart="669.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="576.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp29" depart="693.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="723.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp5" depart="699.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="603.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp43" depart="793.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="456.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp2" depart="813.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="549.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp3" depart="819.00" route="r_3">
+        <stop parkingArea="parking_area_18_2" duration="697.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp33" depart="868.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp28" depart="899.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="499.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp48" depart="899.00" route="r_1">
+        <stop parkingArea="parking_area_24_2" duration="767.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp24" depart="944.00" route="r_0">
+        <stop parkingArea="parking_area_20_2" duration="519.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp22" depart="956.00" route="r_0">
+        <stop parkingArea="parking_area_20_2" duration="433.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp16" depart="971.00" route="r_0">
+        <stop parkingArea="parking_area_19_2" duration="1000000.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp54" depart="997.00" route="r_2">
+        <stop parkingArea="parking_area_13_2" duration="440.00" parking="1"/>
+    </vehicle>
+    <vehicle id="vp34" depart="1000.00" route="r_0">
+        <stop parkingArea="parking_area_25_2" duration="680.00" parking="1"/>
+    </vehicle> -->
+</routes>
