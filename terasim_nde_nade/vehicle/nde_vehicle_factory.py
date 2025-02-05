@@ -11,6 +11,9 @@ import json
 
 
 class NDEVehicleFactory(VehicleFactory):
+    def __init__(self, cfg=None):
+        super().__init__()
+        self.cfg = cfg
 
     def create_vehicle(self, veh_id, simulator):
         sensor_list = [
@@ -25,7 +28,10 @@ class NDEVehicleFactory(VehicleFactory):
             )
         else:
             decision_model = ConflictGenerationModel(
-                MOBIL_lc_flag=True, stochastic_acc_flag=False, dynamically_change_vtype=False
+                MOBIL_lc_flag=True, 
+                stochastic_acc_flag=False, 
+                dynamically_change_vtype=False,
+                cfg=self.cfg
             )
 
         controller = NDEController(simulator)

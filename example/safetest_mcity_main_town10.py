@@ -52,10 +52,12 @@ def main(cfg: DictConfig) -> None:
 
     dir_path = Path(__file__).parent
     sim = Simulator(
-        sumo_net_file_path=dir_path / "maps" / "Mcity_safetest" / "mcity.net.xml",
-        sumo_config_file_path=dir_path / "maps" / "Mcity_safetest" / "mcity.sumocfg",
+        # sumo_net_file_path=dir_path / "maps" / "Mcity_safetest" / "mcity.net.xml",
+        # sumo_config_file_path=dir_path / "maps" / "Mcity_safetest" / "mcity.sumocfg",
+        sumo_net_file_path=dir_path / "maps" / "town10" / "town10.net.xml",
+        sumo_config_file_path=dir_path / "maps" / "town10" / "town10.sumocfg",
         num_tries=10,
-        gui_flag=False,
+        gui_flag=True,
         output_path=base_dir,
         sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
     )
