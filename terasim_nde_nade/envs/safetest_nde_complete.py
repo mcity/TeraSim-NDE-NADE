@@ -28,7 +28,6 @@ class SafeTestNDEComplete(EnvTemplateComplete):
     ):
         rng = np.random.default_rng()
         self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub))
-        self.warmup_time = 100
         self.run_time = run_time
         logger.info(f"warmup_time: {self.warmup_time}, run_time: {self.run_time}")
         self.final_log = None

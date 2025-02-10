@@ -79,7 +79,7 @@ class JaywalkingAdversity(AbstractAdversity):
             edge_id = traci.person.getRoadID(ego_id)
             total_width: float = sum([lane.getWidth() for lane in self.sumo_net.getEdge(edge_id).getLanes()])
             current_speed = traci.person.getSpeed(ego_id)
-            if current_speed == 0: # if stop now, then the vru will accelerate to the max speed to cross the road
+            if current_speed < 1.0: # if stop now, then the vru will accelerate to the max speed to cross the road
                 speed = traci.person.getMaxSpeed(ego_id)
             else:
                 speed = current_speed

@@ -40,8 +40,6 @@ IS_MAGNITUDE_MAPPING = {
     "highway": "IS_MAGNITUDE_HIGHWAY",
     "intersection": "IS_MAGNITUDE_INTERSECTION",
 }
-import cProfile
-profiler_tmp = cProfile.Profile()
 
 class Point:
     def __init__(self, position_tuple):
@@ -73,7 +71,6 @@ class SafeTestNADEComplete(BaseEnv):
 
     @profile
     def on_step(self, ctx):
-        profiler_tmp.enable()
         self.distance_info.after.update(self.update_distance())
         self.record.final_time = utils.get_time()  # update the final time at each step
         self.cache_history_tls_data()
@@ -119,8 +116,6 @@ class SafeTestNADEComplete(BaseEnv):
         self.execute_control_commands(ITE_control_cmds)
 
         self.record_step_data(ctx_dicts)
-        profiler_tmp.disable()
-        profiler_tmp.print_stats(sort='time')
         return should_continue_simulation_flag
 
     def on_stop(self, ctx) -> bool:
@@ -461,7 +456,7 @@ class SafeTestNADEComplete(BaseEnv):
         change the command type from acceleration to trajectory if the predicted collision type is rearend
         """
         for agent_type in ITE_control_cmds:
-            for agent_id in ITE_control_cmds:
+            for agent_id in ITE_control_cmds[agent_type]:
                 if (
                     ITE_control_cmds[agent_type][agent_id].info.get("mode") == "avoid_collision"
                     or ITE_control_cmds[agent_type][agent_id].info.get("mode") == "negligence"
@@ -812,7 +807,7 @@ class SafeTestNADEComplete(BaseEnv):
                         "additional_info": "all_avoidance_none",
                     }
                 )
-                ITE_control_command_dict[neglected_vehicle_id] = ctx_dicts[
+                ITE_control_command_dict[AgentType.VEHICLE][neglected_vehicle_id] = ctx_dicts[AgentType.VEHICLE][
                     neglected_vehicle_id
                 ]["ndd_command_distribution"].get("accept_collision", None)
             return ITE_control_command_dict, ctx_dicts, weight
@@ -846,7 +841,7 @@ class SafeTestNADEComplete(BaseEnv):
                         and (not ctx_dicts[AgentType.VEHICLE][neglecting_vehicle_id]["avoidable"])
                     )
                     if avoid_collision_command:
-                        ITE_control_command_dict[neglected_vehicle_id] = (
+                        ITE_control_command_dict[AgentType.VEHICLE][neglected_vehicle_id] = (
                             avoid_collision_command
                         )
                         ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["mode"] = "avoid_collision"
@@ -878,7 +873,7 @@ class SafeTestNADEComplete(BaseEnv):
                             "mode": "accept_collision",
                         }
                     )
-                    ITE_control_command_dict[neglected_vehicle_id] = ctx_dicts[AgentType.VEHICLE][
+                    ITE_control_command_dict[AgentType.VEHICLE][neglected_vehicle_id] = ctx_dicts[AgentType.VEHICLE][
                         neglected_vehicle_id
                     ]["ndd_command_distribution"].get("accept_collision", None)
             weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
