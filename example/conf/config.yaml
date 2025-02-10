@@ -1,5 +1,6 @@
 MOBIL_lc_flag: True
 stochastic_acc_flag: False
+sumo_net_file_path: "maps/town10/town10.net.xml"
 
 adversity_cfg:
   vehicle:
@@ -88,3 +89,20 @@ adversity_cfg:
     #   location: 'roundabout'
     #   ego_type: 'vehicle'
     #   probability: 0.015050715723004704
+
+  vulnerable_road_user:
+    jaywalking:
+      _target_: terasim_nde_nade.adversity.vru.jaywalking_adversity.JaywalkingAdversity
+      _convert_: 'all'
+      location: 'crosswalk'
+      ego_type: 'vulnerable_road_user'
+      probability: 0.01
+      predicted_collision_type: "intersection_jaywalking"
+
+    runningredlight:
+      _target_: terasim_nde_nade.adversity.vru.runningredlight_adversity.RunningRedLightAdversity
+      _convert_: 'all'
+      location: 'crosswalk'
+      ego_type: 'vulnerable_road_user'
+      probability: 0.01
+      predicted_collision_type: "intersection_runningredlight"

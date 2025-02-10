@@ -1,12 +1,10 @@
-import random
 from addict import Dict
+import random
 
 from terasim_nde_nade.adversity.utils.adversity_builder import build_adversities
 from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    get_collision_type_and_prob,
     Command,
     NDECommand,
-    get_location,
 )
 
 class AdversityManager():
@@ -34,13 +32,13 @@ class AdversityManager():
         else:
             normal_prob = 1
 
-        vehicle_location = get_location(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
-        )
+        # vehicle_location = get_location(
+        #     obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
+        # )
         command_dict["normal"] = NDECommand(
             command_type=Command.DEFAULT,
             prob=normal_prob,
-            info={"vehicle_location": vehicle_location},
+            # info={"vehicle_location": vehicle_location},
         )
 
         # Sample final command based on the probability in command_dict

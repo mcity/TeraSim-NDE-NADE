@@ -283,12 +283,13 @@ class NDECommand(BaseModel):
 
     command_type: Command = Command.DEFAULT
     acceleration: float = 0.0
-    future_trajectory: List[Tuple[float, float]] = []
+    future_trajectory: List[List] = [[]]  # shape: (n, 5) for [x, y, heading, velocity, time]
     prob: float = 1.0
     duration: float = None
     info: Dict[str, Any] = {}
     custom_control_command: Dict[str, Any] = None
     custom_execute_control_command: Callable = None
+    keep_route_mode: int = 1
 
     @validator("duration", pre=True, always=True)
     def set_duration(cls, v):
@@ -768,19 +769,22 @@ def get_future_position_on_route(
         found_match = False
         # Try matching with base edge id
         edge_base = veh_edge_id.split("_")[0]
+        min_dist = math.inf
+        modified_index = 0
         for i, route_id in enumerate(veh_route_id_list):
             route_base = route_id.split("_")[0]
             if edge_base == route_base:
                 edge_pos = traci.simulation.convert2D(veh_edge_id, 0, 0)
                 route_pos = traci.simulation.convert2D(route_id, 0, 0)
                 dist = ((edge_pos[0] - route_pos[0])**2 + (edge_pos[1] - route_pos[1])**2)**0.5
-                if dist < 5.0:
-                    veh_route_id_list[i] = veh_edge_id
-                    found_match = True
-                    break
+                if dist < min_dist:
+                    min_dist = dist
+                    modified_index = i
         
-        if not found_match:
-            raise ValueError(f"Edge {veh_edge_id} not found in route list {veh_route_id_list}")
+        veh_route_id_list[modified_index] = veh_edge_id
+            
+        if min_dist > 10:
+            print(f"Edge {veh_edge_id} not found in route list {veh_route_id_list}")
 
     current_route_index = veh_route_id_list.index(veh_edge_id)
 

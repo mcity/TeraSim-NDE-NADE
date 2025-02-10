@@ -7,10 +7,6 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
     is_car_following,
 )
 from terasim_nde_nade.adversity.utils.obs_processing import get_ff_acceleration, get_cf_acceleration
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
-    NDECommand,
-)
 
 
 def derive_leader_negligence_command(obs_dict, highlight_flag=False, highlight_color=[255, 0, 0, 255]) -> addict.Dict:
