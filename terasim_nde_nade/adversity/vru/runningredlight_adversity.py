@@ -86,7 +86,7 @@ class RunningRedLightAdversity(AbstractAdversity):
                     "speed": speed,
                     "angle": future_angle,
                     "mode": "negligence",
-                    "negligence_mode": "Jaywalking",
+                    "negligence_mode": "RunningRedLight",
                     "time_resolution": 0.1,
                     "predicted_collision_type": self._predicted_collision_type,
                     "location": self._location,

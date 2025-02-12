@@ -106,3 +106,11 @@ adversity_cfg:
       ego_type: 'vulnerable_road_user'
       probability: 0.01
       predicted_collision_type: "intersection_runningredlight"
+
+    stopcrossing:
+      _target_: terasim_nde_nade.adversity.vru.stopcrossing_adversity.StopCrossingAdversity
+      _convert_: 'all'
+      location: 'crosswalk'
+      ego_type: 'vulnerable_road_user'
+      probability: 0.01
+      predicted_collision_type: "intersection_stopcrossing"
