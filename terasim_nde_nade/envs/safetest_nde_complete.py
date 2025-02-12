@@ -200,6 +200,27 @@ class SafeTestNDEComplete(EnvTemplateComplete):
                 }
             )
             return False
+        elif num_colliding_vehicles == 1:
+            colliding_vehicles = self.simulator.get_colliding_vehicles()
+            veh_1_id = colliding_vehicles[0]
+            collision_objects = traci.simulation.getCollisions()
+            if veh_1_id == collision_objects[0].collider:
+                vru_1_id = collision_objects[0].victim
+            elif veh_1_id == collision_objects[0].victim:
+                vru_1_id = collision_objects[0].collider
+            else:
+                vru_1_id = None
+            self.record.update(
+                {
+                    "veh_1_id": veh_1_id,
+                    "veh_1_obs": self.vehicle_list[veh_1_id].observation,
+                    "vru_1_id": vru_1_id,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "collision",
+                }
+            )
+            return False
         elif utils.get_time() >= self.warmup_time + self.run_time:
             self.record.update(
                 {
