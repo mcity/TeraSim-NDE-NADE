@@ -263,7 +263,7 @@ logger.info(
 )
 
 
-class Command(Enum):
+class CommandType(Enum):
     DEFAULT = "default"
     LEFT = "left"
     RIGHT = "right"
@@ -281,7 +281,7 @@ class NDECommand(BaseModel):
     if the command is "acceleration", the vehicle will decelerate to stop using the acceleration element
     """
 
-    command_type: Command = Command.DEFAULT
+    command_type: CommandType = CommandType.DEFAULT
     acceleration: float = 0.0
     future_trajectory: List[List] = [[]]  # shape: (n, 5) for [x, y, heading, velocity, time]
     prob: float = 1.0
@@ -622,7 +622,7 @@ def predict_future_trajectory(
     # info.duration_array = str(duration_array)
     acceleration = (
         control_command.acceleration
-        if control_command.command_type == Command.ACCELERATION
+        if control_command.command_type == CommandType.ACCELERATION
         else veh_info["acceleration"]
     )
     # info.acceleration = str(acceleration)
@@ -633,14 +633,14 @@ def predict_future_trajectory(
     # info.future_velocity_array = str(future_velocity_array)
     lane_width = traci.lane.getWidth(veh_info["lane_id"])
     lateral_offset = 0
-    if control_command.command_type == Command.LEFT:
+    if control_command.command_type == CommandType.LEFT:
         lateral_offset = 1
         veh_info.velocity = get_lanechange_longitudinal_speed(
             veh_id,
             veh_info.velocity,
             lane_width,
         )
-    elif control_command.command_type == Command.RIGHT:
+    elif control_command.command_type == CommandType.RIGHT:
         lateral_offset = -1
         veh_info.velocity = get_lanechange_longitudinal_speed(
             veh_id,
@@ -667,8 +667,8 @@ def predict_future_trajectory(
 
     lanechange_finish_trajectory_point = None
     if (
-        control_command.command_type == Command.LEFT
-        or control_command.command_type == Command.RIGHT
+        control_command.command_type == CommandType.LEFT
+        or control_command.command_type == CommandType.RIGHT
     ):
         lanechange_finish_timestep = np.argmin(
             np.abs(duration_array - control_command.duration)

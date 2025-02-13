@@ -1,13 +1,15 @@
+"""Trajectory utilities for TeraSim NDE/NADE."""
 import numpy as np
 from typing import List, Tuple, Dict, Any
 import addict
 from terasim.overlay import traci, profile
 from loguru import logger
-from .general_utils import Command, predict_future_distance_velocity_vectorized
-from .vehicle_utils import (
+from ..base.types import CommandType
+from ..general_utils import predict_future_distance_velocity_vectorized
+from ..agents.vehicle import (
     get_vehicle_info,
     get_lanechange_longitudinal_speed,
-    VehicleInfoForPredict
+    VehicleInfoForPredict,
 )
 
 def get_vehicle_future_lane_id_from_edge(edge_id: str, upcoming_lane_id_list: List[str]) -> str:
@@ -79,6 +81,7 @@ def get_future_position_on_route(
                     modified_index = i
         
         veh_route_id_list[modified_index] = veh_edge_id
+            
         if min_dist > 10:
             logger.warning(f"Edge {veh_edge_id} not found in route list {veh_route_id_list}")
 
@@ -150,21 +153,21 @@ def predict_future_trajectory(
 
     acceleration = (
         control_command.acceleration
-        if control_command.command_type == Command.ACCELERATION
+        if control_command.command_type == CommandType.ACCELERATION
         else veh_info["acceleration"]
     )
     max_velocity = traci.vehicle.getAllowedSpeed(veh_id)
 
     lane_width = traci.lane.getWidth(veh_info["lane_id"])
     lateral_offset = 0
-    if control_command.command_type == Command.LEFT:
+    if control_command.command_type == CommandType.LEFT:
         lateral_offset = 1
         veh_info.velocity = get_lanechange_longitudinal_speed(
             veh_id,
             veh_info.velocity,
             lane_width,
         )
-    elif control_command.command_type == Command.RIGHT:
+    elif control_command.command_type == CommandType.RIGHT:
         lateral_offset = -1
         veh_info.velocity = get_lanechange_longitudinal_speed(
             veh_id,
@@ -188,8 +191,8 @@ def predict_future_trajectory(
 
     lanechange_finish_trajectory_point = None
     if (
-        control_command.command_type == Command.LEFT
-        or control_command.command_type == Command.RIGHT
+        control_command.command_type == CommandType.LEFT
+        or control_command.command_type == CommandType.RIGHT
     ):
         lanechange_finish_timestep = np.argmin(
             np.abs(duration_array - control_command.duration)

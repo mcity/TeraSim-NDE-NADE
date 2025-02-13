@@ -1,22 +1,21 @@
-from dataclasses import dataclass
-from typing import List, Optional
 import math
 from terasim.overlay import traci
 import sumolib
-from loguru import logger
+from typing import List, Tuple, Dict, Any, Optional, Callable
+from .base import AgentInfo
+
+# Define the TrajectoryPoint named tuple
+TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
 
 @dataclass
-class VehicleInfoForPredict:
-    id: str
+class VehicleInfoForPredict(AgentInfo):
+    """Vehicle information for trajectory prediction."""
     acceleration: float
     route: List[str]
     route_index: int
     edge_id: str
     lane_id: str
     lane_index: int
-    position: List[float]
-    velocity: float
-    heading: float
     lane_position: float
     length: float
     route_id_list: Optional[List[str]] = None
@@ -25,6 +24,13 @@ class VehicleInfoForPredict:
 
     def __getitem__(self, item):
         return self.__dict__[item]
+
+def get_next_lane_edge(net, lane_id):
+    """Get the next lane and edge IDs for a given lane."""
+    origin_lane = net.getLane(lane_id)
+    outgoing_lanes = [conn.getToLane() for conn in origin_lane.getOutgoing()]
+    outgoing_edges = [lane.getEdge() for lane in outgoing_lanes]
+    return outgoing_lanes[0].getID(), outgoing_edges[0].getID()
 
 def get_lane_angle(lane_id: str, mode: str = "start") -> float:
     """Get the angle of a lane at a specific position."""
@@ -36,13 +42,6 @@ def get_lane_angle(lane_id: str, mode: str = "start") -> float:
         raise ValueError("mode must be either start or end")
     lane_angle = traci.lane.getAngle(lane_id, relative_position)
     return lane_angle
-
-def get_next_lane_edge(net, lane_id: str):
-    """Get the next lane and edge IDs for a given lane."""
-    origin_lane = net.getLane(lane_id)
-    outgoing_lanes = [conn.getToLane() for conn in origin_lane.getOutgoing()]
-    outgoing_edges = [lane.getEdge() for lane in outgoing_lanes]
-    return outgoing_lanes[0].getID(), outgoing_edges[0].getID()
 
 def get_lanechange_longitudinal_speed(
     veh_id: str, 
@@ -147,4 +146,4 @@ def is_car_following(follow_id: str, leader_id: str) -> bool:
     ])) < 4:
         return True
         
-    return False 
+    return False

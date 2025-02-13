@@ -9,6 +9,21 @@ DEFAULT_DISTANCE_THRESHOLD = 30.0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cpdef double angle_difference(double angle1, double angle2):
+    """Compute the absolute difference between two angles in degrees."""
+    # Compute the difference between the two angles and reduce it to the range [-180, 180]
+    cdef double diff = (angle1 - angle2 + 180) % 360 - 180
+    return abs(diff)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef double get_sumo_angle(double np_angle):
+    """Convert numpy angle to SUMO angle format."""
+    cdef double sumo_angle = (90 - np_angle) % 360
+    return sumo_angle
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef double calculate_distance(double x1, double y1, double x2, double y2):
     """Calculate Euclidean distance between two points.
     

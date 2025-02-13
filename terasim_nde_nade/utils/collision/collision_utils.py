@@ -1,7 +1,21 @@
 from typing import Dict, Any, Tuple, Optional
 from terasim.overlay import traci
 from loguru import logger
-from .vehicle_utils import is_car_following
+from itertools import chain
+from ..agents.vehicle import get_lane_angle
+from .constants import (
+    intersection_cutin_prob,
+    intersection_neglect_conflict_lead_prob,
+    intersection_rearend_prob,
+    intersection_tfl_prob,
+    intersection_headon_prob,
+    roundabout_fail_to_yield_prob,
+    roundabout_cutin_prob,
+    roundabout_neglect_conflict_lead_prob,
+    roundabout_rearend_prob,
+    highway_cutin_prob,
+    highway_rearend_prob,
+)
 
 # Cache for traffic light controlled lanes
 tls_controlled_lane_set = None
@@ -132,19 +146,4 @@ def get_collision_type_and_prob(
                 "intersection_neglect_conflict_lead",
             )
     else:
-        return 0, "no_collision"
-
-# Log all collision probabilities for debugging
-logger.info(
-    f"intersection_cutin_prob: {intersection_cutin_prob}, "
-    f"intersection_neglect_conflict_lead_prob: {intersection_neglect_conflict_lead_prob}, "
-    f"intersection_rearend_prob: {intersection_rearend_prob}, "
-    f"intersection_tfl_prob: {intersection_tfl_prob}, "
-    f"intersection_headon_prob: {intersection_headon_prob}, "
-    f"roundabout_fail_to_yield_prob: {roundabout_fail_to_yield_prob}, "
-    f"roundabout_cutin_prob: {roundabout_cutin_prob}, "
-    f"roundabout_neglect_conflict_lead_prob: {roundabout_neglect_conflict_lead_prob}, "
-    f"roundabout_rearend_prob: {roundabout_rearend_prob}, "
-    f"highway_cutin_prob: {highway_cutin_prob}, "
-    f"highway_rearend_prob: {highway_rearend_prob}"
-) 
+        return 0, "no_collision" 

@@ -2,7 +2,7 @@ import addict
 
 from terasim.overlay import traci
 from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+    CommandType,
     NDECommand,
     is_car_following,
 )
@@ -43,7 +43,7 @@ def derive_leader_negligence_command(obs_dict, highlight_flag=False, highlight_c
         # if the free flow acceleration is significantly larger than the car following accelerations
         if ff_acceleration - cf_acceleration > 1.5:
             negligence_command = NDECommand(
-                command_type=Command.ACCELERATION,
+                command_type=CommandType.ACCELERATION,
                 duration=2.0,
                 acceleration=ff_acceleration,
             )

@@ -4,7 +4,7 @@ from terasim.overlay import traci
 from terasim_nde_nade.adversity.utils.obs_processing import get_ff_acceleration, get_cf_acceleration
 from terasim_nde_nade.vehicle.nde_vehicle_utils import NDECommand
 from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+    CommandType,
     NDECommand,
 )
 
@@ -51,7 +51,7 @@ def derive_traffic_rule_negligence_command(obs_dict, highlight_flag=False, highl
             current_acceleration < 0 and ff_acceleration > 0.2
         ):
             negligence_command_dict["TrafficRule"] = NDECommand(
-                command_type=Command.ACCELERATION,
+                command_type=CommandType.ACCELERATION,
                 duration=2.0,
                 acceleration=ff_acceleration,
             )

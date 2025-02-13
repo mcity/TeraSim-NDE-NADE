@@ -12,7 +12,7 @@ from terasim.utils import (
 )
 from terasim_nde_nade.vehicle.nde_vehicle_utils import (
     get_collision_type_and_prob,
-    Command,
+    CommandType,
     NDECommand,
     TrajectoryPoint,
     predict_future_trajectory,
@@ -168,7 +168,7 @@ class SafeTestNADEComplete(BaseEnv):
         for veh_id in NeuralNDE_control_commands:
             if (
                 veh_id in NADE_control_commands
-                and NADE_control_commands[veh_id].command_type == Command.DEFAULT
+                and NADE_control_commands[veh_id].command_type == CommandType.DEFAULT
             ):
                 NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
                 NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
@@ -462,8 +462,8 @@ class SafeTestNADEComplete(BaseEnv):
                     or ITE_control_cmds[agent_type][agent_id].info.get("mode") == "negligence"
                     or ITE_control_cmds[agent_type][agent_id].info.get("mode") == "accept_collision"
                 ):
-                    if ITE_control_cmds[agent_type][agent_id].command_type == Command.ACCELERATION:
-                        ITE_control_cmds[agent_type][agent_id].command_type = Command.TRAJECTORY
+                    if ITE_control_cmds[agent_type][agent_id].command_type == CommandType.ACCELERATION:
+                        ITE_control_cmds[agent_type][agent_id].command_type = CommandType.TRAJECTORY
                         ITE_control_cmds[agent_type][agent_id].future_trajectory = trajectory_dicts[agent_type][
                             agent_id
                         ][ITE_control_cmds[agent_type][agent_id].info.get("mode")]
@@ -563,7 +563,7 @@ class SafeTestNADEComplete(BaseEnv):
             neglected_vehicle_id
         )
         avoidance_command = NDECommand(
-            command_type=Command.ACCELERATION,
+            command_type=CommandType.ACCELERATION,
             acceleration=-emergency_brake_deceleration,
             prob=0,
             duration=3,
@@ -887,7 +887,7 @@ class SafeTestNADEComplete(BaseEnv):
 
     def get_accept_collision_command(self):
         accept_command = NDECommand(
-            command_type=Command.ACCELERATION,
+            command_type=CommandType.ACCELERATION,
             acceleration=0,
             prob=0,
             duration=2,
