@@ -14,8 +14,6 @@ from ..trajectory.trajectory_utils_cy import sumo_trajectory_to_normal_trajector
 # Constants
 DEFAULT_DISTANCE_THRESHOLD = 30.0
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def check_collision(np.ndarray[double, ndim=2] traj1,
                    np.ndarray[double, ndim=2] traj2,
                    double agent1_length,
@@ -66,8 +64,6 @@ def check_collision(np.ndarray[double, ndim=2] traj1,
                     return True, traj1[i, 3]
     return False, None
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def check_trajectory_intersection(np.ndarray[double, ndim=2] trajectory1,
                                 np.ndarray[double, ndim=2] trajectory2,
                                 double agent1_length,

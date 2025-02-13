@@ -8,8 +8,6 @@ from scipy.interpolate import interp1d
 SUMO_TO_NORMAL_ANGLE_OFFSET = 90.0
 DEG_TO_RAD = M_PI / 180.0
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def sumo_trajectory_to_normal_trajectory(np.ndarray[double, ndim=2] sumo_trajectory, double veh_length=5.0):
     """Convert SUMO trajectory format to normal trajectory format.
     
@@ -33,8 +31,6 @@ def sumo_trajectory_to_normal_trajectory(np.ndarray[double, ndim=2] sumo_traject
             normal_trajectory[i, 3:] = sumo_trajectory[i, 3:]
     return normal_trajectory
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def interpolate_future_trajectory(np.ndarray[double, ndim=2] trajectory_list_array, 
                                 double interpolate_resolution):
     """Interpolate trajectory with given resolution.
