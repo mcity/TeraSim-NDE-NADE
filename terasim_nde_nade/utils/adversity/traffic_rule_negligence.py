@@ -3,7 +3,9 @@ from terasim.overlay import traci
 
 from terasim_nde_nade.utils import CommandType, NDECommand
 from terasim_nde_nade.utils.adversity.obs_processing import (
-    get_cf_acceleration, get_ff_acceleration)
+    get_cf_acceleration,
+    get_ff_acceleration,
+)
 
 
 def will_stop_at_stopline(veh_id):

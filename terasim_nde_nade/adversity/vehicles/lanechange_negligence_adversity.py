@@ -2,8 +2,7 @@ import addict
 
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
 from terasim_nde_nade.utils import get_location
-from terasim_nde_nade.utils.adversity import \
-    derive_lane_change_negligence_command
+from terasim_nde_nade.utils.adversity import derive_lane_change_negligence_command
 
 
 class LanechangeNegligenceAdversity(AbstractAdversity):

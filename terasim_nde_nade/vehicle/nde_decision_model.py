@@ -13,9 +13,14 @@ from terasim.overlay import traci
 from terasim.vehicle.decision_models.idm_model import IDMModel
 
 import terasim_nde_nade.utils as nde_utils
-from terasim_nde_nade.utils import (CommandType, NDECommand, TrajectoryPoint,
-                                    get_collision_type_and_prob, get_location,
-                                    is_car_following)
+from terasim_nde_nade.utils import (
+    CommandType,
+    NDECommand,
+    TrajectoryPoint,
+    get_collision_type_and_prob,
+    get_location,
+    is_car_following,
+)
 
 
 class NDEDecisionModel(IDMModel):

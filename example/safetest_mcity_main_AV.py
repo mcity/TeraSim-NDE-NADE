@@ -5,8 +5,9 @@ from loguru import logger
 from terasim.logger.infoextractor import InfoExtractor
 from terasim.simulator import Simulator
 
-from terasim_nde_nade.envs.safetest_nade_complete_with_av import \
-    SafeTestNADECompleteWithAV
+from terasim_nde_nade.envs.safetest_nade_complete_with_av import (
+    SafeTestNADECompleteWithAV,
+)
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 
 parser = argparse.ArgumentParser(description="Run simulation.")

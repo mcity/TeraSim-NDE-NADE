@@ -11,11 +11,17 @@ from terasim.overlay import profile, traci
 from terasim.params import AgentType
 
 from terasim_nde_nade.envs.safetest_nde_complete import SafeTestNDEComplete
-from terasim_nde_nade.utils import (CommandType, NDECommand, get_vehicle_info,
-                                    is_intersect, predict_future_trajectory)
+from terasim_nde_nade.utils import (
+    CommandType,
+    NDECommand,
+    get_vehicle_info,
+    is_intersect,
+    predict_future_trajectory,
+)
 from terasim_nde_nade.utils.agents.vru import (
     get_vulnerbale_road_user_info,
-    predict_future_trajectory_vulnerable_road_user)
+    predict_future_trajectory_vulnerable_road_user,
+)
 
 veh_length = 5.0
 veh_width = 1.85

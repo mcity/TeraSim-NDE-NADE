@@ -6,9 +6,11 @@ import numpy as np
 from loguru import logger
 from terasim.overlay import profile, traci
 
-from ..agents.vehicle import (VehicleInfoForPredict,
-                              get_lanechange_longitudinal_speed,
-                              get_vehicle_info)
+from ..agents.vehicle import (
+    VehicleInfoForPredict,
+    get_lanechange_longitudinal_speed,
+    get_vehicle_info,
+)
 from ..base.types import CommandType
 
 

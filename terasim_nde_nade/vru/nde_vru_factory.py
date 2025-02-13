@@ -1,11 +1,10 @@
-from terasim.vulnerable_road_user.factories.vulnerable_road_user_factory import \
-    VulnerableRoadUserFactory
+from terasim.vulnerable_road_user.factories.vulnerable_road_user_factory import (
+    VulnerableRoadUserFactory,
+)
 from terasim.vulnerable_road_user.sensors.ego import EgoSensor
-from terasim.vulnerable_road_user.vulnerable_road_user import \
-    VulnerableRoadUser
+from terasim.vulnerable_road_user.vulnerable_road_user import VulnerableRoadUser
 
-from terasim_nde_nade.vru.conflict_generation_model import \
-    ConflictGenerationModel
+from terasim_nde_nade.vru.conflict_generation_model import ConflictGenerationModel
 from terasim_nde_nade.vru.nde_controller import NDEVulnerableRoadUserController
 
 

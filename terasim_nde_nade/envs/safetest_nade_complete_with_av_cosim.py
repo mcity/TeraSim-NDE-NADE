@@ -4,8 +4,9 @@ import terasim.utils as utils
 from loguru import logger
 from terasim.overlay import traci
 
-from terasim_nde_nade.envs.safetest_nade_complete_with_av import \
-    SafeTestNADECompleteWithAV
+from terasim_nde_nade.envs.safetest_nade_complete_with_av import (
+    SafeTestNADECompleteWithAV,
+)
 
 
 class SafeTestNADECompleteWithAVCosim(SafeTestNADECompleteWithAV):

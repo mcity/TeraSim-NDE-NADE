@@ -3,8 +3,7 @@ import random
 from addict import Dict
 
 from terasim_nde_nade.utils import CommandType, NDECommand
-from terasim_nde_nade.utils.adversity.adversity_builder import \
-    build_adversities
+from terasim_nde_nade.utils.adversity.adversity_builder import build_adversities
 
 
 class AdversityManager:

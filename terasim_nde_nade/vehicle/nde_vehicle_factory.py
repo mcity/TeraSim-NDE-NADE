@@ -6,8 +6,7 @@ from terasim.vehicle.sensors.local import LocalSensor
 from terasim.vehicle.vehicle import Vehicle
 
 from terasim_nde_nade.vehicle.aggressive_controller import AggressiveController
-from terasim_nde_nade.vehicle.conflict_generation_model import \
-    ConflictGenerationModel
+from terasim_nde_nade.vehicle.conflict_generation_model import ConflictGenerationModel
 from terasim_nde_nade.vehicle.nde_controller import NDEController
 from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
 from terasim_nde_nade.vehicle.nde_ego_sensor import NDEEgoSensor

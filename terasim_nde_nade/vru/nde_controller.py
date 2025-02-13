@@ -6,8 +6,12 @@ from loguru import logger
 from terasim.agent.agent_controller import AgentController
 from terasim.overlay import traci
 
-from terasim_nde_nade.utils import (CommandType, NDECommand, TrajectoryPoint,
-                                    interpolate_future_trajectory)
+from terasim_nde_nade.utils import (
+    CommandType,
+    NDECommand,
+    TrajectoryPoint,
+    interpolate_future_trajectory,
+)
 
 
 def get_all_routes():

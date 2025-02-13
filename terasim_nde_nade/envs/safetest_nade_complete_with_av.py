@@ -9,9 +9,12 @@ from terasim.envs.template import EnvTemplate
 from terasim.overlay import traci
 
 from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
-from terasim_nde_nade.utils import (CommandType, NDECommand,
-                                    get_collision_type_and_prob,
-                                    is_car_following)
+from terasim_nde_nade.utils import (
+    CommandType,
+    NDECommand,
+    get_collision_type_and_prob,
+    is_car_following,
+)
 
 
 class SafeTestNADECompleteWithAV(SafeTestNADEComplete):

@@ -5,13 +5,19 @@ from loguru import logger
 from terasim.overlay import traci
 
 from ..agents.vehicle import get_lane_angle
-from .constants import (highway_cutin_prob, highway_rearend_prob,
-                        intersection_cutin_prob, intersection_headon_prob,
-                        intersection_neglect_conflict_lead_prob,
-                        intersection_rearend_prob, intersection_tfl_prob,
-                        roundabout_cutin_prob, roundabout_fail_to_yield_prob,
-                        roundabout_neglect_conflict_lead_prob,
-                        roundabout_rearend_prob)
+from .constants import (
+    highway_cutin_prob,
+    highway_rearend_prob,
+    intersection_cutin_prob,
+    intersection_headon_prob,
+    intersection_neglect_conflict_lead_prob,
+    intersection_rearend_prob,
+    intersection_tfl_prob,
+    roundabout_cutin_prob,
+    roundabout_fail_to_yield_prob,
+    roundabout_neglect_conflict_lead_prob,
+    roundabout_rearend_prob,
+)
 
 # Cache for traffic light controlled lanes
 tls_controlled_lane_set = None
