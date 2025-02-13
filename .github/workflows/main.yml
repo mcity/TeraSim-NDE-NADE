@@ -20,25 +20,28 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install dependencies
+    - name: Install base dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install setuptools wheel Cython==3.0.9 numpy pyarmor toml
-      
+        pip install numpy Cython==3.0.9 numpy toml
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+
     - name: Install Poetry
-      uses: snok/install-poetry@v1
-
-    - name: Set third-party pypi for poetry
       run: |
-        poetry config repositories.sdpi  ${{ secrets.SDPI_URL }}
-        poetry config http-basic.sdpi ${{ secrets.SDPI_USERNAME }} ${{ secrets.SDPI_PASSWORD }}
+        curl -sSL https://install.python-poetry.org | python3 -
+        poetry config virtualenvs.create true
+        poetry config virtualenvs.in-project true
 
-    - name: Build, Obfuscate and Package
+    - name: Install dependencies
       run: |
-        bash make.sh
+        poetry install --no-interaction --with dev
 
-    - name: Upload Wheel to Artifacts
-      uses: actions/upload-artifact@v2
-      with:
-        name: terasim_nde_nade
-        path: dist_pyarmor/dist/*.whl
+    - name: Run code quality checks
+      run: |
+        poetry run black . --check
+        poetry run isort . --check-only
+
+    - name: Build the package
+      run: |
+        poetry build -f wheel

@@ -1,6 +1,6 @@
 [build-system]
-requires = [ "poetry-core", "Cython", "setuptools", "wheel", "numpy"]
-build-backend = "setuptools.build_meta"
+requires = ["poetry-core>=1.0.0", "Cython>=3.0.8", "setuptools", "wheel", "numpy"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "terasim_nde_nade"
@@ -17,5 +17,5 @@ Cython = "^3.0.8"
 shapely = "^2.0.3"
 toml = "^0.10.2"
 
-# [tool.poetry.build]
-#script = "build.py"
+[tool.poetry.build]
+script = "build.py"
