@@ -1,9 +1,7 @@
 <div align="center">
 <p align="center">
 
-<img src="docs/figure/logo.png" height="100px">
-
-# TeraSim-NDE-NADE
+<img src="docs/figure/logo.png" height="200px">
 
 ## 🚀 Introduction
 
