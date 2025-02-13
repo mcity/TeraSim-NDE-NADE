@@ -35,7 +35,7 @@ TeraSim-NDE-NADE is the traffic environment for TeraSim, which is an advanced **
 ### 1. Install Dependencies
 Ensure you have **TeraSim** installed:
 ```bash
-git clone https://github.com/michigan-traffic-lab/TeraSim
+git clone https://github.com/mcity/TeraSim
 cd TeraSim
 pip install -e .
 cd ..
@@ -48,47 +48,30 @@ curl -sSL https://install.python-poetry.org | python3 -
 
 ### 3. Install TeraSim-NDE-NADE
 ```bash
-git clone https://github.com/michigan-traffic-lab/TeraSim-NDE-ITE
+git clone https://github.com/mcity/TeraSim-NDE-NADE
 cd TeraSim-NDE-ITE
 poetry install
 ```
 
 ## 📌 Usage Example
 
-### 1. Run a basic simulation
-```python
-from terasim import NDE
-env = NDE()
-env.run()
-```
+Please refer to the `/examples` directory for detailed usage examples and tutorials.
 
-### 2. Run a complete scenario
-```bash
-python ./example/safetest_mcity_main.py
-```
+The examples demonstrate:
+- Setting up a naturalistic driving environment
+- Configuring adversarial scenarios
+- Running simulations with different parameters
+- Analyzing simulation results
 
 ## 🤝 Contributing
 
 We welcome contributions to improve **TeraSim-NDE-NADE**! To contribute:
 
 1. **Fork** the repository
-2. **Create a feature branch** (`feature-new-adversity-model`)
+2. **Create a feature branch** (`feature/new-adversity-model`)
 3. **Submit a Pull Request (PR)**
 4. **Join the discussion and help advance AV safety testing!**
 
-## 🎬 Demo
-
-![Demo](./demo.gif)
-
-## 📩 Contact
-
-For any inquiries, feel free to reach out:
-
-- **Henry Liu** - henryliu@umich.edu  
-- **Haowei Sun** - haoweis@umich.edu  
-- **Haojie Zhu** - zhuhj@umich.edu  
-
----
 
 Join us in making **autonomous vehicles safer** with **realistic, generative simulation**! 🚗💡
 
