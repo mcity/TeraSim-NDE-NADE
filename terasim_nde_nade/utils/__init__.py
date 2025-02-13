@@ -4,8 +4,8 @@ from .base.types import AgentType, VRUType, CommandType
 from .base.nde_command import NDECommand
 from .agents.vehicle import VehicleInfoForPredict
 from .agents.vru import VRUAgent, VRUInfo
-from .trajectory.trajectory_utils import predict_future_trajectory
-from .collision.collision_check import check_collision
+from .trajectory.trajectory_predictor import predict_future_trajectory
+from .collision.collision_check_cy import check_collision
 
 __all__ = [
     'AgentType',

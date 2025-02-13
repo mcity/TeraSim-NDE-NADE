@@ -11,6 +11,41 @@ from ..agents.vehicle import (
     VehicleInfoForPredict,
 )
 
+def predict_future_distance_velocity_vectorized(
+    velocity: float,
+    acceleration: float,
+    duration_array: np.ndarray,
+    max_velocity: float,
+) -> np.ndarray:
+    """Predict the future distance of the agent using vectorized operations for improved performance.
+
+    Args:
+        velocity (float): The initial velocity of the agent.
+        acceleration (float): The acceleration of the agent.
+        duration_array (np.ndarray): The array of time points at which to calculate distance.
+        max_velocity (float): The maximum velocity of the agent.
+
+    Returns:
+        np.ndarray: The array of future distances at each time point in duration_array.
+    """
+    # Calculate velocity at each time point, ensuring it does not exceed max_velocity
+    velocity_array = np.clip(velocity + acceleration * duration_array, 0, max_velocity)
+
+    # Calculate the average velocities between consecutive time points
+    average_velocities = 0.5 * (velocity_array[1:] + velocity_array[:-1])
+
+    # Calculate the time differences between consecutive time points
+    time_differences = duration_array[1:] - duration_array[:-1]
+
+    # Calculate distance increments using the average velocities and time differences
+    distance_increments = average_velocities * time_differences
+
+    # Calculate the cumulative distance at each time point
+    cumulative_distances = np.cumsum(distance_increments)
+    cumulative_distances = np.insert(cumulative_distances, 0, 0)  # Include starting point (distance=0)
+
+    return cumulative_distances, velocity_array
+
 def get_vehicle_future_lane_id_from_edge(edge_id: str, upcoming_lane_id_list: List[str]) -> str:
     """Get the future lane ID for a vehicle given its edge ID."""
     return next(
@@ -261,38 +296,3 @@ def predict_future_trajectory(
     future_trajectory_array = trajectory_array
     future_trajectory_array[:, -1] += current_time
     return future_trajectory_array, info 
-
-def predict_future_distance_velocity_vectorized(
-    velocity: float,
-    acceleration: float,
-    duration_array: np.ndarray,
-    max_velocity: float,
-) -> np.ndarray:
-    """Predict the future distance of the agent using vectorized operations for improved performance.
-
-    Args:
-        velocity (float): The initial velocity of the agent.
-        acceleration (float): The acceleration of the agent.
-        duration_array (np.ndarray): The array of time points at which to calculate distance.
-        max_velocity (float): The maximum velocity of the agent.
-
-    Returns:
-        np.ndarray: The array of future distances at each time point in duration_array.
-    """
-    # Calculate velocity at each time point, ensuring it does not exceed max_velocity
-    velocity_array = np.clip(velocity + acceleration * duration_array, 0, max_velocity)
-
-    # Calculate the average velocities between consecutive time points
-    average_velocities = 0.5 * (velocity_array[1:] + velocity_array[:-1])
-
-    # Calculate the time differences between consecutive time points
-    time_differences = duration_array[1:] - duration_array[:-1]
-
-    # Calculate distance increments using the average velocities and time differences
-    distance_increments = average_velocities * time_differences
-
-    # Calculate the cumulative distance at each time point
-    cumulative_distances = np.cumsum(distance_increments)
-    cumulative_distances = np.insert(cumulative_distances, 0, 0)  # Include starting point (distance=0)
-
-    return cumulative_distances, velocity_array 
