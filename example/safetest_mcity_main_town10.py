@@ -1,15 +1,15 @@
-from pathlib import Path
 import argparse
-from loguru import logger
-import hydra
-from omegaconf import DictConfig
+from pathlib import Path
 
-from terasim.simulator import Simulator
-from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
+import hydra
+from loguru import logger
+from omegaconf import DictConfig
 from terasim.logger.infoextractor import InfoExtractor
+from terasim.simulator import Simulator
+
+from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 from terasim_nde_nade.vru.nde_vru_factory import NDEVulnerableRoadUserFactory
-
 
 parser = argparse.ArgumentParser(description="Run simulation.")
 parser.add_argument("--dir", type=str, help="output directory", default="output")
@@ -38,6 +38,7 @@ for log_file, log_level in zip(log_files, log_levels):
         backtrace=True,
         serialize=True,
     )
+
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
@@ -72,6 +73,7 @@ def main(cfg: DictConfig) -> None:
         terasim_logger.exception(
             f"terasim_nde_nade: Running error catched, {e} at {args.nth} experiment"
         )
+
 
 if __name__ == "__main__":
     main()

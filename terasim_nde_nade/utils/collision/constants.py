@@ -213,4 +213,4 @@ highway_cutin_prob = (
     * 1.7
 )
 
-highway_rearend_prob = 0.0  # Set to 0 as specified in the original code 
+highway_rearend_prob = 0.0  # Set to 0 as specified in the original code

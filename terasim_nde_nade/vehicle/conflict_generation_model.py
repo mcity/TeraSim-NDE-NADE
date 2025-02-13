@@ -1,17 +1,16 @@
-from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
 from terasim.overlay import traci
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-    get_location,
-)
+
 from terasim_nde_nade.adversity.adversity_manager import AdversityManager
+from terasim_nde_nade.utils import CommandType, NDECommand, get_location
+from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
 
 BaseModel = NDEDecisionModel
 
 
 class ConflictGenerationModel(BaseModel):
-    def __init__(self, cfg=None, reroute=True, dynamically_change_vtype=True, *args, **kwargs):
+    def __init__(
+        self, cfg=None, reroute=True, dynamically_change_vtype=True, *args, **kwargs
+    ):
         super().__init__(reroute, dynamically_change_vtype, *args, **kwargs)
         self.adversity_manager = AdversityManager(cfg.adversity_cfg.vehicle)
 
@@ -39,6 +38,6 @@ class ConflictGenerationModel(BaseModel):
                 }
             }
 
-        command, command_dict = self.adversity_manager.derive_command(obs_dict)        
+        command, command_dict = self.adversity_manager.derive_command(obs_dict)
 
         return command, {"ndd_command_distribution": command_dict}

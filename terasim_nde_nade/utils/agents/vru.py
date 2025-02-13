@@ -1,8 +1,9 @@
-import numpy as np
 from dataclasses import dataclass
 from typing import List, Optional
 
-from terasim.overlay import traci, profile
+import numpy as np
+from terasim.overlay import profile, traci
+
 from terasim_nde_nade.utils import CommandType
 
 
@@ -52,7 +53,9 @@ def get_vulnerbale_road_user_info(vru_id, obs_dict, sumo_net):
     return vru_info
 
 
-def predict_future_trajectory_vulnerable_road_user(modality, vru_info, control_command_dict, current_time):
+def predict_future_trajectory_vulnerable_road_user(
+    modality, vru_info, control_command_dict, current_time
+):
     """Predict future trajectory of vulnerable road user in 0.5s time resolution.
 
     Args:
@@ -68,22 +71,34 @@ def predict_future_trajectory_vulnerable_road_user(modality, vru_info, control_c
         return None
     elif modality == "negligence":
         assert control_command_dict[modality].command_type == CommandType.TRAJECTORY
-        future_trajectory_array = [[
+        future_trajectory_array = [
+            [
                 vru_info.position[0],
                 vru_info.position[1],
                 vru_info.heading,
                 vru_info.velocity,
                 0,
-            ]]
+            ]
+        ]
         index_add = 5
         for i in range(5):
-            if (i+1)*index_add-1 >= len(control_command_dict[modality].future_trajectory)-1:
+            if (i + 1) * index_add - 1 >= len(
+                control_command_dict[modality].future_trajectory
+            ) - 1:
                 p = control_command_dict[modality].future_trajectory[-1]
                 print("reach the end")
             else:
-                p = control_command_dict[modality].future_trajectory[(i+1)*index_add-1]
+                p = control_command_dict[modality].future_trajectory[
+                    (i + 1) * index_add - 1
+                ]
             future_trajectory_array.append(
-                [p[0], p[1], vru_info.heading, vru_info.velocity, (i+1)*index_add*0.1]
+                [
+                    p[0],
+                    p[1],
+                    vru_info.heading,
+                    vru_info.velocity,
+                    (i + 1) * index_add * 0.1,
+                ]
             )
         future_trajectory_array = np.array(future_trajectory_array)
         future_trajectory_array[:, -1] += current_time

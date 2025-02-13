@@ -1,17 +1,16 @@
-from addict import Dict
-from collections import deque
-from loguru import logger
-import numpy as np
 import os
+from collections import deque
 
+import numpy as np
+import terasim.utils as utils
+from addict import Dict
+from loguru import logger
 from terasim.envs.template_complete import EnvTemplateComplete
 from terasim.overlay import traci
-import terasim.utils as utils
 from terasim.params import AgentType
 
 
 class SafeTestNDEComplete(EnvTemplateComplete):
-
     def __init__(
         self,
         vehicle_factory,
@@ -48,10 +47,12 @@ class SafeTestNDEComplete(EnvTemplateComplete):
     def get_observation_dicts(self):
         obs_dicts = {
             AgentType.VEHICLE: {
-                vehicle.id: vehicle.observation for vehicle in self.vehicle_list.values()
+                vehicle.id: vehicle.observation
+                for vehicle in self.vehicle_list.values()
             },
             AgentType.VULNERABLE_ROAD_USER: {
-                vru.id: vru.observation for vru in self.vulnerable_road_user_list.values()
+                vru.id: vru.observation
+                for vru in self.vulnerable_road_user_list.values()
             },
         }
         return obs_dicts

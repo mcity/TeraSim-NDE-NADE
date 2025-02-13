@@ -1,22 +1,20 @@
-from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
-from terasim.overlay import traci
-import terasim.utils as utils
-import numpy as np
-from terasim_nde_nade.utils import (
-    NDECommand,
-    CommandType,
-    get_collision_type_and_prob,
-    is_car_following,
-)
-from loguru import logger
-from addict import Dict
 import copy
-from terasim.envs.template import EnvTemplate
 import random
+
+import numpy as np
+import terasim.utils as utils
+from addict import Dict
+from loguru import logger
+from terasim.envs.template import EnvTemplate
+from terasim.overlay import traci
+
+from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
+from terasim_nde_nade.utils import (CommandType, NDECommand,
+                                    get_collision_type_and_prob,
+                                    is_car_following)
 
 
 class SafeTestNADECompleteWithAV(SafeTestNADEComplete):
-
     def __init__(self, cache_radius=100, control_radius=50, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cache_radius = cache_radius
@@ -155,7 +153,9 @@ class SafeTestNADECompleteWithAV(SafeTestNADEComplete):
                 }
             )
         CAV_command_cache = copy.deepcopy(control_command_dicts["CAV"])
-        control_command_dicts["CAV"] = NDECommand(command_type=CommandType.DEFAULT, prob=1)
+        control_command_dicts["CAV"] = NDECommand(
+            command_type=CommandType.DEFAULT, prob=1
+        )
         (
             ITE_control_command_dicts,
             veh_ctx_dicts,
@@ -231,9 +231,12 @@ class SafeTestNADECompleteWithAV(SafeTestNADEComplete):
         #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
         obs_dicts = self.get_observation_dicts()
         # Make ITE decision, includes the modification of NDD distribution according to avoidability
-        control_cmds, veh_ctx_dicts, obs_dicts, should_continue_simulation_flag = (
-            self.executeMove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
-        )
+        (
+            control_cmds,
+            veh_ctx_dicts,
+            obs_dicts,
+            should_continue_simulation_flag,
+        ) = self.executeMove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
         if "CAV" in traci.vehicle.getIDList():
             (
                 ITE_control_cmds,

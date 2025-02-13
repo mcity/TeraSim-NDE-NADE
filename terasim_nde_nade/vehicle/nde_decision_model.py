@@ -1,24 +1,21 @@
-from terasim.vehicle.decision_models.idm_model import IDMModel
-import terasim.utils as utils
-import numpy as np
-import logging
-from terasim.overlay import traci
-import os
 import json
-import terasim_nde_nade.utils as nde_utils
-from terasim_nde_nade.utils import (
-    get_collision_type_and_prob,
-    CommandType,
-    NDECommand,
-    TrajectoryPoint,
-    is_car_following,
-    get_location,
-)
-import attr
+import logging
+import os
 import random
-import traci.constants as tc
 from typing import List, Tuple
+
+import attr
+import numpy as np
+import terasim.utils as utils
+import traci.constants as tc
 from addict import Dict
+from terasim.overlay import traci
+from terasim.vehicle.decision_models.idm_model import IDMModel
+
+import terasim_nde_nade.utils as nde_utils
+from terasim_nde_nade.utils import (CommandType, NDECommand, TrajectoryPoint,
+                                    get_collision_type_and_prob, get_location,
+                                    is_car_following)
 
 
 class NDEDecisionModel(IDMModel):

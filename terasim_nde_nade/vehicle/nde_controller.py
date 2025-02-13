@@ -1,14 +1,13 @@
-from terasim.agent.agent_controller import AgentController
-import terasim.utils as utils
 import random
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-    interpolate_future_trajectory,
-)
-from terasim.overlay import traci
+
+import terasim.utils as utils
 from addict import Dict
 from loguru import logger
+from terasim.agent.agent_controller import AgentController
+from terasim.overlay import traci
+
+from terasim_nde_nade.utils import (CommandType, NDECommand,
+                                    interpolate_future_trajectory)
 
 
 def get_all_routes():
@@ -24,7 +23,6 @@ def get_all_route_edges():
 
 
 class NDEController(AgentController):
-
     def __init__(self, simulator, params=None):
         self.is_busy = False
         self.cached_control_command = None  # this is a dict, containing the control command for the vehicle with the timestep information
@@ -112,14 +110,18 @@ class NDEController(AgentController):
                 )
                 return
 
-        if cached_control_command["cached_command"].command_type == CommandType.TRAJECTORY:
+        if (
+            cached_control_command["cached_command"].command_type
+            == CommandType.TRAJECTORY
+        ):
             # pass
             self.execute_trajectory_command(
                 veh_id, cached_control_command["cached_command"], obs_dict
             )
         elif (
             cached_control_command["cached_command"].command_type == CommandType.LEFT
-            or cached_control_command["cached_command"].command_type == CommandType.RIGHT
+            or cached_control_command["cached_command"].command_type
+            == CommandType.RIGHT
         ):
             self.execute_lane_change_command(
                 veh_id,

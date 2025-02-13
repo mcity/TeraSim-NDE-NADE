@@ -1,8 +1,9 @@
 import addict
 
-from terasim_nde_nade.utils import get_location
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.utils.adversity import derive_lane_change_negligence_command
+from terasim_nde_nade.utils import get_location
+from terasim_nde_nade.utils.adversity import \
+    derive_lane_change_negligence_command
 
 
 class LanechangeNegligenceAdversity(AbstractAdversity):
@@ -17,11 +18,11 @@ class LanechangeNegligenceAdversity(AbstractAdversity):
                 negligence_mode = command.info.get("negligence_mode", None)
                 if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
                     self._negligence_command_dict[key] = command
-        if self._negligence_command_dict:      
+        if self._negligence_command_dict:
             return True
         else:
             return False
-    
+
     def derive_command(self, obs_dict) -> addict.Dict:
         if self.trigger(obs_dict) and self._probability > 0:
             for key, command in self._negligence_command_dict.items():

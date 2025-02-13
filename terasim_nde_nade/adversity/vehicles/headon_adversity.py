@@ -1,7 +1,7 @@
 import addict
 
-from terasim_nde_nade.utils import get_location, is_head_on
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
+from terasim_nde_nade.utils import get_location, is_head_on
 from terasim_nde_nade.utils.adversity import derive_leader_negligence_command
 
 
@@ -14,9 +14,7 @@ class HeadonAdversity(AbstractAdversity):
         if vehicle_location == self._location:
             negligence_command_dict = derive_leader_negligence_command(obs_dict)
             for key, command in negligence_command_dict.items():
-                if is_head_on(
-                    obs_dict["ego"], command.info.get("leader_info", None)
-                ):
+                if is_head_on(obs_dict["ego"], command.info.get("leader_info", None)):
                     self._negligence_command_dict[key] = command
         if self._negligence_command_dict:
             return True

@@ -2,7 +2,8 @@ import abc
 import time
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import Any, List, Optional, Type, Dict
+from typing import Any, Dict, List, Optional, Type
+
 import addict
 
 
@@ -24,7 +25,7 @@ class AbstractAdversity(abc.ABC):
         self._probability = probability
         self._predicted_collision_type = predicted_collision_type
         self._negligence_command_dict = addict.Dict()
-    
+
     @abstractmethod
     def trigger(self, obs_dict: Dict) -> bool:
         pass

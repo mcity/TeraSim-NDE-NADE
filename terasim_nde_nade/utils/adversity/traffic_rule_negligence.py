@@ -1,12 +1,9 @@
 import addict
-
 from terasim.overlay import traci
-from terasim_nde_nade.utils.adversity.obs_processing import get_ff_acceleration, get_cf_acceleration
-from terasim_nde_nade.utils import NDECommand
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-)
+
+from terasim_nde_nade.utils import CommandType, NDECommand
+from terasim_nde_nade.utils.adversity.obs_processing import (
+    get_cf_acceleration, get_ff_acceleration)
 
 
 def will_stop_at_stopline(veh_id):
@@ -29,7 +26,10 @@ def will_stop_at_stopline(veh_id):
     else:
         return False, None
 
-def derive_traffic_rule_negligence_command(obs_dict, highlight_flag=False, highlight_color=[0, 0, 255, 255]) -> addict.Dict:
+
+def derive_traffic_rule_negligence_command(
+    obs_dict, highlight_flag=False, highlight_color=[0, 0, 255, 255]
+) -> addict.Dict:
     leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
     current_acceleration = obs_dict["ego"]["acceleration"]
     ff_acceleration = get_ff_acceleration(obs_dict)

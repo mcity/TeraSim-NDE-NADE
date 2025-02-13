@@ -1,24 +1,21 @@
-from typing import Dict, Any, Tuple, Optional
-from terasim.overlay import traci
-from loguru import logger
 from itertools import chain
+from typing import Any, Dict, Optional, Tuple
+
+from loguru import logger
+from terasim.overlay import traci
+
 from ..agents.vehicle import get_lane_angle
-from .constants import (
-    intersection_cutin_prob,
-    intersection_neglect_conflict_lead_prob,
-    intersection_rearend_prob,
-    intersection_tfl_prob,
-    intersection_headon_prob,
-    roundabout_fail_to_yield_prob,
-    roundabout_cutin_prob,
-    roundabout_neglect_conflict_lead_prob,
-    roundabout_rearend_prob,
-    highway_cutin_prob,
-    highway_rearend_prob,
-)
+from .constants import (highway_cutin_prob, highway_rearend_prob,
+                        intersection_cutin_prob, intersection_headon_prob,
+                        intersection_neglect_conflict_lead_prob,
+                        intersection_rearend_prob, intersection_tfl_prob,
+                        roundabout_cutin_prob, roundabout_fail_to_yield_prob,
+                        roundabout_neglect_conflict_lead_prob,
+                        roundabout_rearend_prob)
 
 # Cache for traffic light controlled lanes
 tls_controlled_lane_set = None
+
 
 def cache_tls_controlled_lane_set():
     """Cache the set of lanes controlled by traffic lights."""
@@ -32,6 +29,7 @@ def cache_tls_controlled_lane_set():
         }
         tls_controlled_lane_set.update(lane_set)
 
+
 def get_distance_to_next_tls(veh_id: str) -> float:
     """Get the distance to the next traffic light for a vehicle."""
     next_tls_info = traci.vehicle.getNextTLS(veh_id)
@@ -40,6 +38,7 @@ def get_distance_to_next_tls(veh_id: str) -> float:
         return tls_distance
     else:
         return float("inf")
+
 
 def get_location(
     veh_id: str,
@@ -53,9 +52,9 @@ def get_location(
     if tls_controlled_lane_set is None:
         tls_controlled_lane_set = set()
         cache_tls_controlled_lane_set()
-        
+
     lane_id = lane_id if lane_id else traci.vehicle.getLaneID(veh_id)
-    
+
     if traci.lane.getMaxSpeed(lane_id) > highway_speed_threshold:
         if highlight_flag:
             traci.vehicle.setColor(veh_id, (255, 0, 0, 255))  # red
@@ -71,6 +70,7 @@ def get_location(
         if highlight_flag:
             traci.vehicle.setColor(veh_id, (0, 0, 255, 255))  # blue
         return "roundabout"
+
 
 def is_head_on(ego_obs: Dict[str, Any], leader_info: Optional[Tuple]) -> bool:
     """Check if two vehicles are in a head-on configuration."""
@@ -98,6 +98,7 @@ def is_head_on(ego_obs: Dict[str, Any], leader_info: Optional[Tuple]) -> bool:
 
     return 120 < start_angle < 240
 
+
 def get_collision_type_and_prob(
     obs_dict: Dict[str, Any],
     negligence_command: Any,
@@ -108,10 +109,10 @@ def get_collision_type_and_prob(
     """
     if location is None:
         location = get_location(obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"])
-        
+
     rear_end = negligence_command.info.get("is_car_following_flag", False)
     negligence_mode = negligence_command.info.get("negligence_mode", None)
-    
+
     if "roundabout" in location:
         if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
             return roundabout_cutin_prob, "roundabout_cutin"
@@ -146,4 +147,4 @@ def get_collision_type_and_prob(
                 "intersection_neglect_conflict_lead",
             )
     else:
-        return 0, "no_collision" 
+        return 0, "no_collision"

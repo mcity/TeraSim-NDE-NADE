@@ -1,7 +1,10 @@
+from typing import Any, Callable, Dict, List, Optional
+
 from pydantic import BaseModel, validator
-from typing import List, Dict, Any, Optional, Callable
 from terasim.overlay import traci
-from .types import CommandType, AgentType
+
+from .types import AgentType, CommandType
+
 
 class NDECommand(BaseModel):
     """
@@ -11,10 +14,13 @@ class NDECommand(BaseModel):
     if the command is "trajectory", the agent will follow the future trajectory, which will be predicted according to the current acceleration, other elements will be ignored
     if the command is "acceleration", the agent will decelerate to stop using the acceleration element
     """
+
     agent_type: AgentType = AgentType.VEHICLE
     command_type: CommandType = CommandType.DEFAULT
     acceleration: float = 0.0
-    future_trajectory: List[List] = [[]]  # shape: (n, 5) for [x, y, heading, velocity, time]
+    future_trajectory: List[List] = [
+        []
+    ]  # shape: (n, 5) for [x, y, heading, velocity, time]
     prob: float = 1.0
     duration: float = None
     info: Dict[str, Any] = {}
@@ -28,4 +34,4 @@ class NDECommand(BaseModel):
 
     class Config:
         slots = True
-        extra = "forbid" 
+        extra = "forbid"

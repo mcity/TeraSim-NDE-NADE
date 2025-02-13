@@ -1,13 +1,12 @@
 import addict
-
 from terasim.overlay import traci
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-)
+
+from terasim_nde_nade.utils import CommandType, NDECommand
 
 
-def derive_lane_change_negligence_command(obs_dict, highlight_flag=False, highlight_color=[0, 255, 0, 255]) -> addict.Dict:
+def derive_lane_change_negligence_command(
+    obs_dict, highlight_flag=False, highlight_color=[0, 255, 0, 255]
+) -> addict.Dict:
     negligence_command_dict = addict.Dict()
     left_lc_state = traci.vehicle.getLaneChangeStatePretty(
         obs_dict["ego"]["veh_id"], 1

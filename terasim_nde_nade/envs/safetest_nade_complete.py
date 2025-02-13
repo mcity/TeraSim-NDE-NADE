@@ -1,27 +1,21 @@
-import numpy as np
+import json
 import math
 import os
-from loguru import logger
+
+import numpy as np
+import terasim.utils as utils
 from addict import Dict
-import json
+from loguru import logger
+from terasim.envs.template_complete import EnvTemplateComplete
+from terasim.overlay import profile, traci
+from terasim.params import AgentType
 
 from terasim_nde_nade.envs.safetest_nde_complete import SafeTestNDEComplete
-from terasim.overlay import traci, profile
-import terasim.utils as utils
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-    predict_future_trajectory,
-    is_intersect,
-    get_vehicle_info,
-)
+from terasim_nde_nade.utils import (CommandType, NDECommand, get_vehicle_info,
+                                    is_intersect, predict_future_trajectory)
 from terasim_nde_nade.utils.agents.vru import (
     get_vulnerbale_road_user_info,
-    predict_future_trajectory_vulnerable_road_user,
-)
-
-from terasim.envs.template_complete import EnvTemplateComplete
-from terasim.params import AgentType
+    predict_future_trajectory_vulnerable_road_user)
 
 veh_length = 5.0
 veh_width = 1.85
@@ -35,6 +29,7 @@ IS_MAGNITUDE_MAPPING = {
     "intersection": "IS_MAGNITUDE_INTERSECTION",
 }
 
+
 class Point:
     def __init__(self, position_tuple):
         x, y = position_tuple[0], position_tuple[1]
@@ -45,11 +40,10 @@ class Point:
         return "({}, {})".format(self.x, self.y)
 
 
-BaseEnv = SafeTestNDEComplete # SafeTestNDE
+BaseEnv = SafeTestNDEComplete  # SafeTestNDE
 
 
 class SafeTestNADEComplete(BaseEnv):
-
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
         self.max_importance_sampling_prob = 5e-2
@@ -73,13 +67,16 @@ class SafeTestNADEComplete(BaseEnv):
         # Make NDE decisions for all vehicles and vrus
         control_cmds, ctx_dicts = EnvTemplateComplete.make_decisions(self, ctx)
         # first_vehicle_veh = list(control_cmds.keys())[0]
-        # for veh_id in control_cmds: 
+        # for veh_id in control_cmds:
         #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
         obs_dicts = self.get_observation_dicts()
         # Make ITE decision, includes the modification of NDD distribution according to avoidability
-        control_cmds, ctx_dicts, obs_dicts, should_continue_simulation_flag = (
-            self.executeMove(ctx, control_cmds, ctx_dicts, obs_dicts)
-        )
+        (
+            control_cmds,
+            ctx_dicts,
+            obs_dicts,
+            should_continue_simulation_flag,
+        ) = self.executeMove(ctx, control_cmds, ctx_dicts, obs_dicts)
         # if should_continue_simulation_flag:
         (
             ITE_control_cmds,
@@ -283,10 +280,11 @@ class SafeTestNADEComplete(BaseEnv):
         )
 
         # update the ndd probability according to collision avoidability
-        modified_ndd_control_command_dicts, ctx_dicts = (
-            self.modify_ndd_dict_according_to_avoidability(
-                maneuver_challenge_dicts, ctx_dicts
-            )
+        (
+            modified_ndd_control_command_dicts,
+            ctx_dicts,
+        ) = self.modify_ndd_dict_according_to_avoidability(
+            maneuver_challenge_dicts, ctx_dicts
         )
         ctx_dicts = self.update_ndd_distribution_to_vehicle_ctx(
             ctx_dicts, modified_ndd_control_command_dicts
@@ -308,10 +306,13 @@ class SafeTestNADEComplete(BaseEnv):
         self.step_epsilon = 1.0
         self.step_weight = 1.0
         if self.allow_NADE_IS:
-            ITE_control_command_dicts, ctx_dicts, weight, negligence_flag = (
-                self.NADE_importance_sampling(
-                    ndd_control_command_dicts, maneuver_challenge_dicts, ctx_dicts
-                )
+            (
+                ITE_control_command_dicts,
+                ctx_dicts,
+                weight,
+                negligence_flag,
+            ) = self.NADE_importance_sampling(
+                ndd_control_command_dicts, maneuver_challenge_dicts, ctx_dicts
             )
             if negligence_flag:
                 self.latest_IS_time = utils.get_time()
@@ -321,13 +322,19 @@ class SafeTestNADEComplete(BaseEnv):
             ITE_control_command_dicts = Dict(
                 {
                     AgentType.VEHICLE: {
-                        veh_id: ndd_control_command_dicts[AgentType.VEHICLE][veh_id]["normal"]
+                        veh_id: ndd_control_command_dicts[AgentType.VEHICLE][veh_id][
+                            "normal"
+                        ]
                         for veh_id in ndd_control_command_dicts[AgentType.VEHICLE]
                     },
                     AgentType.VULNERABLE_ROAD_USER: {
-                        vru_id: ndd_control_command_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id]["normal"]
-                        for vru_id in ndd_control_command_dicts[AgentType.VULNERABLE_ROAD_USER]
-                    },  
+                        vru_id: ndd_control_command_dicts[
+                            AgentType.VULNERABLE_ROAD_USER
+                        ][vru_id]["normal"]
+                        for vru_id in ndd_control_command_dicts[
+                            AgentType.VULNERABLE_ROAD_USER
+                        ]
+                    },
                 }
             )
             if utils.get_time() - self.latest_IS_time >= 2.9:
@@ -346,9 +353,9 @@ class SafeTestNADEComplete(BaseEnv):
         self, ctx_dicts, ndd_control_command_dicts
     ):
         for veh_id in ndd_control_command_dicts:
-            ctx_dicts[AgentType.VEHICLE][veh_id]["ndd_command_distribution"] = (
-                ndd_control_command_dicts[veh_id]
-            )
+            ctx_dicts[AgentType.VEHICLE][veh_id][
+                "ndd_command_distribution"
+            ] = ndd_control_command_dicts[veh_id]
         return ctx_dicts
 
     def remove_collision_avoidance_command_using_avoidability(
@@ -372,13 +379,18 @@ class SafeTestNADEComplete(BaseEnv):
                 neglecting_agent_id,
                 neglected_vehicle_list,
             ) in potential_negligence_pair_dict[agent_type].items():
-                if ctx_dicts[agent_type][neglecting_agent_id].get("avoidable", True) is False:
+                if (
+                    ctx_dicts[agent_type][neglecting_agent_id].get("avoidable", True)
+                    is False
+                ):
                     for neglected_vehicle_id in neglected_vehicle_list:
                         # remove the collision avoidance command
-                        ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["ndd_command_distribution"][
-                            "avoid_collision"
-                        ] = None
-                        trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id].pop("avoid_collision", None)
+                        ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                            "ndd_command_distribution"
+                        ]["avoid_collision"] = None
+                        trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id].pop(
+                            "avoid_collision", None
+                        )
                         logger.trace(
                             f"veh_id: {neglected_vehicle_id} is not avoidable from {neglecting_agent_id}, remove the collision avoidance command"
                         )
@@ -452,15 +464,25 @@ class SafeTestNADEComplete(BaseEnv):
         for agent_type in ITE_control_cmds:
             for agent_id in ITE_control_cmds[agent_type]:
                 if (
-                    ITE_control_cmds[agent_type][agent_id].info.get("mode") == "avoid_collision"
-                    or ITE_control_cmds[agent_type][agent_id].info.get("mode") == "negligence"
-                    or ITE_control_cmds[agent_type][agent_id].info.get("mode") == "accept_collision"
+                    ITE_control_cmds[agent_type][agent_id].info.get("mode")
+                    == "avoid_collision"
+                    or ITE_control_cmds[agent_type][agent_id].info.get("mode")
+                    == "negligence"
+                    or ITE_control_cmds[agent_type][agent_id].info.get("mode")
+                    == "accept_collision"
                 ):
-                    if ITE_control_cmds[agent_type][agent_id].command_type == CommandType.ACCELERATION:
-                        ITE_control_cmds[agent_type][agent_id].command_type = CommandType.TRAJECTORY
-                        ITE_control_cmds[agent_type][agent_id].future_trajectory = trajectory_dicts[agent_type][
+                    if (
+                        ITE_control_cmds[agent_type][agent_id].command_type
+                        == CommandType.ACCELERATION
+                    ):
+                        ITE_control_cmds[agent_type][
                             agent_id
-                        ][ITE_control_cmds[agent_type][agent_id].info.get("mode")]
+                        ].command_type = CommandType.TRAJECTORY
+                        ITE_control_cmds[agent_type][
+                            agent_id
+                        ].future_trajectory = trajectory_dicts[agent_type][agent_id][
+                            ITE_control_cmds[agent_type][agent_id].info.get("mode")
+                        ]
                         logger.info(
                             f"agent_id: {agent_id} is updated to trajectory command with mode: {ITE_control_cmds[agent_type][agent_id].info.get('mode')}, trajectory: {ITE_control_cmds[agent_type][agent_id].future_trajectory}"
                         )
@@ -582,52 +604,58 @@ class SafeTestNADEComplete(BaseEnv):
             neglecting_vehicle_id,
             neglected_vehicle_list,
         ) in potential_negligence_pair_dict[AgentType.VEHICLE].items():
-            neglecting_vehicle_future = trajectory_dicts[AgentType.VEHICLE][neglecting_vehicle_id][
-                "negligence"
-            ]
+            neglecting_vehicle_future = trajectory_dicts[AgentType.VEHICLE][
+                neglecting_vehicle_id
+            ]["negligence"]
             for neglected_vehicle_id in neglected_vehicle_list:
-                neglected_vehicle_future = trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id][
-                    "normal"
-                ]
+                neglected_vehicle_future = trajectory_dicts[AgentType.VEHICLE][
+                    neglected_vehicle_id
+                ]["normal"]
                 avoidance_command = self.get_vehicle_avoidance_command(
                     neglecting_vehicle_future,
                     neglected_vehicle_future,
                     neglecting_vehicle_id,
                     neglected_vehicle_id,
                 )
-                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["ndd_command_distribution"][
-                    "avoid_collision"
-                ] = avoidance_command
-                trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id]["avoid_collision"], info = (
-                    predict_future_trajectory(
-                        neglected_vehicle_id,
-                        obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
-                        avoidance_command,
-                        self.simulator.sumo_net,
-                        time_horizon_step=5,
-                        time_resolution=0.5,
-                        interpolate_resolution=0.5,
-                        current_time=None,
-                        veh_info=None,
-                    )
+                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                    "ndd_command_distribution"
+                ]["avoid_collision"] = avoidance_command
+                (
+                    trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                        "avoid_collision"
+                    ],
+                    info,
+                ) = predict_future_trajectory(
+                    neglected_vehicle_id,
+                    obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
+                    avoidance_command,
+                    self.simulator.sumo_net,
+                    time_horizon_step=5,
+                    time_resolution=0.5,
+                    interpolate_resolution=0.5,
+                    current_time=None,
+                    veh_info=None,
                 )
 
                 accept_command = self.get_accept_collision_command()
-                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["ndd_command_distribution"][
-                    "accept_collision"
-                ] = accept_command
-                trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id]["accept_collision"], info = (
-                    predict_future_trajectory(
-                        neglected_vehicle_id,
-                        obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
-                        accept_command,
-                        self.simulator.sumo_net,
-                        time_horizon_step=5,
-                        time_resolution=0.5,
-                        interpolate_resolution=0.5,
-                        current_time=None,
-                        veh_info=None,
-                    )
+                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                    "ndd_command_distribution"
+                ]["accept_collision"] = accept_command
+                (
+                    trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                        "accept_collision"
+                    ],
+                    info,
+                ) = predict_future_trajectory(
+                    neglected_vehicle_id,
+                    obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
+                    accept_command,
+                    self.simulator.sumo_net,
+                    time_horizon_step=5,
+                    time_resolution=0.5,
+                    interpolate_resolution=0.5,
+                    current_time=None,
+                    veh_info=None,
                 )
 
                 logger.trace(
@@ -642,54 +670,65 @@ class SafeTestNADEComplete(BaseEnv):
             neglecting_vru_id,
             neglected_vehicle_list,
         ) in potential_negligence_pair_dict[AgentType.VULNERABLE_ROAD_USER].items():
-            neglecting_vru_future = trajectory_dicts[AgentType.VULNERABLE_ROAD_USER][neglecting_vru_id][
-                "negligence"
-            ]
+            neglecting_vru_future = trajectory_dicts[AgentType.VULNERABLE_ROAD_USER][
+                neglecting_vru_id
+            ]["negligence"]
             for neglected_vehicle_id in neglected_vehicle_list:
-                if ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["ndd_command_distribution"].get("avoid_collision", None) is not None:
+                if (
+                    ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                        "ndd_command_distribution"
+                    ].get("avoid_collision", None)
+                    is not None
+                ):
                     continue
-                neglected_vehicle_future = trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id][
-                    "normal"
-                ]
+                neglected_vehicle_future = trajectory_dicts[AgentType.VEHICLE][
+                    neglected_vehicle_id
+                ]["normal"]
                 avoidance_command = self.get_vehicle_avoidance_command(
                     neglecting_vru_future,
                     neglected_vehicle_future,
                     neglecting_vru_id,
                     neglected_vehicle_id,
                 )
-                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["ndd_command_distribution"][
-                    "avoid_collision"
-                ] = avoidance_command
-                trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id]["avoid_collision"], info = (
-                    predict_future_trajectory(
-                        neglected_vehicle_id,
-                        obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
-                        avoidance_command,
-                        self.simulator.sumo_net,
-                        time_horizon_step=5,
-                        time_resolution=0.5,
-                        interpolate_resolution=0.5,
-                        current_time=None,
-                        veh_info=None,
-                    )
+                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                    "ndd_command_distribution"
+                ]["avoid_collision"] = avoidance_command
+                (
+                    trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                        "avoid_collision"
+                    ],
+                    info,
+                ) = predict_future_trajectory(
+                    neglected_vehicle_id,
+                    obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
+                    avoidance_command,
+                    self.simulator.sumo_net,
+                    time_horizon_step=5,
+                    time_resolution=0.5,
+                    interpolate_resolution=0.5,
+                    current_time=None,
+                    veh_info=None,
                 )
 
                 accept_command = self.get_accept_collision_command()
-                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["ndd_command_distribution"][
-                    "accept_collision"
-                ] = accept_command
-                trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id]["accept_collision"], info = (
-                    predict_future_trajectory(
-                        neglected_vehicle_id,
-                        obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
-                        accept_command,
-                        self.simulator.sumo_net,
-                        time_horizon_step=5,
-                        time_resolution=0.5,
-                        interpolate_resolution=0.5,
-                        current_time=None,
-                        veh_info=None,
-                    )
+                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                    "ndd_command_distribution"
+                ]["accept_collision"] = accept_command
+                (
+                    trajectory_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                        "accept_collision"
+                    ],
+                    info,
+                ) = predict_future_trajectory(
+                    neglected_vehicle_id,
+                    obs_dicts[AgentType.VEHICLE][neglected_vehicle_id],
+                    accept_command,
+                    self.simulator.sumo_net,
+                    time_horizon_step=5,
+                    time_resolution=0.5,
+                    interpolate_resolution=0.5,
+                    current_time=None,
+                    veh_info=None,
                 )
 
                 logger.trace(
@@ -700,23 +739,25 @@ class SafeTestNADEComplete(BaseEnv):
             )
         return trajectory_dicts, ctx_dicts
 
-    def record_negligence_related_information(
-        self, negligence_pair_dict, ctx_dicts
-    ):
+    def record_negligence_related_information(self, negligence_pair_dict, ctx_dicts):
         if len(negligence_pair_dict[AgentType.VEHICLE]):
-            self.record.event_info[utils.get_time()].negligence_pair_dict = (
-                negligence_pair_dict[AgentType.VEHICLE]
-            )
+            self.record.event_info[
+                utils.get_time()
+            ].negligence_pair_dict = negligence_pair_dict[AgentType.VEHICLE]
             self.record.event_info[utils.get_time()].neglecting_vehicle_id = list(
                 negligence_pair_dict[AgentType.VEHICLE].keys()
             )[0]
             negligence_command_dict = {
-                veh_id: ctx_dicts[AgentType.VEHICLE][veh_id].ndd_command_distribution.negligence
+                veh_id: ctx_dicts[AgentType.VEHICLE][
+                    veh_id
+                ].ndd_command_distribution.negligence
                 for veh_id in negligence_pair_dict[AgentType.VEHICLE]
             }
 
             neglected_vehicle_id_set = set()
-            for neglected_vehicle_list in negligence_pair_dict[AgentType.VEHICLE].values():
+            for neglected_vehicle_list in negligence_pair_dict[
+                AgentType.VEHICLE
+            ].values():
                 neglected_vehicle_id_set.update(neglected_vehicle_list)
 
             neglected_command_dict = {
@@ -739,12 +780,12 @@ class SafeTestNADEComplete(BaseEnv):
                 for veh_id, neglected_command in neglected_command_dict.items()
             }
 
-            self.record.event_info[utils.get_time()].negligence_command = (
-                negligence_command_dict
-            )
-            self.record.event_info[utils.get_time()].neglected_command = (
-                neglected_command_dict
-            )
+            self.record.event_info[
+                utils.get_time()
+            ].negligence_command = negligence_command_dict
+            self.record.event_info[
+                utils.get_time()
+            ].neglected_command = neglected_command_dict
         return ctx_dicts
 
     def apply_collision_avoidance(
@@ -793,7 +834,9 @@ class SafeTestNADEComplete(BaseEnv):
                 f"all avoidance command is None, no collision avoidance command will be selected and NADE for collision avoidance will be disabled, neglected_vehicle_set: {neglected_vehicle_set}"
             )
             for neglected_vehicle_id in neglected_vehicle_set:
-                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["mode"] = "accept_collision"
+                ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                    "mode"
+                ] = "accept_collision"
                 self.record.event_info[utils.get_time()].update(
                     {
                         "neglected_vehicle_id": neglected_vehicle_id,
@@ -801,9 +844,13 @@ class SafeTestNADEComplete(BaseEnv):
                         "additional_info": "all_avoidance_none",
                     }
                 )
-                ITE_control_command_dict[AgentType.VEHICLE][neglected_vehicle_id] = ctx_dicts[AgentType.VEHICLE][
+                ITE_control_command_dict[AgentType.VEHICLE][
                     neglected_vehicle_id
-                ]["ndd_command_distribution"].get("accept_collision", None)
+                ] = ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                    "ndd_command_distribution"
+                ].get(
+                    "accept_collision", None
+                )
             return ITE_control_command_dict, ctx_dicts, weight
 
         timestamp = utils.get_time()
@@ -823,22 +870,32 @@ class SafeTestNADEComplete(BaseEnv):
                     f"{timestamp}, neglected_vehicle_list: {neglected_vehicle_list} avoiding collision from {neglecting_vehicle_id}, avoidability: {ctx_dicts[AgentType.VEHICLE][neglecting_vehicle_id].get('avoidable', True)}"
                 )
                 for neglected_vehicle_id in neglected_vehicle_list:
-                    avoid_collision_command = ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
-                        "ndd_command_distribution"
-                    ].get("avoid_collision", None)
+                    avoid_collision_command = ctx_dicts[AgentType.VEHICLE][
+                        neglected_vehicle_id
+                    ]["ndd_command_distribution"].get("avoid_collision", None)
                     # if avoidable, then collision command should be available, if not avoidable, then collision command should be None
                     assert (
                         (avoid_collision_command is not None)
-                        and (ctx_dicts[AgentType.VEHICLE][neglecting_vehicle_id]["avoidable"])
+                        and (
+                            ctx_dicts[AgentType.VEHICLE][neglecting_vehicle_id][
+                                "avoidable"
+                            ]
+                        )
                     ) or (
                         (avoid_collision_command is None)
-                        and (not ctx_dicts[AgentType.VEHICLE][neglecting_vehicle_id]["avoidable"])
+                        and (
+                            not ctx_dicts[AgentType.VEHICLE][neglecting_vehicle_id][
+                                "avoidable"
+                            ]
+                        )
                     )
                     if avoid_collision_command:
-                        ITE_control_command_dict[AgentType.VEHICLE][neglected_vehicle_id] = (
-                            avoid_collision_command
-                        )
-                        ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["mode"] = "avoid_collision"
+                        ITE_control_command_dict[AgentType.VEHICLE][
+                            neglected_vehicle_id
+                        ] = avoid_collision_command
+                        ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                            "mode"
+                        ] = "avoid_collision"
                         self.record.event_info[utils.get_time()].update(
                             {
                                 "neglected_vehicle_id": neglected_vehicle_id,
@@ -860,16 +917,22 @@ class SafeTestNADEComplete(BaseEnv):
                     f"{timestamp}, neglected_vehicle_list: {neglected_vehicle_list} accept collision from {neglecting_vehicle_id}, avoidability: {ctx_dicts[AgentType.VEHICLE][neglecting_vehicle_id].get('avoidable', True)}"
                 )
                 for neglected_vehicle_id in neglected_vehicle_list:
-                    ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id]["mode"] = "accept_collision"
+                    ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                        "mode"
+                    ] = "accept_collision"
                     self.record.event_info[utils.get_time()].update(
                         {
                             "neglected_vehicle_id": neglected_vehicle_id,
                             "mode": "accept_collision",
                         }
                     )
-                    ITE_control_command_dict[AgentType.VEHICLE][neglected_vehicle_id] = ctx_dicts[AgentType.VEHICLE][
+                    ITE_control_command_dict[AgentType.VEHICLE][
                         neglected_vehicle_id
-                    ]["ndd_command_distribution"].get("accept_collision", None)
+                    ] = ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
+                        "ndd_command_distribution"
+                    ].get(
+                        "accept_collision", None
+                    )
             weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
 
         self.record.event_info[utils.get_time()].neglected_command = {
@@ -923,25 +986,37 @@ class SafeTestNADEComplete(BaseEnv):
         ITE_control_command_dict = Dict(
             {
                 AgentType.VEHICLE: {
-                    veh_id: ndd_control_command_dicts[AgentType.VEHICLE][veh_id]["normal"]
+                    veh_id: ndd_control_command_dicts[AgentType.VEHICLE][veh_id][
+                        "normal"
+                    ]
                     for veh_id in ndd_control_command_dicts[AgentType.VEHICLE]
                 },
                 AgentType.VULNERABLE_ROAD_USER: {
-                    vru_id: ndd_control_command_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id]["normal"]
-                    for vru_id in ndd_control_command_dicts[AgentType.VULNERABLE_ROAD_USER]
+                    vru_id: ndd_control_command_dicts[AgentType.VULNERABLE_ROAD_USER][
+                        vru_id
+                    ]["normal"]
+                    for vru_id in ndd_control_command_dicts[
+                        AgentType.VULNERABLE_ROAD_USER
+                    ]
                 },
             }
         )
         negligence_flag = False
-        exclude_IS_agent_set = set() if exclude_IS_agent_set is None else exclude_IS_agent_set
+        exclude_IS_agent_set = (
+            set() if exclude_IS_agent_set is None else exclude_IS_agent_set
+        )
 
         for agent_type in [AgentType.VEHICLE, AgentType.VULNERABLE_ROAD_USER]:
             for agent_id in maneuver_challenge_dicts[agent_type]:
                 if agent_id in exclude_IS_agent_set:
                     continue
                 if maneuver_challenge_dicts[agent_type][agent_id].get("negligence"):
-                    ndd_normal_prob = ndd_control_command_dicts[agent_type][agent_id].normal.prob
-                    ndd_negligence_prob = ndd_control_command_dicts[agent_type][agent_id].negligence.prob
+                    ndd_normal_prob = ndd_control_command_dicts[agent_type][
+                        agent_id
+                    ].normal.prob
+                    ndd_negligence_prob = ndd_control_command_dicts[agent_type][
+                        agent_id
+                    ].negligence.prob
                     assert (
                         ndd_normal_prob + ndd_negligence_prob == 1
                     ), "The sum of the probabilities of the normal and negligence control commands should be 1."
@@ -959,9 +1034,9 @@ class SafeTestNADEComplete(BaseEnv):
                     sampled_prob = np.random.uniform(0, 1)
                     if sampled_prob < IS_prob:  # select the negligece control command
                         weight *= ndd_negligence_prob / IS_prob
-                        ITE_control_command_dict[agent_type][agent_id] = ndd_control_command_dicts[agent_type][
+                        ITE_control_command_dict[agent_type][
                             agent_id
-                        ].negligence
+                        ] = ndd_control_command_dicts[agent_type][agent_id].negligence
                         ctx_dicts[agent_type][agent_id]["mode"] = "negligence"
                         if agent_type == AgentType.VEHICLE:
                             self.negligence_hook(agent_id)
@@ -971,9 +1046,9 @@ class SafeTestNADEComplete(BaseEnv):
                         negligence_flag = True
                     else:
                         weight *= ndd_normal_prob / (1 - IS_prob)
-                        ITE_control_command_dict[agent_type][agent_id] = ndd_control_command_dicts[agent_type][
+                        ITE_control_command_dict[agent_type][
                             agent_id
-                        ]["normal"]
+                        ] = ndd_control_command_dicts[agent_type][agent_id]["normal"]
                         logger.trace(
                             f"time: {utils.get_time()}, agent_id: {agent_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                         )
@@ -1029,18 +1104,24 @@ class SafeTestNADEComplete(BaseEnv):
         negligence_future_trajectory_dict = Dict(
             {
                 AgentType.VEHICLE: {
-                    veh_id: trajectory_dicts[AgentType.VEHICLE][veh_id].get("negligence", None)
+                    veh_id: trajectory_dicts[AgentType.VEHICLE][veh_id].get(
+                        "negligence", None
+                    )
                     for veh_id in trajectory_dicts[AgentType.VEHICLE]
                 },
                 AgentType.VULNERABLE_ROAD_USER: {
-                    vru_id: trajectory_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get("negligence", None)
+                    vru_id: trajectory_dicts[AgentType.VULNERABLE_ROAD_USER][
+                        vru_id
+                    ].get("negligence", None)
                     for vru_id in trajectory_dicts[AgentType.VULNERABLE_ROAD_USER]
                 },
             }
         )
         avoidance_future_trajectory_dict = Dict(
             {
-                veh_id: trajectory_dicts[AgentType.VEHICLE][veh_id].get("avoid_collision", None)
+                veh_id: trajectory_dicts[AgentType.VEHICLE][veh_id].get(
+                    "avoid_collision", None
+                )
                 for veh_id in trajectory_dicts[AgentType.VEHICLE]
             }
         )
@@ -1067,20 +1148,22 @@ class SafeTestNADEComplete(BaseEnv):
                         for veh_id in conflict_vehicle_list
                     }
                 )
-                maneuver_challenge_avoidance_dicts[AgentType.VEHICLE][veh_id] = (
-                    self.get_maneuver_challenge(
-                        veh_id,
-                        negligence_future_trajectory_dict[AgentType.VEHICLE][veh_id],
-                        AgentType.VEHICLE,
-                        conflict_vehicle_future_dict,
-                        AgentType.VEHICLE,
-                        obs_dicts,
-                        ctx_dicts[AgentType.VEHICLE][veh_id],
-                        record_in_ctx=False,
-                        buffer=0.5,  # buffer for the collision avoidance, 1m
-                    )
+                maneuver_challenge_avoidance_dicts[AgentType.VEHICLE][
+                    veh_id
+                ] = self.get_maneuver_challenge(
+                    veh_id,
+                    negligence_future_trajectory_dict[AgentType.VEHICLE][veh_id],
+                    AgentType.VEHICLE,
+                    conflict_vehicle_future_dict,
+                    AgentType.VEHICLE,
+                    obs_dicts,
+                    ctx_dicts[AgentType.VEHICLE][veh_id],
+                    record_in_ctx=False,
+                    buffer=0.5,  # buffer for the collision avoidance, 1m
                 )
-                if maneuver_challenge_avoidance_dicts[AgentType.VEHICLE][veh_id].get("negligence"):
+                if maneuver_challenge_avoidance_dicts[AgentType.VEHICLE][veh_id].get(
+                    "negligence"
+                ):
                     ctx_dicts[AgentType.VEHICLE][veh_id]["avoidable"] = False
                     logger.debug(
                         f"timestep: {utils.get_time()}, veh_id: {veh_id} is not avoidable"
@@ -1096,31 +1179,39 @@ class SafeTestNADEComplete(BaseEnv):
                     f"negligence future trajectory dict for {veh_id}: {negligence_future_trajectory_dict[AgentType.VEHICLE][veh_id]}, and conflict future trajectory dict for {conflict_vehicle_list}: {conflict_vehicle_future_dict}"
                 )
         for vru_id in maneuver_challenge_dicts[AgentType.VULNERABLE_ROAD_USER]:
-            if maneuver_challenge_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get("negligence"):
-                conflict_vehicle_list = ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
-                    "conflict_vehicle_list", []
-                )
+            if maneuver_challenge_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
+                "negligence"
+            ):
+                conflict_vehicle_list = ctx_dicts[AgentType.VULNERABLE_ROAD_USER][
+                    vru_id
+                ].get("conflict_vehicle_list", [])
                 conflict_vehicle_future_dict = Dict(
                     {
                         veh_id: avoidance_future_trajectory_dict[veh_id]
                         for veh_id in conflict_vehicle_list
                     }
                 )
-                maneuver_challenge_avoidance_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id] = (
-                    self.get_maneuver_challenge(
-                        vru_id,
-                        negligence_future_trajectory_dict[AgentType.VULNERABLE_ROAD_USER][vru_id],
-                        AgentType.VULNERABLE_ROAD_USER,
-                        conflict_vehicle_future_dict,
-                        AgentType.VEHICLE,
-                        obs_dicts,
-                        ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id],
-                        record_in_ctx=False,
-                        buffer=0.5,  # buffer for the collision avoidance, 1m
-                    )
+                maneuver_challenge_avoidance_dicts[AgentType.VULNERABLE_ROAD_USER][
+                    vru_id
+                ] = self.get_maneuver_challenge(
+                    vru_id,
+                    negligence_future_trajectory_dict[AgentType.VULNERABLE_ROAD_USER][
+                        vru_id
+                    ],
+                    AgentType.VULNERABLE_ROAD_USER,
+                    conflict_vehicle_future_dict,
+                    AgentType.VEHICLE,
+                    obs_dicts,
+                    ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id],
+                    record_in_ctx=False,
+                    buffer=0.5,  # buffer for the collision avoidance, 1m
                 )
-                if maneuver_challenge_avoidance_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get("negligence"):
-                    ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id]["avoidable"] = False
+                if maneuver_challenge_avoidance_dicts[AgentType.VULNERABLE_ROAD_USER][
+                    vru_id
+                ].get("negligence"):
+                    ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id][
+                        "avoidable"
+                    ] = False
                     logger.debug(
                         f"timestep: {utils.get_time()}, vru_id: {vru_id} is not avoidable"
                     )
@@ -1158,13 +1249,17 @@ class SafeTestNADEComplete(BaseEnv):
         )
         negligence_future_trajectory_dict_veh = Dict(
             {
-                veh_id: trajectory_dicts[AgentType.VEHICLE][veh_id].get("negligence", None)
+                veh_id: trajectory_dicts[AgentType.VEHICLE][veh_id].get(
+                    "negligence", None
+                )
                 for veh_id in trajectory_dicts[AgentType.VEHICLE]
             }
         )
         negligence_future_trajectory_dict_vru = Dict(
             {
-                vru_id: trajectory_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get("negligence", None)
+                vru_id: trajectory_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
+                    "negligence", None
+                )
                 for vru_id in trajectory_dicts[AgentType.VULNERABLE_ROAD_USER]
             }
         )
@@ -1207,7 +1302,7 @@ class SafeTestNADEComplete(BaseEnv):
                 if veh_id in maneuver_challenge_dicts_veh
                 else {"normal": 0}
             )
-        
+
         for vru_id in ctx_dicts[AgentType.VULNERABLE_ROAD_USER]:
             ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id]["maneuver_challenge"] = (
                 maneuver_challenge_dicts_vru[vru_id]
@@ -1227,15 +1322,21 @@ class SafeTestNADEComplete(BaseEnv):
         conflict_vehicle_info = Dict(
             {
                 AgentType.VEHICLE: {
-                    veh_id: ctx_dicts[AgentType.VEHICLE][veh_id].get("conflict_vehicle_list")
+                    veh_id: ctx_dicts[AgentType.VEHICLE][veh_id].get(
+                        "conflict_vehicle_list"
+                    )
                     for veh_id in ctx_dicts[AgentType.VEHICLE]
                     if ctx_dicts[AgentType.VEHICLE][veh_id].get("conflict_vehicle_list")
                 },
                 AgentType.VULNERABLE_ROAD_USER: {
-                    vru_id: ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get("conflict_vehicle_list")
+                    vru_id: ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
+                        "conflict_vehicle_list"
+                    )
                     for vru_id in ctx_dicts[AgentType.VULNERABLE_ROAD_USER]
-                    if ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get("conflict_vehicle_list")
-                }
+                    if ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
+                        "conflict_vehicle_list"
+                    )
+                },
             }
         )
         logger.trace(
@@ -1287,14 +1388,18 @@ class SafeTestNADEComplete(BaseEnv):
                         f"agent_id: {agent_id}, all_normal_agent_future[agent_id]: {all_normal_agent_future[agent_id]}"
                     )
                 link_intersection_flag = is_link_intersect(
-                    obs_dicts[negligence_agent_type][negligence_agent_id], obs_dicts[normal_agent_type][agent_id]
+                    obs_dicts[negligence_agent_type][negligence_agent_id],
+                    obs_dicts[normal_agent_type][agent_id],
                 )
                 if not link_intersection_flag:
                     continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
 
                 # if the negligence_veh_id is the header of the normal_veh_id, then the two vehicles will not collide
                 # TODO: traci.vehicle.getLeader() can not detect the leading vulnerable road user
-                if normal_agent_type == AgentType.VEHICLE and negligence_agent_type == AgentType.VEHICLE:
+                if (
+                    normal_agent_type == AgentType.VEHICLE
+                    and negligence_agent_type == AgentType.VEHICLE
+                ):
                     leader = traci.vehicle.getLeader(agent_id)
                     if leader is not None and leader[0] == negligence_agent_id:
                         continue
@@ -1309,10 +1414,14 @@ class SafeTestNADEComplete(BaseEnv):
                 collision_flag = is_intersect(
                     negligence_agent_future,
                     all_normal_agent_future[agent_id],
-                    obs_dicts[negligence_agent_type][negligence_agent_id]['ego']['length'],
-                    obs_dicts[normal_agent_type][agent_id]['ego']['length'],
-                    obs_dicts[negligence_agent_type][negligence_agent_id]['ego']['width'],
-                    obs_dicts[normal_agent_type][agent_id]['ego']['width'],
+                    obs_dicts[negligence_agent_type][negligence_agent_id]["ego"][
+                        "length"
+                    ],
+                    obs_dicts[normal_agent_type][agent_id]["ego"]["length"],
+                    obs_dicts[negligence_agent_type][negligence_agent_id]["ego"][
+                        "width"
+                    ],
+                    obs_dicts[normal_agent_type][agent_id]["ego"]["width"],
                     negligence_agent_type.value,
                     normal_agent_type.value,
                     buffer,
@@ -1339,7 +1448,9 @@ class SafeTestNADEComplete(BaseEnv):
         criticality_dicts = {}
         for veh_id in maneuver_challenge_dicts[AgentType.VEHICLE]:
             ndd_control_command_dict = ndd_control_command_dicts[veh_id]
-            maneuver_challenge_dict = maneuver_challenge_dicts[AgentType.VEHICLE][veh_id]
+            maneuver_challenge_dict = maneuver_challenge_dicts[AgentType.VEHICLE][
+                veh_id
+            ]
             criticality_dicts[veh_id] = {
                 modality: ndd_control_command_dict[modality].prob
                 * maneuver_challenge_dict[modality]

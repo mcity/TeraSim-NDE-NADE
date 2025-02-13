@@ -1,15 +1,16 @@
 """Trajectory utilities for TeraSim NDE/NADE."""
-import numpy as np
-from typing import List, Tuple, Dict, Any
+from typing import Any, Dict, List, Tuple
+
 import addict
-from terasim.overlay import traci, profile
+import numpy as np
 from loguru import logger
+from terasim.overlay import profile, traci
+
+from ..agents.vehicle import (VehicleInfoForPredict,
+                              get_lanechange_longitudinal_speed,
+                              get_vehicle_info)
 from ..base.types import CommandType
-from ..agents.vehicle import (
-    get_vehicle_info,
-    get_lanechange_longitudinal_speed,
-    VehicleInfoForPredict,
-)
+
 
 def predict_future_distance_velocity_vectorized(
     velocity: float,
@@ -42,22 +43,28 @@ def predict_future_distance_velocity_vectorized(
 
     # Calculate the cumulative distance at each time point
     cumulative_distances = np.cumsum(distance_increments)
-    cumulative_distances = np.insert(cumulative_distances, 0, 0)  # Include starting point (distance=0)
+    cumulative_distances = np.insert(
+        cumulative_distances, 0, 0
+    )  # Include starting point (distance=0)
 
     return cumulative_distances, velocity_array
 
-def get_vehicle_future_lane_id_from_edge(edge_id: str, upcoming_lane_id_list: List[str]) -> str:
+
+def get_vehicle_future_lane_id_from_edge(
+    edge_id: str, upcoming_lane_id_list: List[str]
+) -> str:
     """Get the future lane ID for a vehicle given its edge ID."""
     return next(
         (lane_id for lane_id in upcoming_lane_id_list if edge_id in lane_id), None
     )
+
 
 def get_future_lane_id_index(
     veh_id: str,
     veh_edge_id: str,
     upcoming_lane_id_list: List[str],
     original_lane_index: int,
-    lateral_offset: int
+    lateral_offset: int,
 ) -> Tuple[str, int]:
     """Get the future lane ID and index for a vehicle."""
     if traci.edge.getLaneNumber(veh_edge_id) == 1:
@@ -80,6 +87,7 @@ def get_future_lane_id_index(
         veh_lane_id = veh_edge_id + f"_{veh_lane_index}"
         return veh_lane_id, veh_lane_index
 
+
 def get_future_position_on_route(
     traci,
     veh_id: str,
@@ -96,28 +104,33 @@ def get_future_position_on_route(
     """Predict the future position of a vehicle on its route."""
     veh_lane_position += future_distance
     current_lane_length = traci.lane.getLength(veh_lane_id)
-    
+
     if veh_edge_id not in veh_route_id_list:
         found_match = False
         # Try matching with base edge id
         edge_base = veh_edge_id.split("_")[0]
-        min_dist = float('inf')
+        min_dist = float("inf")
         modified_index = 0
-        
+
         for i, route_id in enumerate(veh_route_id_list):
             route_base = route_id.split("_")[0]
             if edge_base == route_base:
                 edge_pos = traci.simulation.convert2D(veh_edge_id, 0, 0)
                 route_pos = traci.simulation.convert2D(route_id, 0, 0)
-                dist = ((edge_pos[0] - route_pos[0])**2 + (edge_pos[1] - route_pos[1])**2)**0.5
+                dist = (
+                    (edge_pos[0] - route_pos[0]) ** 2
+                    + (edge_pos[1] - route_pos[1]) ** 2
+                ) ** 0.5
                 if dist < min_dist:
                     min_dist = dist
                     modified_index = i
-        
+
         veh_route_id_list[modified_index] = veh_edge_id
-            
+
         if min_dist > 10:
-            logger.warning(f"Edge {veh_edge_id} not found in route list {veh_route_id_list}")
+            logger.warning(
+                f"Edge {veh_edge_id} not found in route list {veh_route_id_list}"
+            )
 
     current_route_index = veh_route_id_list.index(veh_edge_id)
 
@@ -150,6 +163,7 @@ def get_future_position_on_route(
     )
     future_heading = traci.lane.getAngle(veh_lane_id, veh_lane_position)
     return future_position, future_heading
+
 
 @profile
 def predict_future_trajectory(
@@ -209,7 +223,10 @@ def predict_future_trajectory(
             lane_width,
         )
 
-    future_distance_array, future_velocity_array = predict_future_distance_velocity_vectorized(
+    (
+        future_distance_array,
+        future_velocity_array,
+    ) = predict_future_distance_velocity_vectorized(
         veh_info["velocity"], acceleration, duration_array, max_velocity
     )
 
@@ -231,7 +248,10 @@ def predict_future_trajectory(
         lanechange_finish_timestep = np.argmin(
             np.abs(duration_array - control_command.duration)
         )
-        lanechange_finish_position, lanechange_finish_final_heading = get_future_position_on_route(
+        (
+            lanechange_finish_position,
+            lanechange_finish_final_heading,
+        ) = get_future_position_on_route(
             traci,
             veh_id,
             veh_info["edge_id"],
@@ -295,4 +315,4 @@ def predict_future_trajectory(
 
     future_trajectory_array = trajectory_array
     future_trajectory_array[:, -1] += current_time
-    return future_trajectory_array, info 
+    return future_trajectory_array, info

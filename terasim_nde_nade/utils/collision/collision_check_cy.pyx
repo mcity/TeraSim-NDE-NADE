@@ -1,15 +1,17 @@
-from libc.math cimport sqrt, pow
 cimport cython
+from libc.math cimport pow, sqrt
+
 import numpy as np
+
 cimport numpy as np
+
 from shapely.geometry import LineString
 
-from ..geometry.geometry_utils_cy import (
-    calculate_distance,
-    get_circle_centers,
-    calculate_circle_radius,
-)
-from ..trajectory.trajectory_utils_cy import sumo_trajectory_to_normal_trajectory
+from ..geometry.geometry_utils_cy import (calculate_circle_radius,
+                                          calculate_distance,
+                                          get_circle_centers)
+from ..trajectory.trajectory_utils_cy import \
+    sumo_trajectory_to_normal_trajectory
 
 # Constants
 DEFAULT_DISTANCE_THRESHOLD = 30.0

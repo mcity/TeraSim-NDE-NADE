@@ -1,14 +1,14 @@
-from terasim.vehicle.sensors.ego import EgoSensor
-from terasim.overlay import traci
 from collections import deque
-import numpy as np
 from math import isclose
-from scipy.interpolate import interp1d
+
+import numpy as np
 from loguru import logger
+from scipy.interpolate import interp1d
+from terasim.overlay import traci
+from terasim.vehicle.sensors.ego import EgoSensor
 
 
 def get_lane_id(vehicle_id):
-
     lane_id = traci.vehicle.getLaneID(vehicle_id)
     if lane_id == "":
         lane_id = traci.vehicle.getRoadID(vehicle_id) + "_0"

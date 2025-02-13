@@ -1,15 +1,14 @@
 import addict
-
 from terasim.overlay import traci
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-    is_car_following,
-)
-from terasim_nde_nade.utils.adversity.obs_processing import get_ff_acceleration, get_cf_acceleration
+
+from terasim_nde_nade.utils import CommandType, NDECommand, is_car_following
+from terasim_nde_nade.utils.adversity.obs_processing import (
+    get_cf_acceleration, get_ff_acceleration)
 
 
-def derive_leader_negligence_command(obs_dict, highlight_flag=False, highlight_color=[255, 0, 0, 255]) -> addict.Dict:
+def derive_leader_negligence_command(
+    obs_dict, highlight_flag=False, highlight_color=[255, 0, 0, 255]
+) -> addict.Dict:
     leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
     current_acceleration = obs_dict["ego"]["acceleration"]
     ff_acceleration = get_ff_acceleration(obs_dict)
@@ -18,9 +17,7 @@ def derive_leader_negligence_command(obs_dict, highlight_flag=False, highlight_c
     negligence_command_dict = addict.Dict()
     cf_acceleration = current_acceleration
 
-    if (
-        leader_info is not None
-    ):  # there is a leading vehicle, add lead neglgience type
+    if leader_info is not None:  # there is a leading vehicle, add lead neglgience type
         cf_acceleration = get_cf_acceleration(obs_dict, leader_info)
         # if the vehicle and the leading vehicle are both stopped, disable negligence
         if (
@@ -30,7 +27,9 @@ def derive_leader_negligence_command(obs_dict, highlight_flag=False, highlight_c
             return negligence_command_dict
 
         # if the vehicle is car following
-        is_car_following_flag = is_car_following(obs_dict["ego"]["veh_id"], leader_info[0])
+        is_car_following_flag = is_car_following(
+            obs_dict["ego"]["veh_id"], leader_info[0]
+        )
         if is_car_following_flag:
             leader_velocity = traci.vehicle.getSpeed(leader_info[0])
             # ego vehicle is stopping or the velocity difference between the ego vehicle and the leader is small

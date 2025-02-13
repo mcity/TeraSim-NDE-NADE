@@ -1,14 +1,11 @@
-import addict
 import math
-import numpy as np
 
+import addict
+import numpy as np
 from terasim.overlay import traci
+
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-    is_car_following,
-)
+from terasim_nde_nade.utils import CommandType, NDECommand, is_car_following
 
 
 def is_pedestrian_moving_forward(p_id, sumonet):
@@ -18,9 +15,7 @@ def is_pedestrian_moving_forward(p_id, sumonet):
     edge_end = edge_shape[-1]
     edge_angle = (
         -math.degrees(
-            math.atan(
-                (edge_end[0] - edge_start[0]) / (edge_end[1] - edge_start[1])
-            )
+            math.atan((edge_end[0] - edge_start[0]) / (edge_end[1] - edge_start[1]))
         )
         + 90
     ) % 360
@@ -66,24 +61,33 @@ class JaywalkingAdversity(AbstractAdversity):
                 has_road = True
             if i > 0 and i < num_lanes - 1 and "all" in disallowed:
                 return False
-        
+
         flag_is_moving_forward = is_pedestrian_moving_forward(ego_id, self.sumo_net)
 
-        return has_sidewalk and has_road and (not have_separation) and flag_is_moving_forward
-    
+        return (
+            has_sidewalk
+            and has_road
+            and (not have_separation)
+            and flag_is_moving_forward
+        )
+
     def derive_command(self, obs_dict) -> addict.Dict:
         if self.trigger(obs_dict) and self._probability > 0:
             ego_id = obs_dict["ego"]["vru_id"]
             current_angle = traci.person.getAngle(ego_id)
             future_angle = (current_angle - 90) % 360  # 左转
             edge_id = traci.person.getRoadID(ego_id)
-            total_width: float = sum([lane.getWidth() for lane in self.sumo_net.getEdge(edge_id).getLanes()])
+            total_width: float = sum(
+                [lane.getWidth() for lane in self.sumo_net.getEdge(edge_id).getLanes()]
+            )
             current_speed = traci.person.getSpeed(ego_id)
-            if current_speed < 1.0: # if stop now, then the vru will accelerate to the max speed to cross the road
+            if (
+                current_speed < 1.0
+            ):  # if stop now, then the vru will accelerate to the max speed to cross the road
                 speed = traci.person.getMaxSpeed(ego_id)
             else:
                 speed = current_speed
-                
+
             duration = round(total_width / speed, 1)
 
             trajectory = []
@@ -99,14 +103,14 @@ class JaywalkingAdversity(AbstractAdversity):
             for i in range(int(duration / dt)):
                 trajectory.append(
                     [
-                        new_pos[0] + i * distance * math.sin(radians), # x
-                        new_pos[1] + i * distance * math.cos(radians), # y
-                        future_angle, # angle
-                        speed, # speed
-                        current_time + i * dt, # time
+                        new_pos[0] + i * distance * math.sin(radians),  # x
+                        new_pos[1] + i * distance * math.cos(radians),  # y
+                        future_angle,  # angle
+                        speed,  # speed
+                        current_time + i * dt,  # time
                     ]
                 )
-                
+
             negligence_command = NDECommand(
                 command_type=CommandType.TRAJECTORY,
                 future_trajectory=trajectory,
@@ -125,6 +129,8 @@ class JaywalkingAdversity(AbstractAdversity):
                     "location": self._location,
                 }
             )
-            self._negligence_command_dict.update(addict.Dict({"Jaywalking": negligence_command}))
+            self._negligence_command_dict.update(
+                addict.Dict({"Jaywalking": negligence_command})
+            )
             return self._negligence_command_dict
         return addict.Dict()

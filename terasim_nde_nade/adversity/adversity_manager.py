@@ -1,19 +1,19 @@
-from addict import Dict
 import random
 
-from terasim_nde_nade.utils.adversity.adversity_builder import build_adversities
-from terasim_nde_nade.utils import (
-    CommandType,
-    NDECommand,
-)
+from addict import Dict
 
-class AdversityManager():
+from terasim_nde_nade.utils import CommandType, NDECommand
+from terasim_nde_nade.utils.adversity.adversity_builder import \
+    build_adversities
+
+
+class AdversityManager:
     def __init__(self, config):
         self.config = config
         self.adversities = []
         if self.config is not None:
             self.adversities = build_adversities(self.config)
-        
+
     def derive_command(self, obs_dict):
         # get negligence command candidates
         negligence_command_dict = Dict()

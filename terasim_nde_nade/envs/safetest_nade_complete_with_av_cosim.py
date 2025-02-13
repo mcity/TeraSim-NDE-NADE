@@ -1,13 +1,14 @@
-import redis
-from terasim.overlay import traci
-from loguru import logger
 import numpy as np
+import redis
 import terasim.utils as utils
-from terasim_nde_nade.envs.safetest_nade_complete_with_av import SafeTestNADECompleteWithAV
+from loguru import logger
+from terasim.overlay import traci
+
+from terasim_nde_nade.envs.safetest_nade_complete_with_av import \
+    SafeTestNADECompleteWithAV
 
 
 class SafeTestNADECompleteWithAVCosim(SafeTestNADECompleteWithAV):
-
     def on_start(self, ctx):
         super().on_start(ctx)
         self.redis_client = redis.Redis(host="localhost", port=6379, db=0)

@@ -1,11 +1,12 @@
-from pathlib import Path
 import argparse
-from loguru import logger
-from terasim.simulator import Simulator
-from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
-from terasim.logger.infoextractor import InfoExtractor
-from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
+from pathlib import Path
 
+from loguru import logger
+from terasim.logger.infoextractor import InfoExtractor
+from terasim.simulator import Simulator
+
+from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
+from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 
 parser = argparse.ArgumentParser(description="Run simulation.")
 parser.add_argument("--dir", type=str, help="output directory", default="output")

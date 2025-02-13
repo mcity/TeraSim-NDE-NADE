@@ -1,10 +1,11 @@
-import matplotlib.animation as animation
-import matplotlib.pyplot as plt
-from pathlib import Path
-import SumoTrajVis
-from tqdm import tqdm
 import os
 import xml.etree.ElementTree as ET
+from pathlib import Path
+
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+import SumoTrajVis
+from tqdm import tqdm
 
 # Load net file and trajectory file
 net = SumoTrajVis.Net("./example/maps/Mcity_safetest/mcity.net.xml")

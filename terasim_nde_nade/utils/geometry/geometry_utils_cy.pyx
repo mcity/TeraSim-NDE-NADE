@@ -1,6 +1,8 @@
-from libc.math cimport sqrt, pow, sin, cos, atan2, M_PI
 cimport cython
+from libc.math cimport M_PI, atan2, cos, pow, sin, sqrt
+
 import numpy as np
+
 cimport numpy as np
 
 # Constants
