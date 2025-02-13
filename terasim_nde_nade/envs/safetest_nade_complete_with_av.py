@@ -1,4 +1,4 @@
-from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
+from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
 from terasim.overlay import traci
 import terasim.utils as utils
 import numpy as np
@@ -15,7 +15,7 @@ from terasim.envs.template import EnvTemplate
 import random
 
 
-class SafeTestNADEWithAV(SafeTestNADE):
+class SafeTestNADECompleteWithAV(SafeTestNADEComplete):
 
     def __init__(self, cache_radius=100, control_radius=50, *args, **kwargs):
         super().__init__(*args, **kwargs)

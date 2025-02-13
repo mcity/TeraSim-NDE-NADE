@@ -1,37 +1,26 @@
-from terasim_nde_nade.envs.safetest_nde import SafeTestNDE
-from terasim_nde_nade.envs.safetest_nde_complete import SafeTestNDEComplete
-import sumolib
-from terasim.overlay import traci
-import terasim.utils as utils
 import numpy as np
 import math
 import os
-from terasim.utils import (
-    sumo_coordinate_to_center_coordinate,
-    sumo_heading_to_orientation,
-)
+from loguru import logger
+from addict import Dict
+import json
+
+from terasim_nde_nade.envs.safetest_nde_complete import SafeTestNDEComplete
+from terasim.overlay import traci, profile
+import terasim.utils as utils
 from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
     predict_future_trajectory,
-    check_collision,
     is_intersect,
-    sumo_trajectory_to_normal_trajectory,
-    get_circle_center_list_new,
     get_vehicle_info,
 )
 from terasim_nde_nade.utils.agents.vru import (
-    VulnerableRoadUserInfoForPredict,
     get_vulnerbale_road_user_info,
     predict_future_trajectory_vulnerable_road_user,
 )
-from shapely.geometry import LineString
-from loguru import logger
-from addict import Dict
-from terasim.envs.template import EnvTemplate
+
 from terasim.envs.template_complete import EnvTemplateComplete
-import json
-from terasim.overlay import profile
 from terasim.params import AgentType
 
 veh_length = 5.0

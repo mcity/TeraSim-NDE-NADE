@@ -5,9 +5,10 @@ import hydra
 from omegaconf import DictConfig
 
 from terasim.simulator import Simulator
-from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
+from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
+from terasim_nde_nade.vru.nde_vru_factory import NDEVulnerableRoadUserFactory
 
 
 parser = argparse.ArgumentParser(description="Run simulation.")
@@ -40,8 +41,9 @@ for log_file, log_level in zip(log_files, log_levels):
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
-    env = SafeTestNADE(
+    env = SafeTestNADEComplete(
         vehicle_factory=NDEVehicleFactory(cfg=cfg),
+        vru_factory=NDEVulnerableRoadUserFactory(cfg=cfg),
         info_extractor=InfoExtractor,
         log_flag=True,
         log_dir=base_dir,
