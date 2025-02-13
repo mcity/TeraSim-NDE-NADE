@@ -1233,7 +1233,7 @@ class SafeTestNADEComplete(BaseEnv):
                 if maneuver_challenge_dicts_veh[veh_id].get("negligence")
             }
         )
-        for veh_id in maneuver_challenge_dicts_veh:
+        for veh_id in maneuver_challenge_dicts_veh_shrinked:
             self.avoidable_maneuver_challenge_hook(veh_id)
         conflict_vehicle_info = Dict(
             {
