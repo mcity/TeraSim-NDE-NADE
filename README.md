@@ -14,7 +14,7 @@ TeraSim-NDE-NADE is the traffic environment for TeraSim, which is an advanced **
   - **Vulnerable Road User (VRU) Adversity** (e.g., jaywalking, running red lights)
   - **Static Adversity** (e.g., construction zones, faulty traffic signals)
   - Includes **trigger conditions, effects, and probability modeling**
-- **Neural Adversarial Driving Environment (NADE):**
+- **Naturalistic and Adversarial Driving Environment (NADE):**
   - **AI-powered dynamic control of adversity injection**
   - **Optimized based on real-world accident data**
   - **Ensures large-scale, accelerated safety evaluation**
