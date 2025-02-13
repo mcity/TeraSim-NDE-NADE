@@ -1,7 +1,7 @@
 from addict import Dict
 import random
 
-from terasim_nde_nade.adversity.adversity.adversity_builder import build_adversities
+from terasim_nde_nade.utils.adversity.adversity_builder import build_adversities
 from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,

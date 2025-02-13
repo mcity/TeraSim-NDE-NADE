@@ -1,7 +1,7 @@
 import addict
 
 from terasim.overlay import traci
-from terasim_nde_nade.adversity.adversity.obs_processing import get_ff_acceleration, get_cf_acceleration
+from terasim_nde_nade.utils.adversity.obs_processing import get_ff_acceleration, get_cf_acceleration
 from terasim_nde_nade.utils import NDECommand
 from terasim_nde_nade.utils import (
     CommandType,

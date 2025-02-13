@@ -16,9 +16,9 @@ from terasim_nde_nade.utils import (
     predict_future_trajectory,
     check_collision,
     is_intersect,
-    is_intersect_new,
     sumo_trajectory_to_normal_trajectory,
     get_circle_center_list_new,
+    get_vehicle_info,
 )
 from terasim_nde_nade.utils.agents.vru import (
     VulnerableRoadUserInfoForPredict,
