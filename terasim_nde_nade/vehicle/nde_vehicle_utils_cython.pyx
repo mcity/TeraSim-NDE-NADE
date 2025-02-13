@@ -38,6 +38,33 @@ def get_circle_center_list(np.ndarray[double, ndim=1] traj_point, double veh_len
 
     return center_list
 
+
+def get_circle_center_list_new(np.ndarray[double, ndim=1] traj_point, double agent_legnth, str agent_type):
+    cdef double heading = traj_point[2]
+    cdef double cos_heading = cos(heading)
+    cdef double sin_heading = sin(heading)
+    cdef double offset
+    cdef np.ndarray[double, ndim=2] center_list
+
+    if agent_type == 'vehicle':
+        offset = agent_legnth / 3
+        center_list = np.zeros((3, 2))
+
+        center_list[0, 0] = traj_point[0] + offset * cos_heading
+        center_list[0, 1] = traj_point[1] + offset * sin_heading
+        center_list[1, 0] = traj_point[0]
+        center_list[1, 1] = traj_point[1]
+        center_list[2, 0] = traj_point[0] - offset * cos_heading
+        center_list[2, 1] = traj_point[1] - offset * sin_heading
+    else:
+        center_list = np.zeros((1, 2))
+
+        center_list[0, 0] = traj_point[0]
+        center_list[0, 1] = traj_point[1]
+        
+    return center_list
+
+
 def collision_check(np.ndarray[double, ndim=2] traj1, np.ndarray[double, ndim=2] traj2, double veh_length, double tem_len, double circle_r):
     cdef int i, j, k
     cdef double dist, dx, dy
@@ -61,7 +88,42 @@ def collision_check(np.ndarray[double, ndim=2] traj1, np.ndarray[double, ndim=2]
                 dist = sqrt(dx * dx + dy * dy)
                 if dist <= 2 * circle_r:
                     return True, traj1[i, 3]
+    return False, None
 
+
+def collision_check_new(np.ndarray[double, ndim=2] traj1, np.ndarray[double, ndim=2] traj2, double agent1_length, double agent2_length, double agent1_width, double agent2_width, str agent1_type, str agent2_type, double buffer):
+    cdef int i, j, k
+    cdef double dist, dx, dy
+    cdef np.ndarray[double, ndim=2] center_list_1, center_list_2
+    cdef np.ndarray[double, ndim=1] traj_point1, traj_point2
+    cdef double circle_r1, circle_r2
+
+    traj1 = sumo_trajectory_to_normal_trajectory(traj1, agent1_length)
+    traj2 = sumo_trajectory_to_normal_trajectory(traj2, agent2_length)
+
+    if agent1_type == "vehicle":
+        circle_r1 = np.sqrt((agent1_length/6.0)**2+(agent1_width/2.0)**2)
+    else:
+        circle_r1 = max(agent1_length, agent1_width) / 2.0
+    if agent2_type == "vehicle":
+        circle_r2 = np.sqrt((agent2_length/6.0)**2+(agent2_width/2.0)**2)
+    else:
+        circle_r2 = max(agent2_length, agent2_width) / 2.0
+
+    for i in range(traj1.shape[0]):
+        traj_point1 = traj1[i]
+        traj_point2 = traj2[i]
+
+        center_list_1 = get_circle_center_list_new(traj_point1, agent1_length, agent1_type)
+        center_list_2 = get_circle_center_list_new(traj_point2, agent2_length, agent2_type)
+
+        for j in range(center_list_1.shape[0]):
+            for k in range(center_list_2.shape[0]):
+                dx = center_list_1[j, 0] - center_list_2[k, 0]
+                dy = center_list_1[j, 1] - center_list_2[k, 1]
+                dist = sqrt(dx * dx + dy * dy)
+                if dist <= circle_r1+circle_r2+buffer*2.0:
+                    return True, traj1[i, 3]
     return False, None
 
 def interpolate_future_trajectory(np.ndarray[double, ndim=2] trajectory_list_array, double interpolate_resolution):
@@ -92,6 +154,26 @@ cpdef bint is_intersect(np.ndarray[double, ndim=2] trajectory1, np.ndarray[doubl
 
     # three circle collision check
     collision_check_result, _ = collision_check(trajectory1, trajectory2, veh_length, tem_len, circle_r)
+    if collision_check_result:
+        return True
+
+    line1 = LineString(trajectory1[:, :2])
+    line2 = LineString(trajectory2[:, :2])
+
+    # Check if the trajectories intersect
+    if line1.intersects(line2):
+        return True
+    return False
+
+cpdef bint is_intersect_new(np.ndarray[double, ndim=2] trajectory1, np.ndarray[double, ndim=2] trajectory2, double agent1_length, double agent2_length, double agent1_width, double agent2_width, str agent1_type, str agent2_type, double buffer):
+    cdef np.ndarray[double, ndim=1] trajectory1_start = trajectory1[0, :2]
+    cdef np.ndarray[double, ndim=1] trajectory2_start = trajectory2[0, :2]
+
+    if sqrt(pow(trajectory1_start[0] - trajectory2_start[0], 2) + pow(trajectory1_start[1] - trajectory2_start[1], 2)) > 30:
+        return False
+
+    # three circle collision check
+    collision_check_result, _ = collision_check_new(trajectory1, trajectory2, agent1_length, agent2_length, agent1_width, agent2_width, agent1_type, agent2_type, buffer)
     if collision_check_result:
         return True
 

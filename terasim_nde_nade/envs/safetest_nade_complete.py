@@ -20,7 +20,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
 )
 from terasim_nde_nade.vru.nde_vru_utils import get_vulnerbale_road_user_info, predict_future_trajectory_vulnerable_road_user
 from shapely.geometry import LineString
-from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect
+from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect, is_intersect_new, sumo_trajectory_to_normal_trajectory, get_circle_center_list_new
 from loguru import logger
 from addict import Dict
 from terasim.envs.template import EnvTemplate
@@ -1305,13 +1305,24 @@ class SafeTestNADEComplete(BaseEnv):
                     if leader is not None and leader[0] == negligence_agent_id:
                         continue
 
-                collision_flag = is_intersect(
+                # collision_flag = is_intersect(
+                #     negligence_agent_future,
+                #     all_normal_agent_future[agent_id],
+                #     veh_length,
+                #     tem_len,
+                #     circle_r + buffer,
+                # ) # TODO: consider different vehicle length between the two colliding vehicles or vehicle and vulnerable road user
+                collision_flag = is_intersect_new(
                     negligence_agent_future,
                     all_normal_agent_future[agent_id],
-                    veh_length,
-                    tem_len,
-                    circle_r + buffer,
-                ) # TODO: consider different vehicle length between the two colliding vehicles or vehicle and vulnerable road user
+                    obs_dicts[negligence_agent_type][negligence_agent_id]['ego']['length'],
+                    obs_dicts[normal_agent_type][agent_id]['ego']['length'],
+                    obs_dicts[negligence_agent_type][negligence_agent_id]['ego']['width'],
+                    obs_dicts[normal_agent_type][agent_id]['ego']['width'],
+                    negligence_agent_type.value,
+                    normal_agent_type.value,
+                    buffer,
+                )
                 final_collision_flag = final_collision_flag or collision_flag
                 if collision_flag and record_in_ctx:
                     if "conflict_vehicle_list" not in agent_ctx_dict:

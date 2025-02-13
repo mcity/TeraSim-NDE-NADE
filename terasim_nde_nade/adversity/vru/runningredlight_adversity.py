@@ -13,7 +13,7 @@ class RunningRedLightAdversity(AbstractAdversity):
     def __init__(self, location, ego_type, probability, predicted_collision_type):
         super().__init__(location, ego_type, probability, predicted_collision_type)
         self.sumo_net = None
-        self.lane_id = None
+        self.next_crossroad_id = None
 
 
     def trigger(self, obs_dict):
@@ -22,15 +22,25 @@ class RunningRedLightAdversity(AbstractAdversity):
         ego_id = obs_dict["ego"]["vru_id"]
         if traci.person.getSpeed(ego_id) > 0.2:
             return False
-
+        # vru is not moving
         lane_id = traci.person.getLaneID(ego_id)
         tls_list = traci.trafficlight.getIDList()
         for tls_id in tls_list:
             controlled_lanes = traci.trafficlight.getControlledLanes(tls_id)
             if lane_id in controlled_lanes and traci.lane.getLength(lane_id) - traci.person.getLanePosition(ego_id) < 3:
-                self.lane_id = lane_id
-                return True
-                
+                # vru is at a walking area controlled by a traffic light
+                # vru is at the end of the lane
+                next_road_id = traci.person.getNextEdge(ego_id)
+                if "c" in next_road_id:
+                    # vru is going to cross the road
+                    all_traffic_light_state = traci.trafficlight.getRedYellowGreenState(tls_id)
+                    controlled_links = traci.trafficlight.getControlledLinks(tls_id)
+                    for index in range(len(controlled_links)):
+                        if controlled_links[index] and lane_id in controlled_links[index][0]:
+                            if all_traffic_light_state[index] == "r":
+                                # the traffic light is red
+                                self.next_crossroad_id = next_road_id
+                                return True
         return False
     
     def derive_command(self, obs_dict) -> addict.Dict:
@@ -41,12 +51,13 @@ class RunningRedLightAdversity(AbstractAdversity):
             ego_id = obs_dict["ego"]["vru_id"]
             speed = traci.person.getMaxSpeed(ego_id)
             distance = speed * (traci.simulation.getDeltaT())
-            current_angle = traci.person.getAngle(ego_id)
-            radians = math.radians(current_angle)
+            lane_shape = traci.lane.getShape(self.next_crossroad_id+"_0")
+            future_angle = math.degrees(math.atan2(lane_shape[-1][0] - lane_shape[0][0], lane_shape[-1][1] - lane_shape[0][1]))
+            radians = math.radians(future_angle)
             current_time = traci.simulation.getTime()
             dt = traci.simulation.getDeltaT()
             current_pos = traci.person.getPosition(ego_id)
-            total_length = traci.lane.getLength(self.lane_id)
+            total_length = traci.lane.getLength(self.next_crossroad_id+"_0")
             duration = round(total_length / speed, 1)
             trajectory = []
             new_pos = (
@@ -58,7 +69,7 @@ class RunningRedLightAdversity(AbstractAdversity):
                     [
                         new_pos[0] + i * distance * math.sin(radians), # x
                         new_pos[1] + i * distance * math.cos(radians), # y
-                        current_angle, # angle
+                        future_angle, # angle
                         speed, # speed
                         current_time + i * dt, # time
                     ]
@@ -73,9 +84,9 @@ class RunningRedLightAdversity(AbstractAdversity):
             negligence_command.info.update(
                 {
                     "speed": speed,
-                    "angle": current_angle,
+                    "angle": future_angle,
                     "mode": "negligence",
-                    "negligence_mode": "Jaywalking",
+                    "negligence_mode": "RunningRedLight",
                     "time_resolution": 0.1,
                     "predicted_collision_type": self._predicted_collision_type,
                     "location": self._location,
