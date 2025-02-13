@@ -1,3 +1,8 @@
+<div align="center">
+<p align="center">
+
+<img src="docs/figure/logo.png" height="100px">
+
 # TeraSim-NDE-NADE
 
 ## 🚀 Introduction
@@ -22,7 +27,7 @@ TeraSim-NDE-NADE is the traffic environment for TeraSim, which is an advanced **
 ## 🏗 Code Architecture
 
 ### System Architecture
-![NDE-NADE Architecture](docs/figures/NDE-NADE-architecture.svg)
+![NDE-NADE Architecture](docs/figure/NDE-NADE-architecture.svg)
 
 ## 🔧 Installation & Configuration
 
