@@ -5,11 +5,6 @@ import numpy
 
 extensions = [
     Extension(
-        "terasim_nde_nade.vehicle.nde_vehicle_utils_cython",
-        ["terasim_nde_nade/vehicle/nde_vehicle_utils_cython.pyx"],
-        include_dirs=[numpy.get_include()],
-    ),
-    Extension(
         "terasim_nde_nade.utils.collision.collision_check_cy",
         ["terasim_nde_nade/utils/collision/collision_check_cy.pyx"],
         include_dirs=[numpy.get_include()],

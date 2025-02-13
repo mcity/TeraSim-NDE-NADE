@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from terasim.overlay import traci, profile
-from terasim_nde_nade.vehicle.nde_vehicle_utils import CommandType
+from terasim_nde_nade.utils import CommandType
 
 
 @dataclass

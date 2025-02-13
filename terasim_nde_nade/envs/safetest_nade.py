@@ -9,7 +9,7 @@ from terasim.utils import (
     sumo_coordinate_to_center_coordinate,
     sumo_heading_to_orientation,
 )
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
+from terasim_nde_nade.utils import (
     get_collision_type_and_prob,
     CommandType,
     NDECommand,
@@ -18,7 +18,7 @@ from terasim_nde_nade.vehicle.nde_vehicle_utils import (
     get_vehicle_info,
 )
 from shapely.geometry import LineString
-from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect
+from terasim_nde_nade.utils import collision_check, is_intersect
 from loguru import logger
 from addict import Dict
 from terasim.envs.template import EnvTemplate

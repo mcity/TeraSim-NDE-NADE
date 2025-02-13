@@ -5,8 +5,8 @@ import logging
 from terasim.overlay import traci
 import os
 import json
-import terasim_nde_nade.vehicle.nde_vehicle_utils as nde_utils
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
+import terasim_nde_nade.utils as nde_utils
+from terasim_nde_nade.utils import (
     get_collision_type_and_prob,
     CommandType,
     NDECommand,

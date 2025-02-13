@@ -4,12 +4,12 @@ import numpy as np
 cimport numpy as np
 from shapely.geometry import LineString
 
-from ..geometry.geometry_utils import (
+from ..geometry.geometry_utils_cy import (
     calculate_distance,
     get_circle_centers,
-    calculate_circle_radius
+    calculate_circle_radius,
 )
-from ..trajectory.trajectory_utils import sumo_trajectory_to_normal_trajectory
+from ..trajectory.trajectory_utils_cy import sumo_trajectory_to_normal_trajectory
 
 # Constants
 DEFAULT_DISTANCE_THRESHOLD = 30.0

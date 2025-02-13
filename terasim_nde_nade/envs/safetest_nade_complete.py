@@ -10,17 +10,22 @@ from terasim.utils import (
     sumo_coordinate_to_center_coordinate,
     sumo_heading_to_orientation,
 )
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    get_collision_type_and_prob,
+from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
-    TrajectoryPoint,
     predict_future_trajectory,
-    get_vehicle_info,
+    check_collision,
+    is_intersect,
+    is_intersect_new,
+    sumo_trajectory_to_normal_trajectory,
+    get_circle_center_list_new,
 )
-from terasim_nde_nade.vru.nde_vru_utils import get_vulnerbale_road_user_info, predict_future_trajectory_vulnerable_road_user
+from terasim_nde_nade.utils.agents.vru import (
+    VulnerableRoadUserInfoForPredict,
+    get_vulnerbale_road_user_info,
+    predict_future_trajectory_vulnerable_road_user,
+)
 from shapely.geometry import LineString
-from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect, is_intersect_new, sumo_trajectory_to_normal_trajectory, get_circle_center_list_new
 from loguru import logger
 from addict import Dict
 from terasim.envs.template import EnvTemplate
@@ -1312,7 +1317,7 @@ class SafeTestNADEComplete(BaseEnv):
                 #     tem_len,
                 #     circle_r + buffer,
                 # ) # TODO: consider different vehicle length between the two colliding vehicles or vehicle and vulnerable road user
-                collision_flag = is_intersect_new(
+                collision_flag = is_intersect(
                     negligence_agent_future,
                     all_normal_agent_future[agent_id],
                     obs_dicts[negligence_agent_type][negligence_agent_id]['ego']['length'],

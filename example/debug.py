@@ -6,7 +6,7 @@ from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
 from terasim.logger.infoextractor import InfoExtractor
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 from terasim.overlay import traci
-from terasim_nde_nade.vehicle.nde_vehicle_utils import get_future_position_on_route
+from terasim_nde_nade.utils import get_future_position_on_route
 import sumolib
 
 parser = argparse.ArgumentParser(description="Run simulation.")

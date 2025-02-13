@@ -2,7 +2,10 @@ import math
 from terasim.overlay import traci
 import sumolib
 from typing import List, Tuple, Dict, Any, Optional, Callable
-from .base import AgentInfo
+from dataclasses import dataclass
+from terasim_nde_nade.utils.agents.base import AgentInfo
+from collections import namedtuple
+
 
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])

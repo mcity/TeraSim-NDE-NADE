@@ -57,7 +57,7 @@ def main(cfg: DictConfig) -> None:
         sumo_net_file_path=dir_path / "maps" / "town10" / "town10.net.xml",
         sumo_config_file_path=dir_path / "maps" / "town10" / "town10.sumocfg",
         num_tries=10,
-        gui_flag=True,
+        gui_flag=False,
         output_path=base_dir,
         sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
     )

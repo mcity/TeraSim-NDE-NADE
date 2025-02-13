@@ -1,6 +1,6 @@
 import addict
 
-from terasim_nde_nade.vehicle.nde_vehicle_utils import get_location, is_head_on
+from terasim_nde_nade.utils import get_location, is_head_on
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
 from terasim_nde_nade.adversity.adversity import derive_leader_negligence_command
 

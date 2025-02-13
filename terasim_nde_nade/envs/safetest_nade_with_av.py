@@ -2,7 +2,7 @@ from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
 from terasim.overlay import traci
 import terasim.utils as utils
 import numpy as np
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
+from terasim_nde_nade.utils import (
     NDECommand,
     CommandType,
     get_collision_type_and_prob,

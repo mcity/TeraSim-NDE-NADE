@@ -1,12 +1,9 @@
 from terasim.agent.agent_controller import AgentController
 import terasim.utils as utils
 import random
-from .nde_vehicle_utils import (
-    get_next_lane_edge,
-    get_neighbour_lane,
+from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
-    TrajectoryPoint,
     interpolate_future_trajectory,
 )
 from terasim.overlay import traci

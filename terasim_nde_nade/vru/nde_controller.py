@@ -1,7 +1,7 @@
 from terasim.agent.agent_controller import AgentController
 import terasim.utils as utils
 import random
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
+from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
     TrajectoryPoint,
