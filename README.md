@@ -3,6 +3,9 @@
 
 <img src="docs/figure/logo.png" height="200px">
 
+</p>
+</div>
+
 ## 🚀 Introduction
 
 ### What is TeraSim-NDE-NADE?
