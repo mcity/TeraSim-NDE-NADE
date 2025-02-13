@@ -1,70 +1,88 @@
-# TeraSim-NDE-ITE
+# TeraSim-NDE-NADE
 
-## I. Introduction
+## 🚀 Introduction
 
-### About
-This repository provides a package for simulation naturalistic driving environment (NDE) and intelligent testing environment (ITE) in an arbitrary SUMO traffic network. It is developed by the [Michigan Traffic Lab](https://traffic.engin.umich.edu/) at the University of Michigan.
+### What is TeraSim-NDE-NADE?
+TeraSim-NDE-NADE is the traffic environment for TeraSim, which is an advanced **generative simulation framework** designed for testing autonomous vehicles (AVs) in **naturalistic** and **adversarial** environments. Unlike traditional scenario-based approaches, our method generates interactive, real-world-like traffic environments to **accelerate AV safety testing by 10³ - 10⁵ times**.
 
+### Key Features
+- **Naturalistic Driving Environment (NDE):**
+  - Trained and calibrated using **large-scale real-world driving data**
+  - Fully **interactive and dynamic**
+- **Adversity Injection:**
+  - **Vehicle Adversity** (e.g., aggressive lane changes, hard braking)
+  - **Vulnerable Road User (VRU) Adversity** (e.g., jaywalking, running red lights)
+  - **Static Adversity** (e.g., construction zones, faulty traffic signals)
+  - Includes **trigger conditions, effects, and probability modeling**
+- **Neural Adversarial Driving Environment (NADE):**
+  - **AI-powered dynamic control of adversity injection**
+  - **Optimized based on real-world accident data**
+  - **Ensures large-scale, accelerated safety evaluation**
 
-### Features
-The code in this repository provides the following features:
-- Simulation of NDE and ITE in an arbitrary SUMO traffic network
-- Generation of NDE and ITE trajectories
+## 🏗 Code Architecture
 
-### Code Structure
-The code is organized into different modules or files. Here's a brief overview of their purpose:
+### System Architecture
+![NDE-NADE Architecture](docs/figures/NDE-NADE-architecture.svg)
 
-- **envs**: This folder contains three different traffic environments: NDE, ITE and ITE with AV
-- **vehicle**: This folder contains the vehicle model, including the negligence-based driver model and BV control model.
+## 🔧 Installation & Configuration
 
-## II. Installation and Environment Configuration
-
-### Pre-Requirements
-TeraSim-NDE-ITE requires following packages to be installed: TeraSim (https://github.com/michigan-traffic-lab/TeraSim)
-
+### 1. Install Dependencies
+Ensure you have **TeraSim** installed:
 ```bash
 git clone https://github.com/michigan-traffic-lab/TeraSim
 cd TeraSim
 pip install -e .
 cd ..
 ```
-Also, please refer to the README of TeraSim for the installation of SUMO and other dependencies.
 
-### Installation and Configuration Steps
-
-First, install Poetry if you haven't already:
+### 2. Install Poetry (if not already installed)
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-Then install the project using Poetry:
+### 3. Install TeraSim-NDE-NADE
 ```bash
 git clone https://github.com/michigan-traffic-lab/TeraSim-NDE-ITE
 cd TeraSim-NDE-ITE
 poetry install
 ```
 
-## Usage
+## 📌 Usage Example
 
+### 1. Run a basic simulation
+```python
+from terasim import NDE
+env = NDE()
+env.run()
+```
+
+### 2. Run a complete scenario
 ```bash
 python ./example/safetest_mcity_main.py
 ```
 
-## Contributing
+## 🤝 Contributing
 
-Contributions to open-source projects are encouraged. Provide a template for this section, including instructions on how to fork the project and create feature branches.
+We welcome contributions to improve **TeraSim-NDE-NADE**! To contribute:
 
-## VIII. Developers
+1. **Fork** the repository
+2. **Create a feature branch** (`feature-new-adversity-model`)
+3. **Submit a Pull Request (PR)**
+4. **Join the discussion and help advance AV safety testing!**
 
-- Haowei Sun (haoweis@umich.edu)
-- Haojie Zhu (zhuhj@umich.edu)
-
-## IX. Contact
-
-- Henry Liu (henryliu@umich.edu)
-
-# Demo
-
-A quick demo is provided to showcase how to run the code for the main purpose of the repository.
+## 🎬 Demo
 
 ![Demo](./demo.gif)
+
+## 📩 Contact
+
+For any inquiries, feel free to reach out:
+
+- **Henry Liu** - henryliu@umich.edu  
+- **Haowei Sun** - haoweis@umich.edu  
+- **Haojie Zhu** - zhuhj@umich.edu  
+
+---
+
+Join us in making **autonomous vehicles safer** with **realistic, generative simulation**! 🚗💡
+
