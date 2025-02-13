@@ -1,9 +1,9 @@
 from addict import Dict
 import random
 
-from terasim_nde_nade.adversity.utils.adversity_builder import build_adversities
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+from terasim_nde_nade.utils.adversity.adversity_builder import build_adversities
+from terasim_nde_nade.utils import (
+    CommandType,
     NDECommand,
 )
 
@@ -36,7 +36,7 @@ class AdversityManager():
         #     obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
         # )
         command_dict["normal"] = NDECommand(
-            command_type=Command.DEFAULT,
+            command_type=CommandType.DEFAULT,
             prob=normal_prob,
             # info={"vehicle_location": vehicle_location},
         )

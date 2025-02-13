@@ -1,7 +1,7 @@
 from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
 from terasim.overlay import traci
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+from terasim_nde_nade.utils import (
+    CommandType,
     NDECommand,
     get_location,
 )

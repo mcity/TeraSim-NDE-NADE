@@ -1,8 +1,8 @@
 import addict
 
 from terasim.overlay import traci
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+from terasim_nde_nade.utils import (
+    CommandType,
     NDECommand,
 )
 
@@ -34,7 +34,7 @@ def derive_lane_change_negligence_command(obs_dict, highlight_flag=False, highli
             follower_mingap = traci.vehicle.getMinGap(left_follower[0][0])
             if left_follower[0][1] + follower_mingap > -2:
                 negligence_command_dict["LeftFoll"] = NDECommand(
-                    command_type=Command.LEFT, duration=1.0
+                    command_type=CommandType.LEFT, duration=1.0
                 )
                 negligence_command_dict["LeftFoll"].info.update(
                     {"mode": "negligence", "negligence_mode": "LeftFoll"}
@@ -55,7 +55,7 @@ def derive_lane_change_negligence_command(obs_dict, highlight_flag=False, highli
             # the right follower is close to the ego vehicle
             if right_follower[0][1] + follower_mingap > -2:
                 negligence_command_dict["RightFoll"] = NDECommand(
-                    command_type=Command.RIGHT, duration=1.0
+                    command_type=CommandType.RIGHT, duration=1.0
                 )
                 negligence_command_dict["RightFoll"].info.update(
                     {"mode": "negligence", "negligence_mode": "RightFoll"}

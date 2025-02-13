@@ -1,32 +1,26 @@
-from terasim_nde_nade.envs.safetest_nde import SafeTestNDE
-from terasim_nde_nade.envs.safetest_nde_complete import SafeTestNDEComplete
-import sumolib
-from terasim.overlay import traci
-import terasim.utils as utils
 import numpy as np
 import math
 import os
-from terasim.utils import (
-    sumo_coordinate_to_center_coordinate,
-    sumo_heading_to_orientation,
-)
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    get_collision_type_and_prob,
-    Command,
-    NDECommand,
-    TrajectoryPoint,
-    predict_future_trajectory,
-    get_vehicle_info,
-)
-from terasim_nde_nade.vru.nde_vru_utils import get_vulnerbale_road_user_info, predict_future_trajectory_vulnerable_road_user
-from shapely.geometry import LineString
-from terasim_nde_nade.vehicle.nde_vehicle_utils import collision_check, is_intersect, is_intersect_new, sumo_trajectory_to_normal_trajectory, get_circle_center_list_new
 from loguru import logger
 from addict import Dict
-from terasim.envs.template import EnvTemplate
-from terasim.envs.template_complete import EnvTemplateComplete
 import json
-from terasim.overlay import profile
+
+from terasim_nde_nade.envs.safetest_nde_complete import SafeTestNDEComplete
+from terasim.overlay import traci, profile
+import terasim.utils as utils
+from terasim_nde_nade.utils import (
+    CommandType,
+    NDECommand,
+    predict_future_trajectory,
+    is_intersect,
+    get_vehicle_info,
+)
+from terasim_nde_nade.utils.agents.vru import (
+    get_vulnerbale_road_user_info,
+    predict_future_trajectory_vulnerable_road_user,
+)
+
+from terasim.envs.template_complete import EnvTemplateComplete
 from terasim.params import AgentType
 
 veh_length = 5.0
@@ -168,7 +162,7 @@ class SafeTestNADEComplete(BaseEnv):
         for veh_id in NeuralNDE_control_commands:
             if (
                 veh_id in NADE_control_commands
-                and NADE_control_commands[veh_id].command_type == Command.DEFAULT
+                and NADE_control_commands[veh_id].command_type == CommandType.DEFAULT
             ):
                 NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
                 NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
@@ -462,8 +456,8 @@ class SafeTestNADEComplete(BaseEnv):
                     or ITE_control_cmds[agent_type][agent_id].info.get("mode") == "negligence"
                     or ITE_control_cmds[agent_type][agent_id].info.get("mode") == "accept_collision"
                 ):
-                    if ITE_control_cmds[agent_type][agent_id].command_type == Command.ACCELERATION:
-                        ITE_control_cmds[agent_type][agent_id].command_type = Command.TRAJECTORY
+                    if ITE_control_cmds[agent_type][agent_id].command_type == CommandType.ACCELERATION:
+                        ITE_control_cmds[agent_type][agent_id].command_type = CommandType.TRAJECTORY
                         ITE_control_cmds[agent_type][agent_id].future_trajectory = trajectory_dicts[agent_type][
                             agent_id
                         ][ITE_control_cmds[agent_type][agent_id].info.get("mode")]
@@ -563,7 +557,7 @@ class SafeTestNADEComplete(BaseEnv):
             neglected_vehicle_id
         )
         avoidance_command = NDECommand(
-            command_type=Command.ACCELERATION,
+            command_type=CommandType.ACCELERATION,
             acceleration=-emergency_brake_deceleration,
             prob=0,
             duration=3,
@@ -887,7 +881,7 @@ class SafeTestNADEComplete(BaseEnv):
 
     def get_accept_collision_command(self):
         accept_command = NDECommand(
-            command_type=Command.ACCELERATION,
+            command_type=CommandType.ACCELERATION,
             acceleration=0,
             prob=0,
             duration=2,
@@ -1228,7 +1222,7 @@ class SafeTestNADEComplete(BaseEnv):
                 if maneuver_challenge_dicts_veh[veh_id].get("negligence")
             }
         )
-        for veh_id in maneuver_challenge_dicts_veh:
+        for veh_id in maneuver_challenge_dicts_veh_shrinked:
             self.avoidable_maneuver_challenge_hook(veh_id)
         conflict_vehicle_info = Dict(
             {
@@ -1312,7 +1306,7 @@ class SafeTestNADEComplete(BaseEnv):
                 #     tem_len,
                 #     circle_r + buffer,
                 # ) # TODO: consider different vehicle length between the two colliding vehicles or vehicle and vulnerable road user
-                collision_flag = is_intersect_new(
+                collision_flag = is_intersect(
                     negligence_agent_future,
                     all_normal_agent_future[agent_id],
                     obs_dicts[negligence_agent_type][negligence_agent_id]['ego']['length'],

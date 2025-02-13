@@ -27,6 +27,7 @@ python = "^3.10"
 Cython = "^3.0.8"
 shapely = "^2.0.3"
 toml = "^0.10.2"
+loguru = "^0.7.0"
 
 [tool.poetry.build]
 script = "build.py"

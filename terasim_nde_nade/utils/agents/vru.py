@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from terasim.overlay import traci, profile
-from terasim_nde_nade.vehicle.nde_vehicle_utils import Command
+from terasim_nde_nade.utils import CommandType
 
 
 @dataclass
@@ -67,7 +67,7 @@ def predict_future_trajectory_vulnerable_road_user(modality, vru_info, control_c
     if modality == "normal":
         return None
     elif modality == "negligence":
-        assert control_command_dict[modality].command_type == Command.TRAJECTORY
+        assert control_command_dict[modality].command_type == CommandType.TRAJECTORY
         future_trajectory_array = [[
                 vru_info.position[0],
                 vru_info.position[1],

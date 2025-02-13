@@ -1,7 +1,7 @@
 from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
 from terasim.overlay import traci
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+from terasim_nde_nade.utils import (
+    CommandType,
     NDECommand,
     get_location,
 )
@@ -32,7 +32,7 @@ class ConflictGenerationModel(BaseModel):
             return safe_nde_control_command, {
                 "ndd_command_distribution": {
                     "normal": NDECommand(
-                        command_type=Command.DEFAULT,
+                        command_type=CommandType.DEFAULT,
                         prob=1,
                         info={"vehicle_location": vehicle_location},
                     )

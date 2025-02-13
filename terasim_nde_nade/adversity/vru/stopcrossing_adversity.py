@@ -4,8 +4,8 @@ import random
 
 from terasim.overlay import traci
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+from terasim_nde_nade.utils import (
+    CommandType,
     NDECommand,
 )
 
@@ -62,7 +62,7 @@ class StopCrossingAdversity(AbstractAdversity):
                     ]
                 )
             negligence_command = NDECommand(
-                command_type=Command.TRAJECTORY,
+                command_type=CommandType.TRAJECTORY,
                 future_trajectory=trajectory,
                 duration=duration,
                 prob=self._probability,

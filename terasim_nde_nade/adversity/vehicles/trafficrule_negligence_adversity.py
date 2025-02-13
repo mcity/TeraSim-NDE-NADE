@@ -1,8 +1,8 @@
 import addict
 
-from terasim_nde_nade.vehicle.nde_vehicle_utils import get_location
+from terasim_nde_nade.utils import get_location
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.adversity.utils import derive_traffic_rule_negligence_command
+from terasim_nde_nade.utils.adversity import derive_traffic_rule_negligence_command
 
 
 class TrafficRuleNegligenceAdversity(AbstractAdversity):

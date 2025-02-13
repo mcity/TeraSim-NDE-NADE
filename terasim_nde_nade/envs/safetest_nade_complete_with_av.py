@@ -1,10 +1,10 @@
-from terasim_nde_nade.envs.safetest_nade import SafeTestNADE
+from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
 from terasim.overlay import traci
 import terasim.utils as utils
 import numpy as np
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
+from terasim_nde_nade.utils import (
     NDECommand,
-    Command,
+    CommandType,
     get_collision_type_and_prob,
     is_car_following,
 )
@@ -15,7 +15,7 @@ from terasim.envs.template import EnvTemplate
 import random
 
 
-class SafeTestNADEWithAV(SafeTestNADE):
+class SafeTestNADECompleteWithAV(SafeTestNADEComplete):
 
     def __init__(self, cache_radius=100, control_radius=50, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -145,17 +145,17 @@ class SafeTestNADEWithAV(SafeTestNADE):
             veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
                 {
                     "negligence": predicted_CAV_control_command,
-                    "normal": NDECommand(command_type=Command.DEFAULT, prob=0),
+                    "normal": NDECommand(command_type=CommandType.DEFAULT, prob=0),
                 }
             )
         else:
             veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
                 {
-                    "normal": NDECommand(command_type=Command.DEFAULT, prob=1),
+                    "normal": NDECommand(command_type=CommandType.DEFAULT, prob=1),
                 }
             )
         CAV_command_cache = copy.deepcopy(control_command_dicts["CAV"])
-        control_command_dicts["CAV"] = NDECommand(command_type=Command.DEFAULT, prob=1)
+        control_command_dicts["CAV"] = NDECommand(command_type=CommandType.DEFAULT, prob=1)
         (
             ITE_control_command_dicts,
             veh_ctx_dicts,
@@ -346,14 +346,14 @@ class SafeTestNADEWithAV(SafeTestNADE):
 
         if angle_diff > 10:
             CAV_command = NDECommand(
-                command_type=Command.LEFT,
+                command_type=CommandType.LEFT,
                 prob=1,
                 duration=1.0,
                 info={"negligence_mode": "LeftFoll"},
             )
         elif angle_diff < -10:
             CAV_command = NDECommand(
-                command_type=Command.RIGHT,
+                command_type=CommandType.RIGHT,
                 prob=1,
                 duration=1.0,
                 info={"negligence_mode": "RightFoll"},
@@ -366,7 +366,7 @@ class SafeTestNADEWithAV(SafeTestNADE):
             if leader_info is not None:
                 is_car_following_flag = is_car_following("CAV", leader_info[0])
             CAV_command = NDECommand(
-                command_type=Command.ACCELERATION,
+                command_type=CommandType.ACCELERATION,
                 acceleration=original_cav_acceleration,
                 prob=1,
                 duration=1.0,

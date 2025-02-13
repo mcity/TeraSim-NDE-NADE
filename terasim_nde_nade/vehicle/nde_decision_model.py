@@ -5,10 +5,10 @@ import logging
 from terasim.overlay import traci
 import os
 import json
-import terasim_nde_nade.vehicle.nde_vehicle_utils as nde_utils
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
+import terasim_nde_nade.utils as nde_utils
+from terasim_nde_nade.utils import (
     get_collision_type_and_prob,
-    Command,
+    CommandType,
     NDECommand,
     TrajectoryPoint,
     is_car_following,
@@ -74,8 +74,8 @@ class NDEDecisionModel(IDMModel):
                 obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
             )
         # let the vehicle to be controlled by SUMO
-        return NDECommand(command_type=Command.DEFAULT, prob=1), {
+        return NDECommand(command_type=CommandType.DEFAULT, prob=1), {
             "ndd_command_distribution": {
-                "normal": NDECommand(command_type=Command.DEFAULT, prob=1)
+                "normal": NDECommand(command_type=CommandType.DEFAULT, prob=1)
             }
         }

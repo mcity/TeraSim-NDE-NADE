@@ -1,8 +1,8 @@
 from terasim.agent.agent_controller import AgentController
 import terasim.utils as utils
 import random
-from terasim_nde_nade.vehicle.nde_vehicle_utils import (
-    Command,
+from terasim_nde_nade.utils import (
+    CommandType,
     NDECommand,
     TrajectoryPoint,
     interpolate_future_trajectory,
@@ -59,10 +59,10 @@ class NDEVulnerableRoadUserController(AgentController):
             traci.person.remove(vru_id)
             return
         if not self.is_busy:
-            if control_command.command_type == Command.DEFAULT:
+            if control_command.command_type == CommandType.DEFAULT:
                 # all_checks_on(veh_id)
                 return
-            elif control_command.command_type == Command.CUSTOM:
+            elif control_command.command_type == CommandType.CUSTOM:
                 self.cached_control_command = Dict(
                     {
                         "timestep": traci.simulation.getTime(),
@@ -95,7 +95,7 @@ class NDEVulnerableRoadUserController(AgentController):
     def execute_control_command_onestep(
         self, veh_id, cached_control_command, obs_dict, first_step=False
     ):
-        if cached_control_command["cached_command"].command_type == Command.CUSTOM:
+        if cached_control_command["cached_command"].command_type == CommandType.CUSTOM:
             if (
                 cached_control_command["cached_command"].custom_control_command
                 is not None
@@ -116,14 +116,14 @@ class NDEVulnerableRoadUserController(AgentController):
                 )
                 return
 
-        if cached_control_command["cached_command"].command_type == Command.TRAJECTORY:
+        if cached_control_command["cached_command"].command_type == CommandType.TRAJECTORY:
             # pass
             self.execute_trajectory_command(
                 veh_id, cached_control_command["cached_command"], obs_dict
             )
         elif (
-            cached_control_command["cached_command"].command_type == Command.LEFT
-            or cached_control_command["cached_command"].command_type == Command.RIGHT
+            cached_control_command["cached_command"].command_type == CommandType.LEFT
+            or cached_control_command["cached_command"].command_type == CommandType.RIGHT
         ):
             self.execute_lane_change_command(
                 veh_id,
@@ -133,7 +133,7 @@ class NDEVulnerableRoadUserController(AgentController):
             )
         elif (
             cached_control_command["cached_command"].command_type
-            == Command.ACCELERATION
+            == CommandType.ACCELERATION
         ):
             self.execute_acceleration_command(
                 veh_id, cached_control_command["cached_command"], obs_dict
@@ -144,7 +144,7 @@ class NDEVulnerableRoadUserController(AgentController):
 
     @staticmethod
     def execute_trajectory_command(veh_id, control_command, obs_dict):
-        assert control_command.command_type == Command.TRAJECTORY
+        assert control_command.command_type == CommandType.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
         trajectory_array = control_command.future_trajectory
         current_timestep = traci.simulation.getTime()
@@ -165,7 +165,7 @@ class NDEVulnerableRoadUserController(AgentController):
         )
 
 def interpolate_control_command(control_command):
-    if control_command.command_type == Command.TRAJECTORY:
+    if control_command.command_type == CommandType.TRAJECTORY:
         # control_command.future_trajectory = interpolate_future_trajectory(
         #     control_command.future_trajectory, 0.1
         # )  # TODO: Angle cannot be interpolated

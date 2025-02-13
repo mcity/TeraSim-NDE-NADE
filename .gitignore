@@ -159,3 +159,4 @@ monitor.json
 *.c
 /dist_pyarmor
 env_monitor.py
+outputs/
