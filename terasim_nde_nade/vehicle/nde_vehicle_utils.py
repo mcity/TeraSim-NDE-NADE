@@ -15,7 +15,7 @@ from loguru import logger
 
 # Define the TrajectoryPoint named tuple
 TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
-from terasim_nde_nade.vehicle.nde_vehicle_utils_cython import *
+from terasim_nde_nade.utils import *
 from terasim.overlay import profile
 from typing import List, Tuple, Dict, Any, Optional, Callable
 from pydantic import BaseModel, validator
