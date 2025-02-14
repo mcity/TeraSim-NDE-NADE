@@ -8,7 +8,7 @@ from loguru import logger
 from terasim.envs.template import EnvTemplate
 from terasim.overlay import traci
 
-from terasim_nde_nade.envs.safetest_nade_complete import SafeTestNADEComplete
+from terasim_nde_nade.envs.nade import NADE
 from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
@@ -17,7 +17,7 @@ from terasim_nde_nade.utils import (
 )
 
 
-class SafeTestNADECompleteWithAV(SafeTestNADEComplete):
+class NADEWithAV(NADE):
     def __init__(self, cache_radius=100, control_radius=50, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cache_radius = cache_radius

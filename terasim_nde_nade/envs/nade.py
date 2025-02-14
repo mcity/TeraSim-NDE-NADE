@@ -10,7 +10,7 @@ from terasim.envs.template_complete import EnvTemplateComplete
 from terasim.overlay import profile, traci
 from terasim.params import AgentType
 
-from terasim_nde_nade.envs.safetest_nde_complete import SafeTestNDEComplete
+from terasim_nde_nade.envs.nde import NDE
 from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
@@ -46,10 +46,10 @@ class Point:
         return "({}, {})".format(self.x, self.y)
 
 
-BaseEnv = SafeTestNDEComplete  # SafeTestNDE
+BaseEnv = NDE  # SafeTestNDE
 
 
-class SafeTestNADEComplete(BaseEnv):
+class NADE(BaseEnv):
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
         self.max_importance_sampling_prob = 5e-2

@@ -10,7 +10,7 @@ from terasim.overlay import traci
 from terasim.params import AgentType
 
 
-class SafeTestNDEComplete(EnvTemplateComplete):
+class NDE(EnvTemplateComplete):
     def __init__(
         self,
         vehicle_factory,

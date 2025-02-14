@@ -5,8 +5,8 @@ from loguru import logger
 from terasim.logger.infoextractor import InfoExtractor
 from terasim.simulator import Simulator
 
-from terasim_nde_nade.envs.safetest_nade_complete_with_av import (
-    SafeTestNADECompleteWithAV,
+from terasim_nde_nade.envs.nade_with_av import (
+    NADEWithAV,
 )
 from terasim_nde_nade.vehicle.nde_vehicle_factory import NDEVehicleFactory
 
@@ -39,7 +39,7 @@ logger.add(
     serialize=True,
 )
 
-env = SafeTestNADECompleteWithAV(
+env = NADEWithAV(
     vehicle_factory=NDEVehicleFactory(),
     info_extractor=InfoExtractor,
     log_flag=True,
