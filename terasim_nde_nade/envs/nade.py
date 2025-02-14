@@ -49,6 +49,84 @@ class Point:
 BaseEnv = NDE  # SafeTestNDE
 
 
+def get_ndd_distribution_from_ctx(ctx_dicts, agent_type):
+    ndd_control_command_dicts = Dict(
+        {
+            agent_id: ctx_dicts[agent_type][agent_id]["ndd_command_distribution"]
+            for agent_id in ctx_dicts[agent_type]
+        }
+    )
+    return ndd_control_command_dicts
+
+def update_ndd_distribution_to_vehicle_ctx(ctx_dicts, ndd_control_command_dicts):
+    for veh_id in ndd_control_command_dicts:
+        ctx_dicts[AgentType.VEHICLE][veh_id][
+            "ndd_command_distribution"
+        ] = ndd_control_command_dicts[veh_id]
+    return ctx_dicts
+
+def unavoidable_maneuver_challenge_hook(veh_id):
+    traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
+
+def negligence_hook(veh_id):
+    traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
+
+def avoidable_maneuver_challenge_hook(veh_id):
+    traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
+
+def get_vehicle_avoidance_command(
+    neglecting_vehicle_future,
+    neglected_vehicle_future,
+    neglecting_vehicle_id,
+    neglected_vehicle_id,
+    emergency_brake_deceleration
+):
+    avoidance_command = NDECommand(
+        command_type=CommandType.ACCELERATION,
+        acceleration=-emergency_brake_deceleration,
+        prob=0,
+        duration=3,
+    )
+    avoidance_command.info.update(
+        {
+            "mode": "avoid_collision",
+            "neglecting_vehicle_id": neglecting_vehicle_id,
+            "neglected_vehicle_id": neglected_vehicle_id,
+        }
+    )
+    return avoidance_command
+
+def get_accept_collision_command():
+    accept_command = NDECommand(
+        command_type=CommandType.ACCELERATION,
+        acceleration=0,
+        prob=0,
+        duration=2,
+    )
+    accept_command.info = {"mode": "accept_collision"}
+    return accept_command
+
+def is_link_intersect(veh1_obs, veh2_obs):
+    veh_1_edge_id = veh1_obs["ego"]["edge_id"]
+    veh_2_edge_id = veh2_obs["ego"]["edge_id"]
+    if veh_1_edge_id == veh_2_edge_id:
+        return True
+
+    veh1_next_lane_id_set = set(veh1_obs["ego"]["upcoming_lanes"])
+    veh2_next_lane_id_set = set(veh2_obs["ego"]["upcoming_lanes"])
+
+    if veh1_next_lane_id_set.intersection(veh2_next_lane_id_set):
+        return True
+
+    veh1_foe_lane_id_set = set(veh1_obs["ego"]["upcoming_foe_lane_id_list"])
+    veh2_foe_lane_id_set = set(veh2_obs["ego"]["upcoming_foe_lane_id_list"])
+
+    if veh1_foe_lane_id_set.intersection(
+        veh2_next_lane_id_set
+    ) or veh2_foe_lane_id_set.intersection(veh1_next_lane_id_set):
+        return True
+    return False
+
 class NADE(BaseEnv):
     def on_start(self, ctx):
         self.importance_sampling_weight = 1.0
@@ -201,52 +279,7 @@ class NADE(BaseEnv):
             distance_info_dict[veh_id] = traci.vehicle.getDistance(veh_id)
         return distance_info_dict
 
-    def record_final_data(self, veh_ctx_dicts):
-        # return False
-        collide_veh_list = traci.simulation.getCollidingVehiclesIDList()
-        if len(collide_veh_list) == 0:
-            veh_1_id, veh_2_id = None, None
-        elif len(collide_veh_list) >= 2:
-            veh_1_id, veh_2_id = collide_veh_list[:2]
-        else:
-            raise ValueError(
-                "The number of colliding vehicles is less than 2 but not 0."
-            )
-        experiments_infos = {
-            "veh_1_id": veh_1_id,
-            "veh_2_id": veh_2_id,
-            "end_time": utils.get_time(),
-            "negligence_mode": neg_mode,
-            "negligence_info": neg_info,
-            "negligence_time": neg_time,
-            "negligence_car": neg_car,
-            "avoid_collision_mode": avoid_mode,
-            "avoid_collision_info": avoid_info,
-            "avoid_collision_time": avoid_time,
-            "avoid_collision_car": avoid_car,
-            "accept_collision_mode": accept_mode,
-            "accept_collision_info": accept_info,
-            "accept_collision_time": accept_time,
-            "accept_collision_car": accept_car,
-            "distance": total_distance,
-            "end_reason": end_reason,
-            "num_maneuver_challenges": self.num_maneuver_challenges,
-            "veh_1_lane_id": (
-                traci.vehicle.getLaneID(veh_1_id) if veh_1_id is not None else None
-            ),
-            "veh_2_lane_id": (
-                traci.vehicle.getLaneID(veh_2_id) if veh_2_id is not None else None
-            ),
-        }
 
-    def get_time_to_collision(self, distance, speed):
-        if distance <= 0:
-            ttc = 0
-        elif speed <= 0:
-            ttc = 100
-        else:
-            ttc = distance / speed
-        return ttc
 
     @profile
     def NADE_decision(self, control_command_dicts, ctx_dicts, obs_dicts):
@@ -292,7 +325,7 @@ class NADE(BaseEnv):
         ) = self.modify_ndd_dict_according_to_avoidability(
             maneuver_challenge_dicts, ctx_dicts
         )
-        ctx_dicts = self.update_ndd_distribution_to_vehicle_ctx(
+        ctx_dicts = update_ndd_distribution_to_vehicle_ctx(
             ctx_dicts, modified_ndd_control_command_dicts
         )
 
@@ -302,10 +335,10 @@ class NADE(BaseEnv):
 
         # get the NDD distribution for each vehicle (after the collision avoidance command is added and the ndd probability is adjusted)
         ndd_control_command_dicts = {
-            AgentType.VEHICLE: self.get_ndd_distribution_from_ctx(
+            AgentType.VEHICLE: get_ndd_distribution_from_ctx(
                 ctx_dicts, AgentType.VEHICLE
             ),
-            AgentType.VULNERABLE_ROAD_USER: self.get_ndd_distribution_from_ctx(
+            AgentType.VULNERABLE_ROAD_USER: get_ndd_distribution_from_ctx(
                 ctx_dicts, AgentType.VULNERABLE_ROAD_USER
             ),
         }
@@ -355,14 +388,7 @@ class NADE(BaseEnv):
             criticality_dicts,
         )
 
-    def update_ndd_distribution_to_vehicle_ctx(
-        self, ctx_dicts, ndd_control_command_dicts
-    ):
-        for veh_id in ndd_control_command_dicts:
-            ctx_dicts[AgentType.VEHICLE][veh_id][
-                "ndd_command_distribution"
-            ] = ndd_control_command_dicts[veh_id]
-        return ctx_dicts
+    
 
     def remove_collision_avoidance_command_using_avoidability(
         self, obs_dicts, trajectory_dicts, ctx_dicts
@@ -401,15 +427,7 @@ class NADE(BaseEnv):
                             f"veh_id: {neglected_vehicle_id} is not avoidable from {neglecting_agent_id}, remove the collision avoidance command"
                         )
         return ctx_dicts
-
-    def get_ndd_distribution_from_ctx(self, ctx_dicts, agent_type):
-        ndd_control_command_dicts = Dict(
-            {
-                agent_id: ctx_dicts[agent_type][agent_id]["ndd_command_distribution"]
-                for agent_id in ctx_dicts[agent_type]
-            }
-        )
-        return ndd_control_command_dicts
+    
 
     @profile
     def predict_future_trajectory_dicts(self, obs_dicts, ctx_dicts):
@@ -421,7 +439,7 @@ class NADE(BaseEnv):
             AgentType.VULNERABLE_ROAD_USER: {},
         }
         # for vehicles
-        ndd_control_command_dicts = self.get_ndd_distribution_from_ctx(
+        ndd_control_command_dicts = get_ndd_distribution_from_ctx(
             ctx_dicts, AgentType.VEHICLE
         )
         for veh_id in ndd_control_command_dicts:
@@ -445,7 +463,7 @@ class NADE(BaseEnv):
             }
             trajectory_dicts[AgentType.VEHICLE][veh_id] = trajectory_dict
         # for vulnerable road_users
-        ndd_control_command_dicts = self.get_ndd_distribution_from_ctx(
+        ndd_control_command_dicts = get_ndd_distribution_from_ctx(
             ctx_dicts, AgentType.VULNERABLE_ROAD_USER
         )
         for vru_id in ndd_control_command_dicts:
@@ -497,7 +515,7 @@ class NADE(BaseEnv):
     def modify_ndd_dict_according_to_avoidability(
         self, maneuver_challenge_dicts, ctx_dicts
     ):
-        ndd_control_command_dicts = self.get_ndd_distribution_from_ctx(
+        ndd_control_command_dicts = get_ndd_distribution_from_ctx(
             ctx_dicts, AgentType.VEHICLE
         )
 
@@ -517,11 +535,10 @@ class NADE(BaseEnv):
                     logger.trace(
                         f"{veh_id} is marked as unavoidable collision and the prob is reduced to {ndd_control_command_dicts[veh_id]['negligence'].prob}"
                     )
-                    self.unavoidable_maneuver_challenge_hook(veh_id)
+                    unavoidable_maneuver_challenge_hook(veh_id)
         return ndd_control_command_dicts, ctx_dicts
 
-    def unavoidable_maneuver_challenge_hook(self, veh_id):
-        traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
+    
 
     def get_negligence_pair_dict(self, ctx_dicts, potential=False):
         """Get the negligence pair dict.
@@ -564,41 +581,6 @@ class NADE(BaseEnv):
             }
         return negligence_pair_dict
 
-    def get_vehicle_avoidance_command(
-        self,
-        neglecting_vehicle_future,
-        neglected_vehicle_future,
-        neglecting_vehicle_id,
-        neglected_vehicle_id,
-    ):
-        """Get the avoidance command for the neglecting vehicle.
-
-        Args:
-            neglecting_vehicle_future (list): the future trajectory of the neglecting vehicle
-            neglected_vehicle_future (list): the future trajectory of the neglected vehicle
-
-        Returns:
-            avoidance_command (dict): the avoidance command
-        """
-
-        emergency_brake_deceleration = traci.vehicle.getEmergencyDecel(
-            neglected_vehicle_id
-        )
-        avoidance_command = NDECommand(
-            command_type=CommandType.ACCELERATION,
-            acceleration=-emergency_brake_deceleration,
-            prob=0,
-            duration=3,
-        )  # by default, this avoidance command prob is 0, only when really being neglected, the prob will be updated
-        avoidance_command.info.update(
-            {
-                "mode": "avoid_collision",
-                "neglecting_vehicle_id": neglecting_vehicle_id,
-                "neglected_vehicle_id": neglected_vehicle_id,
-            }
-        )
-        return avoidance_command
-
     def add_avoid_accept_collision_command(
         self, obs_dicts, trajectory_dicts, ctx_dicts
     ):
@@ -617,11 +599,12 @@ class NADE(BaseEnv):
                 neglected_vehicle_future = trajectory_dicts[AgentType.VEHICLE][
                     neglected_vehicle_id
                 ]["normal"]
-                avoidance_command = self.get_vehicle_avoidance_command(
+                avoidance_command = get_vehicle_avoidance_command(
                     neglecting_vehicle_future,
                     neglected_vehicle_future,
                     neglecting_vehicle_id,
                     neglected_vehicle_id,
+                    traci.vehicle.getEmergencyDecel(neglecting_vehicle_id)
                 )
                 ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
                     "ndd_command_distribution"
@@ -643,7 +626,7 @@ class NADE(BaseEnv):
                     veh_info=None,
                 )
 
-                accept_command = self.get_accept_collision_command()
+                accept_command = get_accept_collision_command()
                 ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
                     "ndd_command_distribution"
                 ]["accept_collision"] = accept_command
@@ -690,11 +673,12 @@ class NADE(BaseEnv):
                 neglected_vehicle_future = trajectory_dicts[AgentType.VEHICLE][
                     neglected_vehicle_id
                 ]["normal"]
-                avoidance_command = self.get_vehicle_avoidance_command(
+                avoidance_command = get_vehicle_avoidance_command(
                     neglecting_vru_future,
                     neglected_vehicle_future,
                     neglecting_vru_id,
                     neglected_vehicle_id,
+                    traci.vehicle.getEmergencyDecel(neglecting_vru_id)
                 )
                 ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
                     "ndd_command_distribution"
@@ -716,7 +700,7 @@ class NADE(BaseEnv):
                     veh_info=None,
                 )
 
-                accept_command = self.get_accept_collision_command()
+                accept_command = get_accept_collision_command()
                 ctx_dicts[AgentType.VEHICLE][neglected_vehicle_id][
                     "ndd_command_distribution"
                 ]["accept_collision"] = accept_command
@@ -948,28 +932,6 @@ class NADE(BaseEnv):
 
         return ITE_control_command_dict, ctx_dicts, weight
 
-    def get_accept_collision_command(self):
-        accept_command = NDECommand(
-            command_type=CommandType.ACCELERATION,
-            acceleration=0,
-            prob=0,
-            duration=2,
-        )  # the vehicle will accept the final collision
-        accept_command.info = {"mode": "accept_collision"}
-        return accept_command
-
-    def get_neglecting_vehicle_id(self, control_command_dict, maneuver_challenge_info):
-        neglect_pair_list = []
-        for veh_id in control_command_dict:
-            control_command = control_command_dict[veh_id]
-            if "mode" in control_command and control_command["mode"] == "negligence":
-                neglecting_vehicle_id = veh_id
-                neglected_vehicle_id = list(
-                    maneuver_challenge_info[neglecting_vehicle_id].keys()
-                )
-                neglect_pair_list.append((neglecting_vehicle_id, neglected_vehicle_id))
-        return neglect_pair_list
-
     def NADE_importance_sampling(
         self,
         ndd_control_command_dicts,
@@ -1045,7 +1007,7 @@ class NADE(BaseEnv):
                         ] = ndd_control_command_dicts[agent_type][agent_id].negligence
                         ctx_dicts[agent_type][agent_id]["mode"] = "negligence"
                         if agent_type == AgentType.VEHICLE:
-                            self.negligence_hook(agent_id)
+                            negligence_hook(agent_id)
                         logger.info(
                             f"time: {utils.get_time()}, agent_id: {agent_id} select negligence control command, IS_prob: {IS_prob}, ndd_prob: {ndd_negligence_prob}, weight: {self.importance_sampling_weight}"
                         )
@@ -1062,8 +1024,7 @@ class NADE(BaseEnv):
         self.step_weight = weight
         return ITE_control_command_dict, ctx_dicts, weight, negligence_flag
 
-    def negligence_hook(self, veh_id):
-        traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
+    
 
     def get_IS_prob(
         self, agent_id, ndd_control_command_dicts, maneuver_challenge_dicts, ctx_dicts
@@ -1324,7 +1285,7 @@ class NADE(BaseEnv):
             }
         )
         for veh_id in maneuver_challenge_dicts_veh_shrinked:
-            self.avoidable_maneuver_challenge_hook(veh_id)
+            avoidable_maneuver_challenge_hook(veh_id)
         conflict_vehicle_info = Dict(
             {
                 AgentType.VEHICLE: {
@@ -1354,8 +1315,7 @@ class NADE(BaseEnv):
         }
         return maneuver_challenge_dicts, ctx_dicts
 
-    def avoidable_maneuver_challenge_hook(self, veh_id):
-        traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
+
 
     def get_maneuver_challenge(
         self,
@@ -1448,7 +1408,7 @@ class NADE(BaseEnv):
             return {"normal": 0}
 
     def get_criticality_dicts(self, maneuver_challenge_dicts, ctx_dicts):
-        ndd_control_command_dicts = self.get_ndd_distribution_from_ctx(
+        ndd_control_command_dicts = get_ndd_distribution_from_ctx(
             ctx_dicts, AgentType.VEHICLE
         )
         criticality_dicts = {}
@@ -1470,48 +1430,3 @@ class NADE(BaseEnv):
                 else {"normal": 0}
             )
         return criticality_dicts, ctx_dicts
-
-
-def is_link_intersect(veh1_obs, veh2_obs):
-    veh_1_edge_id = veh1_obs["ego"]["edge_id"]
-    veh_2_edge_id = veh2_obs["ego"]["edge_id"]
-    if veh_1_edge_id == veh_2_edge_id:
-        return True
-
-    veh1_next_lane_id_set = set(veh1_obs["ego"]["upcoming_lanes"])
-    veh2_next_lane_id_set = set(veh2_obs["ego"]["upcoming_lanes"])
-
-    if veh1_next_lane_id_set.intersection(veh2_next_lane_id_set):
-        return True
-
-    veh1_foe_lane_id_set = set(veh1_obs["ego"]["upcoming_foe_lane_id_list"])
-    veh2_foe_lane_id_set = set(veh2_obs["ego"]["upcoming_foe_lane_id_list"])
-
-    # if the next lane of the two vehicles are intersected
-    if veh1_foe_lane_id_set.intersection(
-        veh2_next_lane_id_set
-    ) or veh2_foe_lane_id_set.intersection(veh1_next_lane_id_set):
-        return True
-    return False
-
-
-def get_next_lane_id_set_from_next_links(next_links):
-    if len(next_links) == 0:
-        return None
-    next_lane_id = next_links[0][0]
-    via_lane_id = next_links[0][4]
-    return set([next_lane_id, via_lane_id])
-
-
-def get_longitudinal(control_command):
-    """Get the longitudinal control command
-
-    Args:
-        control_command (dict): control command
-
-    Returns:
-        longitudinal (float): longitudinal control command
-    """
-    if control_command["longitudinal"] == "SUMO":
-        return 0
-    return control_command["longitudinal"]
