@@ -73,5 +73,68 @@ We welcome contributions to improve **TeraSim-NDE-NADE**! To contribute:
 4. **Join the discussion and help advance AV safety testing!**
 
 
+## 🔄 System Workflow
+
+Below is a detailed workflow diagram showing the key processes in TeraSim-NDE-NADE:
+
+```mermaid
+  graph TD
+    subgraph NADE Main Process
+      start[Initialize: on_start] --> step[Main Loop: on_step]
+      step --> stop[Terminate: on_stop]
+    end
+    subgraph on_step Core Process
+      step --> getObs[Get Observation Data]
+      getObs --> makeDecisions[Make Environment Decisions]
+      makeDecisions --> executeMove[Execute Movement]
+      executeMove --> NADEDecision[NADE Decision Making]
+      NADEDecision --> applyCommands[Execute Control Commands]
+    end
+    subgraph NADE Decision Core Process
+      NADEDecision --> predictTrajectory[Predict Future Trajectories]
+      predictTrajectory --> getManeuverChallenge[Get Maneuver Challenges]
+      getManeuverChallenge --> getAvoidability[Calculate Avoidability]
+      getAvoidability --> addAvoidCommands[Add Avoidance Commands]
+      addAvoidCommands --> modifyNDD[Modify NDD Distribution]
+      modifyNDD --> getCriticality[Get Criticality Values]
+      getCriticality --> NADEImportanceSampling[NADE Importance Sampling]
+      NADEImportanceSampling --> applyCollisionAvoidance[Apply Collision Avoidance]
+    end
+    subgraph Maneuver Challenge Assessment
+      getManeuverChallenge --> getNormalTrajectories[Get Normal Trajectories]
+      getNormalTrajectories --> getNegligenceTrajectories[Get Negligence Trajectories]
+      getNegligenceTrajectories --> checkCollisions[Check Collisions]
+      checkCollisions --> updateContext[Update Context]
+    end
+    subgraph Importance Sampling Process
+      NADEImportanceSampling --> getISProb[Calculate IS Probability]
+      getISProb --> calculateWeight[Calculate Weights]
+      calculateWeight --> selectCommand[Select Control Command]
+    end
+    subgraph Collision Avoidance Process
+      applyCollisionAvoidance --> getNegligencePairs[Get Negligence Pairs]
+      getNegligencePairs --> checkAvoidability[Check Avoidability]
+      checkAvoidability --> selectAvoidanceCommand[Select Avoidance Command]
+      selectAvoidanceCommand --> updateWeight[Update Weights]
+    end
+    subgraph Data Recording and Updates
+      recordStep[Record Step Data]
+      recordNegligence[Record Negligence Information]
+      updateDistance[Update Distance]
+      calculateTotalDistance[Calculate Total Distance]
+      alignRecordEvent[Align Record Events]
+    end
+    %% Define key data flows
+    class NADEDecision,predictTrajectory,getManeuverChallenge,NADEImportanceSampling,applyCollisionAvoidance mainFlow;
+    class getISProb,calculateWeight,selectCommand samplingFlow;
+    class getNegligencePairs,checkAvoidability,selectAvoidanceCommand avoidanceFlow;
+    class recordStep,recordNegligence,updateDistance dataFlow;
+    %% Style definitions
+    classDef mainFlow fill:#f9f,stroke:#333,stroke-width:2px;
+    classDef samplingFlow fill:#bbf,stroke:#333,stroke-width:2px;
+    classDef avoidanceFlow fill:#bfb,stroke:#333,stroke-width:2px;
+    classDef dataFlow fill:#fbb,stroke:#333,stroke-width:2px;
+```
+
 Join us in making **autonomous vehicles safer** with **realistic, generative simulation**! 🚗💡
 
