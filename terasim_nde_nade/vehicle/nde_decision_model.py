@@ -16,7 +16,6 @@ import terasim_nde_nade.utils as nde_utils
 from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
-    TrajectoryPoint,
     get_collision_type_and_prob,
     get_location,
     is_car_following,
@@ -70,7 +69,7 @@ class NDEDecisionModel(IDMModel):
             self.change_vehicle_type_according_to_location(
                 obs_dict["ego"]["veh_id"], vehicle_location
             )
-            # if the vehicle needs to be rerouted (e.g., emergency lane change caused by negligence model), reroute it
+            # if the vehicle needs to be rerouted (e.g., emergency lane change caused by adversarial model), reroute it
         if self.reroute:
             self.reroute_vehicle_if_necessary(
                 obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]

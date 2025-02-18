@@ -1,8 +1,8 @@
 import addict
 from terasim.overlay import traci
 
-from terasim_nde_nade.utils import CommandType, NDECommand
-from terasim_nde_nade.utils.adversity.obs_processing import (
+from ..base import CommandType, NDECommand
+from .obs_processing import (
     get_cf_acceleration,
     get_ff_acceleration,
 )
@@ -29,15 +29,15 @@ def will_stop_at_stopline(veh_id):
         return False, None
 
 
-def derive_traffic_rule_negligence_command(
+def derive_traffic_rule_adversarial_command(
     obs_dict, highlight_flag=False, highlight_color=[0, 0, 255, 255]
 ) -> addict.Dict:
     leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
     current_acceleration = obs_dict["ego"]["acceleration"]
     ff_acceleration = get_ff_acceleration(obs_dict)
 
-    # get negligence command candidates
-    negligence_command_dict = addict.Dict()
+    # get adversarial command candidates
+    adversarial_command_dict = addict.Dict()
     cf_acceleration = current_acceleration
     if leader_info is not None:
         cf_acceleration = get_cf_acceleration(obs_dict, leader_info)
@@ -47,20 +47,20 @@ def derive_traffic_rule_negligence_command(
     ):  # the vehicle is constained by the traffic rules
         stopping, stop_location = will_stop_at_stopline(obs_dict["ego"]["veh_id"])
         if not stopping:
-            return negligence_command_dict
+            return adversarial_command_dict
 
         if ff_acceleration - current_acceleration > 1.0 or (
             current_acceleration < 0 and ff_acceleration > 0.2
         ):
-            negligence_command_dict["TrafficRule"] = NDECommand(
+            adversarial_command_dict["TrafficRule"] = NDECommand(
                 command_type=CommandType.ACCELERATION,
                 duration=2.0,
                 acceleration=ff_acceleration,
             )
-            negligence_command_dict["TrafficRule"].info.update(
+            adversarial_command_dict["TrafficRule"].info.update(
                 {
-                    "mode": "negligence",
-                    "negligence_mode": "TrafficRule",
+                    "mode": "adversarial",
+                    "adversarial_mode": "TrafficRule",
                     "stopping": stopping,
                     "stop_location": stop_location,
                 }
@@ -70,4 +70,4 @@ def derive_traffic_rule_negligence_command(
                 traci.vehicle.setColor(
                     obs_dict["ego"]["veh_id"], highlight_color
                 )  # highlight the vehicle with blue
-    return negligence_command_dict
+    return adversarial_command_dict

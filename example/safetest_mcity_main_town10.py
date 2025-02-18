@@ -48,8 +48,8 @@ def main(cfg: DictConfig) -> None:
         info_extractor=InfoExtractor,
         log_flag=True,
         log_dir=base_dir,
-        warmup_time_lb=900,
-        warmup_time_ub=1200,
+        warmup_time_lb=300,
+        warmup_time_ub=400,
         run_time=30,
     )
 
@@ -58,7 +58,7 @@ def main(cfg: DictConfig) -> None:
         sumo_net_file_path=dir_path / "maps" / "town10" / "town10.net.xml",
         sumo_config_file_path=dir_path / "maps" / "town10" / "town10.sumocfg",
         num_tries=10,
-        gui_flag=False,
+        gui_flag=True,
         output_path=base_dir,
         sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
     )

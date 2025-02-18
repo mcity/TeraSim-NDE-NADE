@@ -1,17 +1,20 @@
 """Trajectory utilities for TeraSim NDE/NADE."""
 from typing import Any, Dict, List, Tuple
-
 import addict
 import numpy as np
 from loguru import logger
-from terasim.overlay import profile, traci
 
-from ..agents.vehicle import (
+from terasim.overlay import profile, traci
+from terasim.params import AgentType
+
+from ..agents import (
     VehicleInfoForPredict,
     get_lanechange_longitudinal_speed,
     get_vehicle_info,
+    get_vulnerbale_road_user_info
+
 )
-from ..base.types import CommandType
+from ..base import CommandType
 
 
 def predict_future_distance_velocity_vectorized(
@@ -168,7 +171,7 @@ def get_future_position_on_route(
 
 
 @profile
-def predict_future_trajectory(
+def predict_future_trajectory_vehicle(
     veh_id: str,
     obs_dict: Dict[str, Any],
     control_command: Any,
@@ -318,3 +321,102 @@ def predict_future_trajectory(
     future_trajectory_array = trajectory_array
     future_trajectory_array[:, -1] += current_time
     return future_trajectory_array, info
+
+
+def predict_future_trajectory_vulnerable_road_user(
+    modality, vru_info, control_command_dict, current_time
+):
+    """Predict future trajectory of vulnerable road user in 0.5s time resolution.
+
+    Args:
+        modality (str): modality of the control command
+        vru_info (dict): dictionary of vehicle information
+        control_command_dict (dict): dictionary of control command
+        current_time (float): current simulation time
+
+    Returns:
+        future_trajectory_array (np.array): future trajectory array
+    """
+    if modality == "normal":
+        return None
+    elif modality == "adversarial":
+        assert control_command_dict[modality].command_type == CommandType.TRAJECTORY
+        future_trajectory_array = [
+            [
+                vru_info.position[0],
+                vru_info.position[1],
+                vru_info.heading,
+                vru_info.velocity,
+                0,
+            ]
+        ]
+        index_add = 5
+        for i in range(5):
+            if (i + 1) * index_add - 1 >= len(
+                control_command_dict[modality].future_trajectory
+            ) - 1:
+                p = control_command_dict[modality].future_trajectory[-1]
+                print("reach the end")
+            else:
+                p = control_command_dict[modality].future_trajectory[
+                    (i + 1) * index_add - 1
+                ]
+            future_trajectory_array.append(
+                [
+                    p[0],
+                    p[1],
+                    vru_info.heading,
+                    vru_info.velocity,
+                    (i + 1) * index_add * 0.1,
+                ]
+            )
+        future_trajectory_array = np.array(future_trajectory_array)
+        future_trajectory_array[:, -1] += current_time
+        return future_trajectory_array
+    else:
+        print(f"unknown modality: {modality}")
+        return None
+
+
+@profile
+def predict_future_trajectory_environment(env_command_information, env_observation, sumo_net):
+    # predict future trajectories for each vehicle
+    current_time = traci.simulation.getTime()
+    env_future_trajectory = {
+        AgentType.VEHICLE: {},
+        AgentType.VULNERABLE_ROAD_USER: {},
+    }
+    # for vehicles
+    for veh_id, info in env_command_information[AgentType.VEHICLE].items():
+        ndd_command_distribution = info["ndd_command_distribution"]
+        obs_dict = env_observation[AgentType.VEHICLE][veh_id]
+        veh_info = get_vehicle_info(veh_id, obs_dict, sumo_net)
+
+        trajectory_dict = {
+            modality: predict_future_trajectory_vehicle(
+                veh_id,
+                obs_dict,
+                ndd_command_distribution[modality],
+                sumo_net,
+                time_horizon_step=5,
+                time_resolution=0.5,
+                interpolate_resolution=0.5,
+                current_time=current_time,
+                veh_info=veh_info,
+            )[0]
+            for modality in ndd_command_distribution
+        }
+        env_future_trajectory[AgentType.VEHICLE][veh_id] = trajectory_dict
+    # for vulnerable road_users
+    for vru_id, info in env_command_information[AgentType.VULNERABLE_ROAD_USER].items():
+        ndd_command_distribution = info["ndd_command_distribution"]
+        obs_dict = env_observation[AgentType.VULNERABLE_ROAD_USER][vru_id]
+        vru_info = get_vulnerbale_road_user_info(vru_id, obs_dict, sumo_net)
+        trajectory_dict = {
+            modality: predict_future_trajectory_vulnerable_road_user(
+                modality, vru_info, ndd_command_distribution, current_time
+            )
+            for modality in ndd_command_distribution
+        }
+        env_future_trajectory[AgentType.VULNERABLE_ROAD_USER][vru_id] = trajectory_dict
+    return env_future_trajectory

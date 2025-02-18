@@ -1,13 +1,13 @@
 import addict
 from terasim.overlay import traci
 
-from terasim_nde_nade.utils import CommandType, NDECommand
+from ..base import CommandType, NDECommand
 
 
-def derive_lane_change_negligence_command(
+def derive_lane_change_adversarial_command(
     obs_dict, highlight_flag=False, highlight_color=[0, 255, 0, 255]
 ) -> addict.Dict:
-    negligence_command_dict = addict.Dict()
+    adversarial_command_dict = addict.Dict()
     left_lc_state = traci.vehicle.getLaneChangeStatePretty(
         obs_dict["ego"]["veh_id"], 1
     )[1]
@@ -32,11 +32,11 @@ def derive_lane_change_negligence_command(
         if len(left_follower):  # the left follower is close to the ego vehicle
             follower_mingap = traci.vehicle.getMinGap(left_follower[0][0])
             if left_follower[0][1] + follower_mingap > -2:
-                negligence_command_dict["LeftFoll"] = NDECommand(
+                adversarial_command_dict["LeftFoll"] = NDECommand(
                     command_type=CommandType.LEFT, duration=1.0
                 )
-                negligence_command_dict["LeftFoll"].info.update(
-                    {"mode": "negligence", "negligence_mode": "LeftFoll"}
+                adversarial_command_dict["LeftFoll"].info.update(
+                    {"mode": "adversarial", "adversarial_mode": "LeftFoll"}
                 )
                 if highlight_flag:
                     traci.vehicle.setColor(
@@ -53,14 +53,14 @@ def derive_lane_change_negligence_command(
             follower_mingap = traci.vehicle.getMinGap(right_follower[0][0])
             # the right follower is close to the ego vehicle
             if right_follower[0][1] + follower_mingap > -2:
-                negligence_command_dict["RightFoll"] = NDECommand(
+                adversarial_command_dict["RightFoll"] = NDECommand(
                     command_type=CommandType.RIGHT, duration=1.0
                 )
-                negligence_command_dict["RightFoll"].info.update(
-                    {"mode": "negligence", "negligence_mode": "RightFoll"}
+                adversarial_command_dict["RightFoll"].info.update(
+                    {"mode": "adversarial", "adversarial_mode": "RightFoll"}
                 )
                 if highlight_flag:
                     traci.vehicle.setColor(
                         obs_dict["ego"]["veh_id"], highlight_color
                     )  # highlight the vehicle with green
-    return negligence_command_dict
+    return adversarial_command_dict

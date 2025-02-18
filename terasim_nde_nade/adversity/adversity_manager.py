@@ -14,20 +14,20 @@ class AdversityManager:
             self.adversities = build_adversities(self.config)
 
     def derive_command(self, obs_dict):
-        # get negligence command candidates
-        negligence_command_dict = Dict()
+        # get adversarial command candidates
+        adversarial_command_dict = Dict()
         for adversity in self.adversities:
             adversity_output = adversity.derive_command(obs_dict)
             if adversity_output:
-                negligence_command_dict.update(Dict(adversity_output))
+                adversarial_command_dict.update(Dict(adversity_output))
                 break
 
-        # Create command_dict based on filtered negligence commands
+        # Create command_dict based on filtered adversarial commands
         command_dict = {}
-        if negligence_command_dict:
-            negligence_command = list(negligence_command_dict.values())[0]
-            command_dict["negligence"] = negligence_command
-            normal_prob = 1 - negligence_command.prob
+        if adversarial_command_dict:
+            adversarial_command = list(adversarial_command_dict.values())[0]
+            command_dict["adversarial"] = adversarial_command
+            normal_prob = 1 - adversarial_command.prob
         else:
             normal_prob = 1
 

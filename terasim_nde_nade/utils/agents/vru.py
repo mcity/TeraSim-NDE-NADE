@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import List, Optional
-
 import numpy as np
+
 from terasim.overlay import profile, traci
 
-from terasim_nde_nade.utils import CommandType
+from ..base import CommandType
 
 
 @dataclass
@@ -69,7 +69,7 @@ def predict_future_trajectory_vulnerable_road_user(
     """
     if modality == "normal":
         return None
-    elif modality == "negligence":
+    elif modality == "adversarial":
         assert control_command_dict[modality].command_type == CommandType.TRAJECTORY
         future_trajectory_array = [
             [

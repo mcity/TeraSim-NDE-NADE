@@ -32,7 +32,7 @@ class JaywalkingAdversity(AbstractAdversity):
         self.sumo_net = None
 
     def trigger(self, obs_dict):
-        self._negligence_command_dict = addict.Dict()
+        self._adversarial_command_dict = addict.Dict()
 
         ego_id = obs_dict["ego"]["vru_id"]
         edge_id = traci.person.getRoadID(ego_id)
@@ -111,26 +111,26 @@ class JaywalkingAdversity(AbstractAdversity):
                     ]
                 )
 
-            negligence_command = NDECommand(
+            adversarial_command = NDECommand(
                 command_type=CommandType.TRAJECTORY,
                 future_trajectory=trajectory,
                 duration=duration,
                 prob=self._probability,
                 keep_route_mode=6,
             )
-            negligence_command.info.update(
+            adversarial_command.info.update(
                 {
                     "speed": speed,
                     "angle": future_angle,
-                    "mode": "negligence",
-                    "negligence_mode": "Jaywalking",
+                    "mode": "adversarial",
+                    "adversarial_mode": "Jaywalking",
                     "time_resolution": 0.1,
                     "predicted_collision_type": self._predicted_collision_type,
                     "location": self._location,
                 }
             )
-            self._negligence_command_dict.update(
-                addict.Dict({"Jaywalking": negligence_command})
+            self._adversarial_command_dict.update(
+                addict.Dict({"Jaywalking": adversarial_command})
             )
-            return self._negligence_command_dict
+            return self._adversarial_command_dict
         return addict.Dict()

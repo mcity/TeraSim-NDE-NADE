@@ -45,7 +45,7 @@ class NDE(EnvTemplateComplete):
         return super().on_start(ctx)
 
     def get_observation_dicts(self):
-        obs_dicts = {
+        env_observation = {
             AgentType.VEHICLE: {
                 vehicle.id: vehicle.observation
                 for vehicle in self.vehicle_list.values()
@@ -55,9 +55,10 @@ class NDE(EnvTemplateComplete):
                 for vru in self.vulnerable_road_user_list.values()
             },
         }
-        return obs_dicts
+        return env_observation
 
-    def executeMove(self, ctx, control_cmds=None, ctx_dicts=None, obs_dicts=None):
+    def executeMove(self, ctx, env_command_information=None, env_observation=None):
+        # Move half step forward, update all vehicles and vrus (some of them may leave or enter the simulation)
         for veh_id in traci.vehicle.getIDList():
             traci.vehicle.setSpeed(veh_id, -1)
         traci.simulation.executeMove()
@@ -66,67 +67,47 @@ class NDE(EnvTemplateComplete):
         existing_vehicle_list = traci.vehicle.getIDList()
         existing_vru_list = traci.person.getIDList()
 
-        control_cmds = {
+        env_command_information = {
             AgentType.VEHICLE: (
                 {
-                    veh_id: control_cmds[AgentType.VEHICLE][veh_id]
-                    for veh_id in control_cmds[AgentType.VEHICLE]
+                    veh_id: env_command_information[AgentType.VEHICLE][veh_id]
+                    for veh_id in env_command_information[AgentType.VEHICLE]
                     if veh_id in existing_vehicle_list
                 }
-                if control_cmds[AgentType.VEHICLE]
+                if env_command_information[AgentType.VEHICLE]
                 else {}
             ),
             AgentType.VULNERABLE_ROAD_USER: (
                 {
-                    vru_id: control_cmds[AgentType.VULNERABLE_ROAD_USER][vru_id]
-                    for vru_id in control_cmds[AgentType.VULNERABLE_ROAD_USER]
+                    vru_id: env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id]
+                    for vru_id in env_command_information[AgentType.VULNERABLE_ROAD_USER]
                     if vru_id in existing_vru_list
                 }
-                if control_cmds[AgentType.VULNERABLE_ROAD_USER]
+                if env_command_information[AgentType.VULNERABLE_ROAD_USER]
                 else {}
             ),
         }
-        obs_dicts = {
+        env_observation = {
             AgentType.VEHICLE: (
                 {
-                    veh_id: obs_dicts[AgentType.VEHICLE][veh_id]
-                    for veh_id in obs_dicts[AgentType.VEHICLE]
+                    veh_id: env_observation[AgentType.VEHICLE][veh_id]
+                    for veh_id in env_observation[AgentType.VEHICLE]
                     if veh_id in existing_vehicle_list
                 }
-                if obs_dicts
+                if env_observation[AgentType.VEHICLE]
                 else {}
             ),
             AgentType.VULNERABLE_ROAD_USER: (
                 {
-                    vru_id: obs_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id]
-                    for vru_id in obs_dicts[AgentType.VULNERABLE_ROAD_USER]
+                    vru_id: env_observation[AgentType.VULNERABLE_ROAD_USER][vru_id]
+                    for vru_id in env_observation[AgentType.VULNERABLE_ROAD_USER]
                     if vru_id in existing_vru_list
                 }
-                if obs_dicts
+                if env_observation[AgentType.VULNERABLE_ROAD_USER]
                 else {}
             ),
         }
-        ctx_dicts = {
-            AgentType.VEHICLE: (
-                {
-                    veh_id: ctx_dicts[AgentType.VEHICLE][veh_id]
-                    for veh_id in ctx_dicts[AgentType.VEHICLE]
-                    if veh_id in existing_vehicle_list
-                }
-                if ctx_dicts
-                else {}
-            ),
-            AgentType.VULNERABLE_ROAD_USER: (
-                {
-                    vru_id: ctx_dicts[AgentType.VULNERABLE_ROAD_USER][vru_id]
-                    for vru_id in ctx_dicts[AgentType.VULNERABLE_ROAD_USER]
-                    if vru_id in existing_vru_list
-                }
-                if ctx_dicts
-                else {}
-            ),
-        }
-        return control_cmds, ctx_dicts, obs_dicts, self.should_continue_simulation()
+        return env_command_information, env_observation, self.should_continue_simulation()
 
     def cache_history_tls_data(self, focus_tls_ids=None):
         if not focus_tls_ids:

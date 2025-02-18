@@ -5,7 +5,7 @@ sumo_net_file_path: "maps/town10/town10.net.xml"
 adversity_cfg:
   vehicle:
     roundabout_cutin:
-      _target_: terasim_nde_nade.adversity.vehicles.lanechange_negligence_adversity.LanechangeNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.lanechange_adversity.LanechangeAdversity
       _convert_: 'all'
       location: 'roundabout'
       ego_type: 'vehicle'
@@ -13,7 +13,7 @@ adversity_cfg:
       predicted_collision_type: "roundabout_cutin"
     
     roundabout_rearend:
-      _target_: terasim_nde_nade.adversity.vehicles.leader_negligence_adversity.LeaderNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.leader_adversity.LeaderAdversity
       _convert_: 'all'
       location: 'roundabout'
       ego_type: 'vehicle'
@@ -21,7 +21,7 @@ adversity_cfg:
       predicted_collision_type: "roundabout_rearend"
 
     roundabout_fail_to_yield:
-      _target_: terasim_nde_nade.adversity.vehicles.trafficrule_negligence_adversity.TrafficRuleNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.trafficrule_adversity.TrafficRuleAdversity
       _convert_: 'all'
       location: 'roundabout'
       ego_type: 'vehicle'
@@ -36,7 +36,7 @@ adversity_cfg:
     #   probability: 0.00027119028871789013
 
     highway_cutin:
-      _target_: terasim_nde_nade.adversity.vehicles.lanechange_negligence_adversity.LanechangeNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.lanechange_adversity.LanechangeAdversity
       _convert_: 'all'
       location: 'highway'
       ego_type: 'vehicle'
@@ -44,7 +44,7 @@ adversity_cfg:
       predicted_collision_type: "highway_cutin"
 
     highway_rearend:
-      _target_: terasim_nde_nade.adversity.vehicles.leader_negligence_adversity.LeaderNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.leader_adversity.LeaderAdversity
       _convert_: 'all'
       location: 'highway'
       ego_type: 'vehicle'
@@ -52,7 +52,7 @@ adversity_cfg:
       predicted_collision_type: "highway_rearend"
 
     intersection_cutin:
-      _target_: terasim_nde_nade.adversity.vehicles.lanechange_negligence_adversity.LanechangeNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.lanechange_adversity.LanechangeAdversity
       _convert_: 'all'
       location: 'intersection'
       ego_type: 'vehicle'
@@ -60,7 +60,7 @@ adversity_cfg:
       predicted_collision_type: "intersection_cutin"
 
     intersection_rearend:
-      _target_: terasim_nde_nade.adversity.vehicles.leader_negligence_adversity.LeaderNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.leader_adversity.LeaderAdversity
       _convert_: 'all'
       location: 'intersection'
       ego_type: 'vehicle'
@@ -76,7 +76,7 @@ adversity_cfg:
       predicted_collision_type: "intersection_headon"
 
     intersection_tfl:
-      _target_: terasim_nde_nade.adversity.vehicles.trafficrule_negligence_adversity.TrafficRuleNegligenceAdversity
+      _target_: terasim_nde_nade.adversity.vehicles.trafficrule_adversity.TrafficRuleAdversity
       _convert_: 'all'
       location: 'intersection'
       ego_type: 'vehicle'

@@ -8,9 +8,6 @@ from terasim.overlay import traci
 
 from terasim_nde_nade.utils.agents.base import AgentInfo
 
-# Define the TrajectoryPoint named tuple
-TrajectoryPoint = namedtuple("TrajectoryPoint", ["timestep", "position", "heading"])
-
 
 @dataclass
 class VehicleInfoForPredict(AgentInfo):

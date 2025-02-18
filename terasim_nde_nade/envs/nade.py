@@ -5,28 +5,23 @@ import numpy as np
 from addict import Dict
 from loguru import logger
 
-from terasim.envs.template_complete import EnvTemplateComplete
 from terasim.overlay import profile, traci
 from terasim.params import AgentType
 import terasim.utils as utils
 from terasim_nde_nade.envs.nde import NDE
 from terasim_nde_nade.utils import (
-    CommandType,
-)
-from terasim_nde_nade.envs.utils.trajectory_prediction import (
-    predict_future_trajectory_dicts,
-    get_criticality_dicts,
-    get_ndd_distribution_from_ctx,
-    update_ndd_distribution_to_vehicle_ctx,
-    update_control_cmds_from_predicted_trajectory,
-)
-from terasim_nde_nade.envs.utils.maneuver_challenge import get_maneuver_challenge_dicts
-from terasim_nde_nade.envs.utils.avoidance import (
+    CommandType, 
+    predict_future_trajectory_environment, 
+    get_maneuver_challenge_environment,
     add_avoid_accept_collision_command,
     get_avoidability_dicts,
     modify_ndd_dict_according_to_avoidability,
     remove_collision_avoidance_command_using_avoidability,
     apply_collision_avoidance,
+    get_criticality_dicts,
+    get_ndd_distribution_from_ctx,
+    update_ndd_distribution_to_vehicle_ctx,
+    update_control_cmds_from_predicted_trajectory,
 )
 
 veh_length = 5.0
@@ -64,41 +59,35 @@ class NADE(BaseEnv):
         self.distance_info.after.update(self.update_distance())
         self.record.final_time = utils.get_time()  # update the final time at each step
         self.cache_history_tls_data()
-        # clear vehicle context dicts
-        ctx_dicts = {}
-        # Make NDE decisions for all vehicles and vrus
-        control_cmds, ctx_dicts = EnvTemplateComplete.make_decisions(self, ctx)
-        # first_vehicle_veh = list(control_cmds.keys())[0]
-        # for veh_id in control_cmds:
-        #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
-        obs_dicts = self.get_observation_dicts()
-        # Make ITE decision, includes the modification of NDD distribution according to avoidability
+        # Step 1. Make NDE decisions for all vehicles and vrus
+        _, env_command_information = super().make_decisions(ctx)
+        env_observation = self.get_observation_dicts()
         (
-            control_cmds,
-            ctx_dicts,
-            obs_dicts,
+            env_command_information,
+            env_observation,
             should_continue_simulation_flag,
-        ) = self.executeMove(ctx, control_cmds, ctx_dicts, obs_dicts)
+        ) = self.executeMove(ctx, env_command_information, env_observation)
+        # Step 2. Make ITE decision, includes the modification of NDD distribution according to avoidability
         # if should_continue_simulation_flag:
         (
             ITE_control_cmds,
-            ctx_dicts,
+            env_command_information,
             weight,
-            trajectory_dicts,
-            maneuver_challenge_dicts,
+            env_future_trajectory,
+            _,
             _,
         ) = self.NADE_decision(
-            control_cmds, ctx_dicts, obs_dicts
+            env_command_information, env_observation
         )  # enable ITE
-        self.importance_sampling_weight *= weight  # update weight by negligence
-        ITE_control_cmds, ctx_dicts, weight = apply_collision_avoidance(
-            trajectory_dicts, ctx_dicts, ITE_control_cmds, self.record
+        self.importance_sampling_weight *= weight  # update weight by adversarial
+        ITE_control_cmds, env_command_information, weight = apply_collision_avoidance(
+            env_future_trajectory, env_command_information, ITE_control_cmds, self.record
         )
         self.importance_sampling_weight *= (
             weight  # update weight by collision avoidance
         )
         ITE_control_cmds = update_control_cmds_from_predicted_trajectory(
-            ITE_control_cmds, trajectory_dicts
+            ITE_control_cmds, env_future_trajectory
         )
         if hasattr(self, "nnde_make_decisions"):
             nnde_control_commands, _ = self.nnde_make_decisions(ctx)
@@ -108,7 +97,7 @@ class NADE(BaseEnv):
         self.refresh_control_commands_state()
         self.execute_control_commands(ITE_control_cmds)
 
-        self.record_step_data(ctx_dicts)
+        self.record_step_data(env_command_information)
         return should_continue_simulation_flag
 
     def on_stop(self, ctx) -> bool:
@@ -139,20 +128,20 @@ class NADE(BaseEnv):
         if self.record["finish_reason"] == "collision":
             veh_1_id = self.record["veh_1_id"]
             veh_2_id = self.record["veh_2_id"]
-            # find if one of veh_1_id or veh_2_id is in the record.event_info negligence_pair_dict
+            # find if one of veh_1_id or veh_2_id is in the record.event_info adversarial_pair_dict
             for timestep in self.record.event_info:
-                negligence_pair_dict = self.record.event_info[
+                adversarial_pair_dict = self.record.event_info[
                     timestep
-                ].negligence_pair_dict
-                negligence_related_vehicle_set = set()
-                for neglecting_veh_id in negligence_pair_dict:
-                    negligence_related_vehicle_set.add(neglecting_veh_id)
-                    negligence_related_vehicle_set.update(
-                        negligence_pair_dict[neglecting_veh_id]
+                ].adversarial_pair_dict
+                adversarial_related_vehicle_set = set()
+                for adversarial_veh_id in adversarial_pair_dict:
+                    adversarial_related_vehicle_set.add(adversarial_veh_id)
+                    adversarial_related_vehicle_set.update(
+                        adversarial_pair_dict[adversarial_veh_id]
                     )
-                if set([veh_1_id, veh_2_id]).issubset(negligence_related_vehicle_set):
-                    self.record.negligence_event_time = timestep
-                    self.record.negligence_event_info = self.record.event_info[timestep]
+                if set([veh_1_id, veh_2_id]).issubset(adversarial_related_vehicle_set):
+                    self.record.adversarial_event_time = timestep
+                    self.record.adversarial_event_info = self.record.event_info[timestep]
 
     def merge_NADE_NeuralNDE_control_commands(
         self, NADE_control_commands, NeuralNDE_control_commands
@@ -171,7 +160,7 @@ class NADE(BaseEnv):
         step_log = Dict()
         for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
             maneuver_challenge = veh_ctx_dict.get("maneuver_challenge", None)
-            if maneuver_challenge and maneuver_challenge.get("negligence", None):
+            if maneuver_challenge and maneuver_challenge.get("adversarial", None):
                 step_log[veh_id]["maneuver_challenge"] = maneuver_challenge
 
             keys = ["avoidable", "conflict_vehicle_list", "mode"]
@@ -198,64 +187,67 @@ class NADE(BaseEnv):
         return distance_info_dict
 
     @profile
-    def NADE_decision(self, control_command_dicts, ctx_dicts, obs_dicts):
+    def NADE_decision(self, env_command_information, env_observation):
         """NADE decision here.
 
         Args:
             control_command_dicts
-            obs_dicts
+            env_observation
         """
-        trajectory_dicts, ctx_dicts = predict_future_trajectory_dicts(
-            self.simulator.sumo_net, obs_dicts, ctx_dicts, 
-        )  # predict future trajectories for each vehicle (normal/negligence)
-
+        env_future_trajectory = predict_future_trajectory_environment(
+            env_command_information, env_observation, self.simulator.sumo_net
+        )
         # get maneuver challenge and collision avoidability
         # will mark the conflict vehicles in the veh_ctx_dicts
-        maneuver_challenge_dicts, ctx_dicts = get_maneuver_challenge_dicts(
-            trajectory_dicts,
-            obs_dicts,
-            ctx_dicts,
+        env_maneuver_challenge, env_command_information = get_maneuver_challenge_environment(
+            env_future_trajectory,
+            env_observation,
+            env_command_information,
         )
 
-        # add collision avoidance command for the neglected vehicles, and predict the future trajectories for the avoidance command using the veh_ctx_dicts
-        trajectory_dicts, ctx_dicts = add_avoid_accept_collision_command(
-            self.simulator.sumo_net, obs_dicts, trajectory_dicts, ctx_dicts
+        # add collision avoidance command for the victim vehicles, and predict the future trajectories for the avoidance command using the veh_ctx_dicts
+        env_future_trajectory, env_command_information = add_avoid_accept_collision_command(
+            env_future_trajectory,
+            env_maneuver_challenge,
+            env_observation,
+            env_command_information,
+            self.simulator.sumo_net,
         )
 
         # update the ndd probability according to collision avoidability
-        avoidability_dicts, ctx_dicts = get_avoidability_dicts(
-            maneuver_challenge_dicts,
-            trajectory_dicts,
-            obs_dicts,
-            ctx_dicts,
+        avoidability_dicts, env_command_information = get_avoidability_dicts(
+            env_maneuver_challenge,
+            env_future_trajectory,
+            env_observation,
+            env_command_information,
         )
 
-        ctx_dicts = remove_collision_avoidance_command_using_avoidability(
-            obs_dicts, trajectory_dicts, ctx_dicts
+        env_command_information = remove_collision_avoidance_command_using_avoidability(
+            env_observation, env_future_trajectory, env_command_information
         )
 
         # update the ndd probability according to collision avoidability
         (
             modified_ndd_control_command_dicts,
-            ctx_dicts,
+            env_command_information,
         ) = modify_ndd_dict_according_to_avoidability(
-            self.unavoidable_collision_prob_factor, maneuver_challenge_dicts, ctx_dicts
+            self.unavoidable_collision_prob_factor, env_maneuver_challenge, env_command_information
         )
-        ctx_dicts = update_ndd_distribution_to_vehicle_ctx(
-            ctx_dicts, modified_ndd_control_command_dicts
+        env_command_information = update_ndd_distribution_to_vehicle_ctx(
+            env_command_information, modified_ndd_control_command_dicts
         )
 
-        criticality_dicts, ctx_dicts = get_criticality_dicts(
-            maneuver_challenge_dicts, ctx_dicts
+        criticality_dicts, env_command_information = get_criticality_dicts(
+            env_maneuver_challenge, env_command_information
         )
 
         # get the NDD distribution for each vehicle (after the collision avoidance command is added and the ndd probability is adjusted)
         ndd_control_command_dicts = {
             AgentType.VEHICLE: get_ndd_distribution_from_ctx(
-                ctx_dicts, AgentType.VEHICLE
+                env_command_information, AgentType.VEHICLE
             ),
             AgentType.VULNERABLE_ROAD_USER: get_ndd_distribution_from_ctx(
-                ctx_dicts, AgentType.VULNERABLE_ROAD_USER
+                env_command_information, AgentType.VULNERABLE_ROAD_USER
             ),
         }
         self.step_epsilon = 1.0
@@ -263,13 +255,13 @@ class NADE(BaseEnv):
         if self.allow_NADE_IS:
             (
                 ITE_control_command_dicts,
-                ctx_dicts,
+                env_command_information,
                 weight,
-                negligence_flag,
+                adversarial_flag,
             ) = self.NADE_importance_sampling(
-                ndd_control_command_dicts, maneuver_challenge_dicts, ctx_dicts
+                ndd_control_command_dicts, env_maneuver_challenge, env_command_information
             )
-            if negligence_flag:
+            if adversarial_flag:
                 self.latest_IS_time = utils.get_time()
                 self.allow_NADE_IS = False
         else:
@@ -297,10 +289,10 @@ class NADE(BaseEnv):
 
         return (
             ITE_control_command_dicts,
-            ctx_dicts,
+            env_command_information,
             weight,
-            trajectory_dicts,
-            maneuver_challenge_dicts,
+            env_future_trajectory,
+            env_maneuver_challenge,
             criticality_dicts,
         )
 
@@ -341,7 +333,7 @@ class NADE(BaseEnv):
                 },
             }
         )
-        negligence_flag = False
+        adversarial_flag = False
         exclude_IS_agent_set = (
             set() if exclude_IS_agent_set is None else exclude_IS_agent_set
         )
@@ -350,16 +342,16 @@ class NADE(BaseEnv):
             for agent_id in maneuver_challenge_dicts[agent_type]:
                 if agent_id in exclude_IS_agent_set:
                     continue
-                if maneuver_challenge_dicts[agent_type][agent_id].get("negligence"):
+                if maneuver_challenge_dicts[agent_type][agent_id].get("adversarial"):
                     ndd_normal_prob = ndd_control_command_dicts[agent_type][
                         agent_id
                     ].normal.prob
-                    ndd_negligence_prob = ndd_control_command_dicts[agent_type][
+                    ndd_adversarial_prob = ndd_control_command_dicts[agent_type][
                         agent_id
-                    ].negligence.prob
+                    ].adversarial.prob
                     assert (
-                        ndd_normal_prob + ndd_negligence_prob == 1
-                    ), "The sum of the probabilities of the normal and negligence control commands should be 1."
+                        ndd_normal_prob + ndd_adversarial_prob == 1
+                    ), "The sum of the probabilities of the normal and adversarial control commands should be 1."
 
                     # get the importance sampling probability
                     IS_prob = self.get_IS_prob(
@@ -373,17 +365,17 @@ class NADE(BaseEnv):
                     # update the importance sampling weight and the ITE control command
                     sampled_prob = np.random.uniform(0, 1)
                     if sampled_prob < IS_prob:  # select the negligece control command
-                        weight *= ndd_negligence_prob / IS_prob
+                        weight *= ndd_adversarial_prob / IS_prob
                         ITE_control_command_dict[agent_type][
                             agent_id
-                        ] = ndd_control_command_dicts[agent_type][agent_id].negligence
-                        ctx_dicts[agent_type][agent_id]["mode"] = "negligence"
+                        ] = ndd_control_command_dicts[agent_type][agent_id].adversarial
+                        ctx_dicts[agent_type][agent_id]["mode"] = "adversarial"
                         if agent_type == AgentType.VEHICLE:
-                            negligence_hook(agent_id)
+                            adversarial_hook(agent_id)
                         logger.info(
-                            f"time: {utils.get_time()}, agent_id: {agent_id} select negligence control command, IS_prob: {IS_prob}, ndd_prob: {ndd_negligence_prob}, weight: {self.importance_sampling_weight}"
+                            f"time: {utils.get_time()}, agent_id: {agent_id} select adversarial control command, IS_prob: {IS_prob}, ndd_prob: {ndd_adversarial_prob}, weight: {self.importance_sampling_weight}"
                         )
-                        negligence_flag = True
+                        adversarial_flag = True
                     else:
                         weight *= ndd_normal_prob / (1 - IS_prob)
                         ITE_control_command_dict[agent_type][
@@ -394,19 +386,19 @@ class NADE(BaseEnv):
                         )
         self.step_epsilon = epsilon
         self.step_weight = weight
-        return ITE_control_command_dict, ctx_dicts, weight, negligence_flag
+        return ITE_control_command_dict, ctx_dicts, weight, adversarial_flag
 
     def get_IS_prob(
         self, agent_id, ndd_control_command_dicts, maneuver_challenge_dicts, ctx_dicts
     ):
-        if not maneuver_challenge_dicts[agent_id].get("negligence"):
-            raise ValueError("The vehicle is not in the negligence mode.")
+        if not maneuver_challenge_dicts[agent_id].get("adversarial"):
+            raise ValueError("The vehicle is not in the adversarial mode.")
 
         IS_magnitude = IS_MAGNITUDE_DEFAULT
         try:
             predicted_collision_type = ndd_control_command_dicts[
                 agent_id
-            ].negligence.info["predicted_collision_type"]
+            ].adversarial.info["predicted_collision_type"]
 
             # get the importance sampling magnitude according to the predicted collision type
             for collision_type, env_var in IS_MAGNITUDE_MAPPING.items():
@@ -418,9 +410,9 @@ class NADE(BaseEnv):
             if not ctx_dicts[agent_id].get("avoidable", True):
                 IS_magnitude *= IS_MAGNITUDE_MULTIPLIER
             # logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
-            # logger.trace(f"Original prob: {ndd_control_command_dicts[veh_id]["negligence"].prob}")
+            # logger.trace(f"Original prob: {ndd_control_command_dicts[veh_id]["adversarial"].prob}")
             # final_is_prob = np.clip(
-            #     ndd_control_command_dicts[veh_id]["negligence"].prob * IS_magnitude,
+            #     ndd_control_command_dicts[veh_id]["adversarial"].prob * IS_magnitude,
             #     0,
             #     self.max_importance_sampling_prob,
             # )
@@ -430,7 +422,7 @@ class NADE(BaseEnv):
             logger.critical(f"Error in getting the importance sampling magnitude: {e}")
 
         return np.clip(
-            ndd_control_command_dicts[agent_id]["negligence"].prob * IS_magnitude,
+            ndd_control_command_dicts[agent_id]["adversarial"].prob * IS_magnitude,
             0,
             self.max_importance_sampling_prob,
         )
