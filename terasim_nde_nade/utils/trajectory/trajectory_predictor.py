@@ -379,7 +379,7 @@ def predict_future_trajectory_vulnerable_road_user(
 
 
 @profile
-def predict_future_trajectory_environment(env_command_information, env_observation, sumo_net):
+def predict_environment_future_trajectory(env_command_information, env_observation, sumo_net):
     # predict future trajectories for each vehicle
     current_time = traci.simulation.getTime()
     env_future_trajectory = {

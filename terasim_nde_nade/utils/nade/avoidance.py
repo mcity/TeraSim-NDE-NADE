@@ -255,7 +255,7 @@ def add_avoid_accept_collision_command(
         )
     return env_future_trajecotory, env_command_information
 
-def get_avoidability_dicts(
+def get_environment_avoidability(
     env_maneuver_challenge, env_future_trajectory, env_observation, env_command_information
 ):
     adversarial_future_trajectory_dict = Dict(

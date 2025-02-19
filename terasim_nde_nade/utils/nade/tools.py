@@ -29,17 +29,17 @@ def update_ndd_distribution_to_vehicle_ctx(env_command_information, ndd_control_
         ] = ndd_control_command_dicts[veh_id]
     return env_command_information
 
-def get_criticality_dicts(env_maneuver_challenge, env_command_information):
+def get_environment_criticality(env_maneuver_challenge, env_command_information):
     ndd_control_command_dicts = get_ndd_distribution_from_ctx(
         env_command_information, AgentType.VEHICLE
     )
-    criticality_dicts = {}
+    env_criticality = {}
     for veh_id in env_maneuver_challenge[AgentType.VEHICLE]:
         ndd_control_command_dict = ndd_control_command_dicts[veh_id]
         maneuver_challenge_dict = env_maneuver_challenge[AgentType.VEHICLE][
             veh_id
         ]
-        criticality_dicts[veh_id] = {
+        env_criticality[veh_id] = {
             modality: ndd_control_command_dict[modality].prob
             * maneuver_challenge_dict[modality]
             for modality in maneuver_challenge_dict
@@ -47,11 +47,11 @@ def get_criticality_dicts(env_maneuver_challenge, env_command_information):
         }
     for veh_id in env_command_information[AgentType.VEHICLE]:
         env_command_information[AgentType.VEHICLE][veh_id]["criticality"] = (
-            criticality_dicts[veh_id]
-            if veh_id in criticality_dicts
+            env_criticality[veh_id]
+            if veh_id in env_criticality
             else {"normal": 0}
         )
-    return criticality_dicts, env_command_information
+    return env_criticality, env_command_information
 
 def update_control_cmds_from_predicted_trajectory(
     ITE_control_cmds, env_future_trajectory

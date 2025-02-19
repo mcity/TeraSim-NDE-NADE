@@ -165,7 +165,7 @@ class NADEWithAV(NADE):
             weight,
             trajectory_dicts,
             maneuver_challenge_dicts,
-            criticality_dicts,
+            env_criticality,
         ) = super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
         ITE_control_command_dicts["CAV"] = CAV_command_cache
         return (
@@ -174,7 +174,7 @@ class NADEWithAV(NADE):
             weight,
             trajectory_dicts,
             maneuver_challenge_dicts,
-            criticality_dicts,
+            env_criticality,
         )
 
     def NADE_importance_sampling(

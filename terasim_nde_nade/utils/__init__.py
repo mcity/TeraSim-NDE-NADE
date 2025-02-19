@@ -16,13 +16,13 @@ from .collision.collision_utils import (
 )
 from .geometry.geometry_utils_cy import get_circle_centers as get_circle_center_list_new
 from .nade import (
-    get_maneuver_challenge_environment,
+    get_environment_maneuver_challenge,
     add_avoid_accept_collision_command,
-    get_avoidability_dicts,
+    get_environment_avoidability,
     modify_ndd_dict_according_to_avoidability,
     remove_collision_avoidance_command_using_avoidability,
     apply_collision_avoidance,
-    get_criticality_dicts,
+    get_environment_criticality,
     get_ndd_distribution_from_ctx,
     update_ndd_distribution_to_vehicle_ctx,
     update_control_cmds_from_predicted_trajectory,
@@ -31,7 +31,7 @@ from .nade import (
 from .trajectory.trajectory_predictor import (
     get_future_position_on_route,
     predict_future_trajectory_vehicle,
-    predict_future_trajectory_environment,
+    predict_environment_future_trajectory,
 )
 from .trajectory.trajectory_utils_cy import (
     interpolate_future_trajectory,
@@ -45,7 +45,7 @@ __all__ = [
     "NDECommand",
     "VehicleInfoForPredict",
     "predict_future_trajectory_vehicle",
-    "predict_future_trajectory_environment",
+    "predict_environment_future_trajectory",
     "check_collision",
     "sumo_trajectory_to_normal_trajectory",
     "interpolate_future_trajectory",

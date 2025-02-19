@@ -11,14 +11,14 @@ import terasim.utils as utils
 from terasim_nde_nade.envs.nde import NDE
 from terasim_nde_nade.utils import (
     CommandType, 
-    predict_future_trajectory_environment, 
-    get_maneuver_challenge_environment,
+    predict_environment_future_trajectory, 
+    get_environment_maneuver_challenge,
     add_avoid_accept_collision_command,
-    get_avoidability_dicts,
+    get_environment_avoidability,
     modify_ndd_dict_according_to_avoidability,
     remove_collision_avoidance_command_using_avoidability,
     apply_collision_avoidance,
-    get_criticality_dicts,
+    get_environment_criticality,
     get_ndd_distribution_from_ctx,
     update_ndd_distribution_to_vehicle_ctx,
     update_control_cmds_from_predicted_trajectory,
@@ -195,12 +195,12 @@ class NADE(BaseEnv):
             control_command_dicts
             env_observation
         """
-        env_future_trajectory = predict_future_trajectory_environment(
+        env_future_trajectory = predict_environment_future_trajectory(
             env_command_information, env_observation, self.simulator.sumo_net
         )
         # get maneuver challenge and collision avoidability
         # will mark the conflict vehicles
-        env_maneuver_challenge, env_command_information = get_maneuver_challenge_environment(
+        env_maneuver_challenge, env_command_information = get_environment_maneuver_challenge(
             env_future_trajectory,
             env_observation,
             env_command_information,
@@ -216,7 +216,7 @@ class NADE(BaseEnv):
         )
 
         # update the ndd probability according to collision avoidability
-        avoidability_dicts, env_command_information = get_avoidability_dicts(
+        avoidability_dicts, env_command_information = get_environment_avoidability(
             env_maneuver_challenge,
             env_future_trajectory,
             env_observation,
@@ -238,7 +238,7 @@ class NADE(BaseEnv):
             env_command_information, modified_ndd_control_command_dicts
         )
 
-        criticality_dicts, env_command_information = get_criticality_dicts(
+        env_criticality, env_command_information = get_environment_criticality(
             env_maneuver_challenge, env_command_information
         )
 
@@ -294,7 +294,7 @@ class NADE(BaseEnv):
             weight,
             env_future_trajectory,
             env_maneuver_challenge,
-            criticality_dicts,
+            env_criticality,
         )
 
     def NADE_importance_sampling(

@@ -3,7 +3,8 @@ from loguru import logger
 
 from terasim.params import AgentType
 from terasim.overlay import traci, profile
-from terasim_nde_nade.utils import is_intersect
+from .collision_check_cy import check_trajectory_intersection as is_intersect
+from ..base.environment_information import EnvironmentInformation
 
 
 def avoidable_maneuver_challenge_hook(veh_id):
@@ -30,13 +31,14 @@ def is_link_intersect(veh1_obs, veh2_obs):
         return True
     return False
 
-def get_maneuver_challenge(
+def get_maneuver_challenge_agent(
     adversarial_agent_id,
     adversarial_agent_future,
     adversarial_agent_type,
+    adversarial_agent_obs_dict,
     all_normal_agent_future,
     normal_agent_type,
-    env_observation,
+    normal_agent_obs_dicts,
     agent_ctx_dict,
     record_in_ctx=False,
     highlight_flag=True,
@@ -66,8 +68,8 @@ def get_maneuver_challenge(
                     f"agent_id: {agent_id}, all_normal_agent_future[agent_id]: {all_normal_agent_future[agent_id]}"
                 )
             link_intersection_flag = is_link_intersect(
-                env_observation[adversarial_agent_type][adversarial_agent_id],
-                env_observation[normal_agent_type][agent_id],
+                adversarial_agent_obs_dict,
+                normal_agent_obs_dicts[agent_id],
             )
             if not link_intersection_flag:
                 continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
@@ -82,33 +84,24 @@ def get_maneuver_challenge(
                 if leader is not None and leader[0] == adversarial_agent_id:
                     continue
 
-            # collision_flag = is_intersect(
-            #     adversarial_agent_future,
-            #     all_normal_agent_future[agent_id],
-            #     veh_length,
-            #     tem_len,
-            #     circle_r + buffer,
-            # ) # TODO: consider different vehicle length between the two colliding vehicles or vehicle and vulnerable road user
             collision_flag = is_intersect(
                 adversarial_agent_future,
                 all_normal_agent_future[agent_id],
-                env_observation[adversarial_agent_type][adversarial_agent_id]["ego"][
+                adversarial_agent_obs_dict["ego"][
                     "length"
                 ],
-                env_observation[normal_agent_type][agent_id]["ego"]["length"],
-                env_observation[adversarial_agent_type][adversarial_agent_id]["ego"][
+                normal_agent_obs_dicts[agent_id]["ego"]["length"],
+                adversarial_agent_obs_dict["ego"][
                     "width"
                 ],
-                env_observation[normal_agent_type][agent_id]["ego"]["width"],
+                normal_agent_obs_dicts[agent_id]["ego"]["width"],
                 adversarial_agent_type.value,
                 normal_agent_type.value,
                 buffer,
             )
             final_collision_flag = final_collision_flag or collision_flag
             if collision_flag and record_in_ctx:
-                if "conflict_vehicle_list" not in agent_ctx_dict:
-                    agent_ctx_dict["conflict_vehicle_list"] = []
-                agent_ctx_dict["conflict_vehicle_list"].append(agent_id)
+                agent_ctx_dict.conflict_vehicle_list.append(agent_id)
                 # logger.trace(
                 #     f"veh_id: {adversarial_veh_id} will collide with veh_id: {veh_id}"
                 # )
@@ -120,122 +113,115 @@ def get_maneuver_challenge(
         return {"normal": 0}
     
 @profile
-def get_environment_maneuver_challenge(env_future_trajectory, env_observation, env_command_information):
+def get_environment_maneuver_challenge(trajectory_dicts, obs_dicts, control_commands_info):
     """Get the maneuver challenge for each vehicle when it is in the adversarial mode while other vehicles are in the normal mode.
     Note: We only consider the challenge for the following cases:
     1. vehicle in the adversarial mode and the vehicle in the normal mode
     2. vru in the adversarial mode and the vehicle in the normal mode
 
     Args:
-        env_future_trajectory (dict): env_future_trajectory[veh_id] = {"normal": normal_future_trajectory, "adversarial": adversarial_future_trajectory}
+        trajectory_dicts (dict): trajectory_dicts[veh_id] = {"normal": normal_future_trajectory, "adversarial": adversarial_future_trajectory}
 
     Returns:
         maneuver_challenge_dict (dict): maneuver_challenge_dict[veh_id] = (num_affected_vehicles, affected_vehicles)
     """
-    normal_future_trajectory_veh = Dict(
+    normal_future_trajectory_dict_veh = Dict(
         {
-            veh_id: env_future_trajectory[AgentType.VEHICLE][veh_id].get("normal", None)
-            for veh_id in env_future_trajectory[AgentType.VEHICLE]
+            veh_id: trajectory_dicts.vehicle[veh_id].get("normal", None)
+            for veh_id in trajectory_dicts.vehicle
         }
     )
-    adversarial_future_trajectory_veh = Dict(
+    adversarial_future_trajectory_dict_veh = Dict(
         {
-            veh_id: env_future_trajectory[AgentType.VEHICLE][veh_id].get(
+            veh_id: trajectory_dicts.vehicle[veh_id].get(
                 "adversarial", None
             )
-            for veh_id in env_future_trajectory[AgentType.VEHICLE]
+            for veh_id in trajectory_dicts.vehicle
         }
     )
-    adversarial_future_trajectory_vru = Dict(
+    adversarial_future_trajectory_dict_vru = Dict(
         {
-            vru_id: env_future_trajectory[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
+            vru_id: trajectory_dicts.vru[vru_id].get(
                 "adversarial", None
             )
-            for vru_id in env_future_trajectory[AgentType.VULNERABLE_ROAD_USER]
+            for vru_id in trajectory_dicts.vru
         }
     )
 
     # get the maneuver challenge for each vehicle, check if the adversarial future will collide with other vehicles' normal future
-    maneuver_challenge_veh = Dict(
+    maneuver_challenge_dicts = EnvironmentInformation()
+    maneuver_challenge_dicts.vehicle = Dict(
         {
-            veh_id: get_maneuver_challenge(
+            veh_id: get_maneuver_challenge_agent(
                 veh_id,
-                adversarial_future_trajectory_veh[veh_id],
+                adversarial_future_trajectory_dict_veh[veh_id],
                 AgentType.VEHICLE,
-                normal_future_trajectory_veh,
+                obs_dicts.vehicle[veh_id],
+                normal_future_trajectory_dict_veh,
                 AgentType.VEHICLE,
-                env_observation,
-                env_command_information[AgentType.VEHICLE][veh_id],
+                obs_dicts.vehicle,
+                control_commands_info.vehicle[veh_id],
                 record_in_ctx=True,
             )
-            for veh_id in env_future_trajectory[AgentType.VEHICLE]
+            for veh_id in trajectory_dicts.vehicle
         }
     )
-    maneuver_challenge_vru = Dict(
+    maneuver_challenge_dicts.vru = Dict(
         {
-            vru_id: get_maneuver_challenge(
+            vru_id: get_maneuver_challenge_agent(
                 vru_id,
-                adversarial_future_trajectory_vru[vru_id],
+                adversarial_future_trajectory_dict_vru[vru_id],
                 AgentType.VULNERABLE_ROAD_USER,
-                normal_future_trajectory_veh,
+                obs_dicts.vru[vru_id],
+                normal_future_trajectory_dict_veh,
                 AgentType.VEHICLE,
-                env_observation,
-                env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id],
+                obs_dicts.vehicle,
+                control_commands_info.vru[vru_id],
                 record_in_ctx=True,
             )
-            for vru_id in env_future_trajectory[AgentType.VULNERABLE_ROAD_USER]
+            for vru_id in trajectory_dicts.vru
         }
     )
 
-    for veh_id in env_command_information[AgentType.VEHICLE]:
-        env_command_information[AgentType.VEHICLE][veh_id]["maneuver_challenge"] = (
-            maneuver_challenge_veh[veh_id]
-            if veh_id in maneuver_challenge_veh
+    for veh_id in control_commands_info.vehicle:
+        control_commands_info.vehicle[veh_id].maneuver_challenge = (
+            maneuver_challenge_dicts.vehicle[veh_id]
+            if veh_id in maneuver_challenge_dicts.vehicle
             else {"normal": 0}
         )
 
-    for vru_id in env_command_information[AgentType.VULNERABLE_ROAD_USER]:
-        env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id]["maneuver_challenge"] = (
-            maneuver_challenge_vru[vru_id]
-            if vru_id in maneuver_challenge_vru
+    for vru_id in control_commands_info.vru:
+        control_commands_info.vru[vru_id].maneuver_challenge = (
+            maneuver_challenge_dicts.vru[vru_id]
+            if vru_id in maneuver_challenge_dicts.vru
             else {"normal": 0}
         )
 
-    maneuver_challenge_veh_shrinked = Dict(
+    maneuver_challenge_dicts_veh_shrinked = Dict(
         {
-            veh_id: maneuver_challenge_veh[veh_id]
-            for veh_id in maneuver_challenge_veh
-            if maneuver_challenge_veh[veh_id].get("adversarial")
+            veh_id: maneuver_challenge_dicts.vehicle[veh_id]
+            for veh_id in maneuver_challenge_dicts.vehicle
+            if maneuver_challenge_dicts.vehicle[veh_id].get("adversarial")
         }
     )
-    for veh_id in maneuver_challenge_veh_shrinked:
+    for veh_id in maneuver_challenge_dicts_veh_shrinked:
         avoidable_maneuver_challenge_hook(veh_id)
     conflict_vehicle_info = Dict(
         {
             AgentType.VEHICLE: {
-                veh_id: env_command_information[AgentType.VEHICLE][veh_id].get(
-                    "conflict_vehicle_list"
-                )
-                for veh_id in env_command_information[AgentType.VEHICLE]
-                if env_command_information[AgentType.VEHICLE][veh_id].get("conflict_vehicle_list")
+                veh_id: control_commands_info.vehicle[veh_id].conflict_vehicle_list
+                for veh_id in control_commands_info.vehicle
+                if control_commands_info.vehicle[veh_id].conflict_vehicle_list
             },
             AgentType.VULNERABLE_ROAD_USER: {
-                vru_id: env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
-                    "conflict_vehicle_list"
-                )
-                for vru_id in env_command_information[AgentType.VULNERABLE_ROAD_USER]
-                if env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id].get(
-                    "conflict_vehicle_list"
-                )
+                vru_id: control_commands_info.vru[vru_id].conflict_vehicle_list
+                for vru_id in control_commands_info.vru
+                if control_commands_info.vru[vru_id].conflict_vehicle_list
             },
         }
     )
     logger.trace(
-        f"maneuver_challenge: {maneuver_challenge_veh_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
+        f"maneuver_challenge: {maneuver_challenge_dicts_veh_shrinked}, conflict_vehicle_info: {conflict_vehicle_info}"
     )
-    env_maneuver_challenge = {
-        AgentType.VEHICLE: maneuver_challenge_veh,
-        AgentType.VULNERABLE_ROAD_USER: maneuver_challenge_vru,
-    }
-    return env_maneuver_challenge, env_command_information
+    return maneuver_challenge_dicts, control_commands_info
 
