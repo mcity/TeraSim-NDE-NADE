@@ -1,6 +1,4 @@
-from terasim.overlay import traci
-
-from terasim_nde_nade.vehicle.nde_controller import NDEController
+from .nde_controller import NDEController
 
 
 class AggressiveController(NDEController):

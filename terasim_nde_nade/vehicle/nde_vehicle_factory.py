@@ -1,15 +1,10 @@
-import json
-
 from terasim.vehicle.factories.vehicle_factory import VehicleFactory
-from terasim.vehicle.sensors.ego import EgoSensor
-from terasim.vehicle.sensors.local import LocalSensor
 from terasim.vehicle.vehicle import Vehicle
 
-from terasim_nde_nade.vehicle.aggressive_controller import AggressiveController
-from terasim_nde_nade.vehicle.conflict_generation_model import ConflictGenerationModel
-from terasim_nde_nade.vehicle.nde_controller import NDEController
-from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
-from terasim_nde_nade.vehicle.nde_ego_sensor import NDEEgoSensor
+from .conflict_generation_model import ConflictGenerationModel
+from .nde_controller import NDEController
+from .nde_decision_model import NDEDecisionModel
+from .nde_ego_sensor import NDEEgoSensor
 
 
 class NDEVehicleFactory(VehicleFactory):
@@ -18,6 +13,15 @@ class NDEVehicleFactory(VehicleFactory):
         self.cfg = cfg
 
     def create_vehicle(self, veh_id, simulator):
+        """Create a vehicle object.
+
+        Args:
+            veh_id (str): Vehicle ID.
+            simulator (Simulator): Simulator object.
+
+        Returns:
+            Vehicle: Vehicle object.
+        """
         sensor_list = [
             NDEEgoSensor(cache=True, cache_history=True, cache_history_duration=1)
         ]

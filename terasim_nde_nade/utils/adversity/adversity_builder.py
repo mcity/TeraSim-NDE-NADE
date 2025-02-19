@@ -2,7 +2,7 @@ from hydra.utils import instantiate
 from typing import List, cast
 from omegaconf import DictConfig
 
-from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
+from .abstract_adversity import AbstractAdversity
 
 
 def _build_adversity(adversity_cfg: DictConfig) -> AbstractAdversity:

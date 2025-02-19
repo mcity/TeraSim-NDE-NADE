@@ -3,8 +3,7 @@ import math
 
 from terasim.overlay import traci
 
-from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.utils import CommandType, NDECommand
+from ...utils import AbstractAdversity, CommandType, NDECommand
 
 
 class RunningRedLightAdversity(AbstractAdversity):

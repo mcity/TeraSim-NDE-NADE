@@ -1,8 +1,7 @@
-from terasim.overlay import traci
+from .nde_decision_model import NDEDecisionModel
 
-from terasim_nde_nade.adversity.adversity_manager import AdversityManager
-from terasim_nde_nade.utils import CommandType, NDECommand, get_location
-from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
+from ..utils import AdversityManager, CommandType, NDECommand, get_location
+
 
 BaseModel = NDEDecisionModel
 
@@ -11,10 +10,26 @@ class ConflictGenerationModel(BaseModel):
     def __init__(
         self, cfg=None, reroute=True, dynamically_change_vtype=True, *args, **kwargs
     ):
+        """Initialize the ConflictGenerationModel module.
+
+        Args:
+            cfg (dict): Configuration of the model.
+            reroute (bool): Flag to indicate if the vehicle should be rerouted.
+            dynamically_change_vtype (bool): Flag to indicate if the vehicle type should be changed dynamically.
+        """
         super().__init__(reroute, dynamically_change_vtype, *args, **kwargs)
         self.adversity_manager = AdversityManager(cfg.adversity_cfg.vehicle)
 
     def derive_control_command_from_observation(self, obs_dict):
+        """Derive the control command based on the observation.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            CommandType: Control command to be executed by the ego agent.
+            dict: Dictionary containing the normal and adversarial maneuvers.
+        """
         safe_nde_control_command, _ = super().derive_control_command_from_observation(
             obs_dict
         )

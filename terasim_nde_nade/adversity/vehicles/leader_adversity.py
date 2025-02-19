@@ -1,7 +1,7 @@
 import addict
 
-from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.utils import (
+from ...utils import (
+    AbstractAdversity,
     derive_leader_adversarial_command,
     get_location,
 )

@@ -4,7 +4,6 @@ import addict
 from typing import Any, Dict
 
 
-
 class AbstractAdversity(abc.ABC):
     def __new__(cls, *args: Any, **kwargs: Any):
         instance: AbstractAdversity = super().__new__(cls)

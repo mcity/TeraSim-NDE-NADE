@@ -2,8 +2,9 @@ from addict import Dict
 import random
 
 
-from terasim_nde_nade.utils import (
-    build_adversities,
+from .adversity_builder import build_adversities
+
+from ..base import (
     CommandType, 
     NDECommand,
 )

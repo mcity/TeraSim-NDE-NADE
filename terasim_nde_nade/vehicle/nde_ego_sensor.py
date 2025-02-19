@@ -1,14 +1,21 @@
 from collections import deque
-from math import isclose
-
-import numpy as np
 from loguru import logger
-from scipy.interpolate import interp1d
+from math import isclose
+import numpy as np
+
 from terasim.overlay import traci
 from terasim.vehicle.sensors.ego import EgoSensor
 
 
 def get_lane_id(vehicle_id):
+    """Get the lane ID of the vehicle. If the vehicle is not in a lane, return the road ID with "_0" appended.
+
+    Args:
+        vehicle_id (str): Vehicle ID.
+
+    Returns:
+        str: Lane ID.
+    """
     lane_id = traci.vehicle.getLaneID(vehicle_id)
     if lane_id == "":
         lane_id = traci.vehicle.getRoadID(vehicle_id) + "_0"
@@ -47,6 +54,11 @@ class NDEEgoSensor(EgoSensor):
             self._history = deque(maxlen=self.cache_length)
 
     def fetch(self) -> dict:
+        """Fetch the observation data.
+
+        Returns:
+            dict: Observation data.
+        """
         fetch_data = self._fetch()
         if self.cache_history:
             cached_time_list = np.array([time for time, _ in self._history])
@@ -57,12 +69,22 @@ class NDEEgoSensor(EgoSensor):
 
     @property
     def deltaT(self):
+        """Get the simulation time step.
+
+        Returns:
+            float: Simulation time step.
+        """
         if self._deltaT is None:
             self._deltaT = traci.simulation.getDeltaT()
         return self._deltaT
 
     @property
     def history_array(self):
+        """Get the history array.
+
+        Returns:
+            np.ndarray: History array.
+        """
         obs = self.observation  # make sure the newest observation is updated
         history_array = self._get_history_array(self.cache_length)
         current_time = traci.simulation.getTime()
@@ -110,6 +132,14 @@ class NDEEgoSensor(EgoSensor):
             )
 
     def _get_history_array(self, history_duration):
+        """Get the history array.
+
+        Args:
+            history_duration (int): History duration.
+
+        Returns:
+            np.ndarray: History array.
+        """
         history_list = []
         for time, data in self._history:
             history_list.append(
@@ -128,6 +158,11 @@ class NDEEgoSensor(EgoSensor):
         return np.array(history_list)
 
     def _fetch(self) -> dict:
+        """Fetch the observation data.
+
+        Returns:
+            dict: Observation data.
+        """
         original_dict = super().fetch()
         next_links = original_dict["next_links"]
         original_dict["upcoming_lanes"] = [original_dict["lane_id"]]
@@ -144,6 +179,14 @@ class NDEEgoSensor(EgoSensor):
 
 
 def get_upcoming_foe_lane_id_list(upcoming_lanes):
+    """Get the upcoming foe lane ID list.
+
+    Args:
+        upcoming_lanes (list): Upcoming lane ID list.   
+
+    Returns:
+        list: Upcoming foe lane ID list.
+    """
     veh1_foe_lane_id_set = set()
     for lane_id in upcoming_lanes:
         veh1_foe_lane_id_set = veh1_foe_lane_id_set.union(
@@ -153,6 +196,14 @@ def get_upcoming_foe_lane_id_list(upcoming_lanes):
 
 
 def get_next_lane_id_set_from_next_links(next_links):
+    """Get the next lane ID set from the next links.
+
+    Args:
+        next_links (list): Next links.
+
+    Returns:
+        list: Next lane ID set.
+    """
     if len(next_links) == 0:
         return []
     next_lane_id = next_links[0][0]

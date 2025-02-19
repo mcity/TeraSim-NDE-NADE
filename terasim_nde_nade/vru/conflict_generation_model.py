@@ -1,8 +1,7 @@
 from terasim.overlay import traci
 
-from terasim_nde_nade.adversity.adversity_manager import AdversityManager
-from terasim_nde_nade.utils import CommandType, NDECommand, get_location
-from terasim_nde_nade.vehicle.nde_decision_model import NDEDecisionModel
+from ..utils import AdversityManager
+from ..vehicle.nde_decision_model import NDEDecisionModel
 
 BaseModel = NDEDecisionModel
 

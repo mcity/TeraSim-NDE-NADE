@@ -3,6 +3,7 @@ import addict
 from terasim.overlay import traci
 
 from .obs_processing import get_cf_acceleration, get_ff_acceleration
+
 from ..agents import is_car_following
 from ..base import CommandType, NDECommand
 

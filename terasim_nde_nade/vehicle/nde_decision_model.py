@@ -1,24 +1,10 @@
-import json
-import logging
-import os
-import random
-from typing import List, Tuple
-
-import attr
-import numpy as np
-import terasim.utils as utils
-import traci.constants as tc
-from addict import Dict
 from terasim.overlay import traci
 from terasim.vehicle.decision_models.idm_model import IDMModel
 
-import terasim_nde_nade.utils as nde_utils
 from terasim_nde_nade.utils import (
     CommandType,
     NDECommand,
-    get_collision_type_and_prob,
     get_location,
-    is_car_following,
 )
 
 
@@ -30,6 +16,12 @@ class NDEDecisionModel(IDMModel):
 
     @staticmethod
     def change_vehicle_type_according_to_location(veh_id, vehicle_location):
+        """Change the vehicle type according to the location.
+
+        Args:
+            veh_id (str): Vehicle ID.
+            vehicle_location (str): Location of the vehicle.
+        """
         if "CAV" in veh_id:
             return
         if "highway" in vehicle_location:  # highway/freeway scenario
@@ -43,6 +35,15 @@ class NDEDecisionModel(IDMModel):
 
     @staticmethod
     def reroute_vehicle_if_necessary(veh_id: str, current_lane_id: str) -> bool:
+        """Reroute the vehicle if necessary.
+
+        Args:
+            veh_id (str): Vehicle ID.
+            current_lane_id (str): Current lane ID.
+
+        Returns:
+            bool: Flag to indicate if the vehicle has been rerouted.
+        """
         bestlanes = traci.vehicle.getBestLanes(veh_id)
         # get the bestlane with current lane id
         for lane in bestlanes:
@@ -60,6 +61,15 @@ class NDEDecisionModel(IDMModel):
         return False  # do not reroute the vehicle
 
     def derive_control_command_from_observation(self, obs_dict):
+        """Derive the control command based on the observation.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            CommandType: Control command to be executed by the ego agent.
+            dict: Dictionary containing the normal and adversarial maneuvers.
+        """
         # change the IDM and MOBIL parameters based on the location
         vehicle_location = get_location(
             obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]

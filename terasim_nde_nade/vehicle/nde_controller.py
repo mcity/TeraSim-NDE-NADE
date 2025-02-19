@@ -1,12 +1,11 @@
-import random
-
-import terasim.utils as utils
 from addict import Dict
 from loguru import logger
+
 from terasim.agent.agent_controller import AgentController
 from terasim.overlay import traci
+import terasim.utils as utils
 
-from terasim_nde_nade.utils import (
+from ..utils import (
     CommandType,
     NDECommand,
     interpolate_future_trajectory,
@@ -14,10 +13,20 @@ from terasim_nde_nade.utils import (
 
 
 def get_all_routes():
+    """Get all routes in the network.
+
+    Returns:
+        list: List of all routes in the network.
+    """
     return traci.route.getIDList()
 
 
 def get_all_route_edges():
+    """Get all route edges in the network.
+
+    Returns:
+        dict: Dictionary of all route edges in the network.
+    """
     all_routes = get_all_routes()
     all_route_edges = {}
     for route in all_routes:
@@ -34,7 +43,12 @@ class NDEController(AgentController):
         )
 
     def _update_controller_status(self, veh_id, current_time=None):
-        """Refresh the state of the controller. This function will be called at each timestep as far as vehicle is still in the simulator, even if the vehicle is not controlled."""
+        """Refresh the state of the controller. This function will be called at each timestep as far as vehicle is still in the simulator, even if the vehicle is not controlled.
+        
+        Args:
+            veh_id (str): Vehicle ID.
+            current_time (float, optional): Current simulation time. Defaults to None.    
+        """
         # if the controller is busy, detect if the current simulation time - the time of the cached control command is greater than the duration of the control command, then the controller is not busy anymore
         if self.is_busy:
             current_time = (
@@ -52,7 +66,9 @@ class NDEController(AgentController):
         """Vehicle acts based on the input action.
 
         Args:
-            action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
+            veh_id (str): Vehicle ID.
+            control_command (NDECommand): Control command.
+            obs_dict (dict): Observation of the ego agent.
         """
         if not self.is_busy:
             if control_command.command_type == CommandType.DEFAULT:
@@ -92,6 +108,14 @@ class NDEController(AgentController):
     def execute_control_command_onestep(
         self, veh_id, cached_control_command, obs_dict, first_step=False
     ):
+        """Execute the control command for one step.
+
+        Args:
+            veh_id (str): Vehicle ID.
+            cached_control_command (dict): Cached control command.
+            obs_dict (dict): Observation of the ego agent.
+            first_step (bool, optional): Flag to indicate if this is the first step. Defaults to False.
+        """
         if cached_control_command["cached_command"].command_type == CommandType.CUSTOM:
             if (
                 cached_control_command["cached_command"].custom_control_command
@@ -145,6 +169,13 @@ class NDEController(AgentController):
 
     @staticmethod
     def execute_trajectory_command(veh_id, control_command, obs_dict):
+        """Execute the trajectory command.
+
+        Args:
+            veh_id (str): Vehicle ID.
+            control_command (NDECommand): Control command.
+            obs_dict (dict): Observation of the ego agent.
+        """
         assert control_command.command_type == CommandType.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
         trajectory_array = control_command.future_trajectory
@@ -171,6 +202,14 @@ class NDEController(AgentController):
     def execute_lane_change_command(
         veh_id, control_command, obs_dict, first_step=False
     ):
+        """Execute the lane change command.
+
+        Args:
+            veh_id (str): Vehicle ID.
+            control_command (NDECommand): Control command.
+            obs_dict (dict): Observation of the ego agent.
+            first_step (bool, optional): Flag to indicate if this is the first step. Defaults to False.
+        """
         assert (
             control_command.command_type == CommandType.LEFT
             or control_command.command_type == CommandType.RIGHT
@@ -181,6 +220,13 @@ class NDEController(AgentController):
 
     @staticmethod
     def execute_acceleration_command(veh_id, control_command, obs_dict):
+        """Execute the acceleration command.
+
+        Args:
+            veh_id (str): Vehicle ID.
+            control_command (NDECommand): Control command.
+            obs_dict (dict): Observation of the ego agent.
+        """
         # logger.critical("the acceleration command should not be executed")
         assert control_command.command_type == CommandType.ACCELERATION
         acceleration = control_command.acceleration
@@ -190,16 +236,34 @@ class NDEController(AgentController):
 
     @staticmethod
     def all_checks_on(veh_id):
+        """Turn on all checks for the vehicle.
+
+        Args:
+            veh_id (str): Vehicle ID.
+        """
         traci.vehicle.setSpeedMode(veh_id, 31)
         traci.vehicle.setLaneChangeMode(veh_id, 1621)
 
     @staticmethod
     def all_checks_off(veh_id):
+        """Turn off all checks for the vehicle.
+
+        Args:
+            veh_id (str): Vehicle ID.
+        """
         traci.vehicle.setSpeedMode(veh_id, 32)
         traci.vehicle.setLaneChangeMode(veh_id, 0)
 
 
 def interpolate_control_command(control_command):
+    """Interpolate the control command.
+
+    Args:
+        control_command (NDECommand): Control command.
+
+    Returns:
+        NDECommand: Interpolated control command.
+    """
     if control_command.command_type == CommandType.TRAJECTORY:
         control_command.future_trajectory = interpolate_future_trajectory(
             control_command.future_trajectory, 0.1

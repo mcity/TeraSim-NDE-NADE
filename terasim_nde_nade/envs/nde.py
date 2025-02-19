@@ -1,13 +1,13 @@
-import os
-from collections import deque
-
-import numpy as np
-import terasim.utils as utils
 from addict import Dict
+from collections import deque
 from loguru import logger
+import numpy as np
+import os
+
 from terasim.envs.template_complete import EnvTemplateComplete
 from terasim.overlay import traci
 from terasim.params import AgentType
+import terasim.utils as utils
 
 
 class NDE(EnvTemplateComplete):

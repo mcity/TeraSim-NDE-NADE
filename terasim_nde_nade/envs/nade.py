@@ -9,8 +9,9 @@ from terasim.overlay import profile, traci
 from terasim.params import AgentType
 import terasim.utils as utils
 
-from terasim_nde_nade.envs.nde import NDE
-from terasim_nde_nade.utils import (
+from .nde import NDE
+
+from ..utils import (
     add_avoid_accept_collision_command,
     adversarial_hook,
     apply_collision_avoidance,
