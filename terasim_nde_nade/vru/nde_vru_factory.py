@@ -10,10 +10,24 @@ from .nde_controller import NDEVulnerableRoadUserController
 
 class NDEVulnerableRoadUserFactory(VulnerableRoadUserFactory):
     def __init__(self, cfg=None):
+        """Initialize the NDEVulnerableRoadUserFactory module.
+        
+        Args:
+            cfg (dict): Configuration of the module.
+        """
         super().__init__()
         self.cfg = cfg
 
     def create_vulnerable_road_user(self, vru_id, simulator):
+        """Create a vulnerable road user object.
+
+        Args:
+            vru_id (str): Vulnerable road user ID.
+            simulator (Simulator): Simulator object.
+        
+        Returns:
+            VulnerableRoadUser: Vulnerable road user object.
+        """
         sensor_list = [
             EgoSensor(cache=True, cache_history=True, cache_history_duration=1)
         ]

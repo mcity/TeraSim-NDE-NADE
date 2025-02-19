@@ -11,20 +11,14 @@ from ..utils import (
 )
 
 
-def get_all_routes():
-    return traci.route.getIDList()
-
-
-def get_all_route_edges():
-    all_routes = get_all_routes()
-    all_route_edges = {}
-    for route in all_routes:
-        all_route_edges[route] = traci.route.getEdges(route)
-    return all_route_edges
-
-
 class NDEVulnerableRoadUserController(AgentController):
     def __init__(self, simulator, params=None):
+        """Initialize the controller.
+
+        Args:
+            simulator (Simulator): Simulator object.
+            params (dict): Parameters for the controller.
+        """
         self.is_busy = False
         self.cached_control_command = None  # this is a dict, containing the control command for the vehicle with the timestep information
         self.used_to_be_busy = False
@@ -33,7 +27,12 @@ class NDEVulnerableRoadUserController(AgentController):
         )
 
     def _update_controller_status(self, vru_id, current_time=None):
-        """Refresh the state of the controller. This function will be called at each timestep as far as vehicle is still in the simulator, even if the vehicle is not controlled."""
+        """Refresh the state of the controller. This function will be called at each timestep as far as vru is still in the simulator, even if the vru is not controlled.
+        
+        Args:
+            vru_id (str): ID of the vru.
+            current_time (int): Current simulation time.
+        """
         # if the controller is busy, detect if the current simulation time - the time of the cached control command is greater than the duration of the control command, then the controller is not busy anymore
         if self.is_busy:
             current_time = (
@@ -51,7 +50,9 @@ class NDEVulnerableRoadUserController(AgentController):
         """Vehicle acts based on the input action.
 
         Args:
-            action (dict): Lonitudinal and lateral actions. It should have the format: {'longitudinal': float, 'lateral': str}. The longitudinal action is the longitudinal acceleration, which should be a float. The lateral action should be the lane change direction. 'central' represents no lane change. 'left' represents left lane change, and 'right' represents right lane change.
+            vru_id (str): ID of the vru.
+            control_command (dict): Control command for the vru.
+            obs_dict (dict): Observation of the vru.
         """
         if self.used_to_be_busy:
             traci.person.remove(vru_id)
@@ -60,22 +61,9 @@ class NDEVulnerableRoadUserController(AgentController):
             if control_command.command_type == CommandType.DEFAULT:
                 # all_checks_on(veh_id)
                 return
-            elif control_command.command_type == CommandType.CUSTOM:
-                self.cached_control_command = Dict(
-                    {
-                        "timestep": traci.simulation.getTime(),
-                        "cached_command": control_command,
-                    }
-                )
-                self.execute_control_command_onestep(
-                    vru_id, self.cached_control_command, obs_dict, first_step=True
-                )
-                return
             else:
                 # other commands will have duration, which will keep the controller busy
                 self.is_busy = True
-                # if the control command is a trajectory, then interpolate the trajectory
-                control_command = interpolate_control_command(control_command)
                 self.cached_control_command = Dict(
                     {
                         "timestep": traci.simulation.getTime(),
@@ -91,61 +79,37 @@ class NDEVulnerableRoadUserController(AgentController):
             )
 
     def execute_control_command_onestep(
-        self, veh_id, cached_control_command, obs_dict, first_step=False
+        self, vru_id, cached_control_command, obs_dict, first_step=False
     ):
-        if cached_control_command["cached_command"].command_type == CommandType.CUSTOM:
-            if (
-                cached_control_command["cached_command"].custom_control_command
-                is not None
-                and cached_control_command[
-                    "cached_command"
-                ].custom_execute_control_command
-                is not None
-            ):
-                cached_control_command["cached_command"].custom_execute_control_command(
-                    veh_id,
-                    cached_control_command["cached_command"].custom_control_command,
-                    obs_dict,
-                )
-                return
-            else:
-                logger.error(
-                    "Custom control command or Custom control command execution is not defined"
-                )
-                return
+        """Execute the control command for one step.
 
+        Args:
+            vru_id (str): ID of the vehicle.
+            cached_control_command (dict): Cached control command.
+            obs_dict (dict): Observation of the vehicle.
+            first_step (bool): Flag to indicate if this is the first step of the control command.
+        """
         if (
             cached_control_command["cached_command"].command_type
             == CommandType.TRAJECTORY
         ):
             # pass
             self.execute_trajectory_command(
-                veh_id, cached_control_command["cached_command"], obs_dict
-            )
-        elif (
-            cached_control_command["cached_command"].command_type == CommandType.LEFT
-            or cached_control_command["cached_command"].command_type
-            == CommandType.RIGHT
-        ):
-            self.execute_lane_change_command(
-                veh_id,
-                cached_control_command["cached_command"],
-                obs_dict,
-                first_step=first_step,
-            )
-        elif (
-            cached_control_command["cached_command"].command_type
-            == CommandType.ACCELERATION
-        ):
-            self.execute_acceleration_command(
-                veh_id, cached_control_command["cached_command"], obs_dict
+                vru_id, cached_control_command["cached_command"], obs_dict
             )
         else:
             logger.error("Invalid command type")
         return
 
     @staticmethod
-    def execute_trajectory_command(veh_id, control_command, obs_dict):
+    def execute_trajectory_command(vru_id, control_command, obs_dict):
+        """Execute the trajectory command.
+
+        Args:
+            vru_id (str): ID of the vru.
+            control_command (dict): Control command for the vru.
+            obs_dict (dict): Observation of the vru.
+        """
         assert control_command.command_type == CommandType.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
         trajectory_array = control_command.future_trajectory
@@ -155,7 +119,7 @@ class NDEVulnerableRoadUserController(AgentController):
         )
         # set the position of the vehicle to the closest timestep trajectory point
         traci.person.moveToXY(
-            personID=veh_id,
+            personID=vru_id,
             edgeID="",
             x=closest_timestep_trajectory[0],
             y=closest_timestep_trajectory[1],
@@ -163,15 +127,5 @@ class NDEVulnerableRoadUserController(AgentController):
             keepRoute=control_command.keep_route_mode,
         )
         logger.info(
-            f"Setting position of {veh_id} to {closest_timestep_trajectory[0], closest_timestep_trajectory[1]}, current position is {traci.person.getPosition(veh_id)}"
+            f"Setting position of {vru_id} to {closest_timestep_trajectory[0], closest_timestep_trajectory[1]}, current position is {traci.person.getPosition(vru_id)}"
         )
-
-
-def interpolate_control_command(control_command):
-    if control_command.command_type == CommandType.TRAJECTORY:
-        # control_command.future_trajectory = interpolate_future_trajectory(
-        #     control_command.future_trajectory, 0.1
-        # )  # TODO: Angle cannot be interpolated
-        return control_command
-    else:
-        return control_command
