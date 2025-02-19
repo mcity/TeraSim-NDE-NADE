@@ -19,12 +19,12 @@ from .nade import (
     get_environment_maneuver_challenge,
     add_avoid_accept_collision_command,
     get_environment_avoidability,
-    modify_ndd_dict_according_to_avoidability,
+    modify_nde_cmd_veh_using_avoidability,
     remove_collision_avoidance_command_using_avoidability,
     apply_collision_avoidance,
     get_environment_criticality,
-    get_ndd_distribution_from_ctx,
-    update_ndd_distribution_to_vehicle_ctx,
+    get_nde_cmd_from_cmd_info,
+    update_nde_cmd_to_vehicle_cmd_info,
     update_control_cmds_from_predicted_trajectory,
     adversarial_hook
 )

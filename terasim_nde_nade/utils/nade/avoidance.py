@@ -8,7 +8,7 @@ from terasim.overlay import traci
 from terasim.params import AgentType
 
 from .maneuver_challenge import get_maneuver_challenge
-from .tools import get_ndd_distribution_from_ctx, unavoidable_maneuver_challenge_hook
+from .tools import get_nde_cmd_from_cmd_info, unavoidable_maneuver_challenge_hook
 from ..base import CommandType, NDECommand
 from ..trajectory import predict_future_trajectory_vehicle
 
@@ -33,7 +33,7 @@ def get_vehicle_avoidance_command(
     )
     return avoidance_command
 
-def get_accept_collision_command():
+def get_vehicle_accept_collision_command():
     accept_command = NDECommand(
         command_type=CommandType.ACCELERATION,
         acceleration=0,
@@ -160,7 +160,7 @@ def add_avoid_accept_collision_command(
                 veh_info=None,
             )
 
-            accept_command = get_accept_collision_command()
+            accept_command = get_vehicle_accept_collision_command()
             env_command_information[AgentType.VEHICLE][victim_vehicle_id][
                 "ndd_command_distribution"
             ]["accept_collision"] = accept_command
@@ -226,7 +226,7 @@ def add_avoid_accept_collision_command(
                 veh_info=None,
             )
 
-            accept_command = get_accept_collision_command()
+            accept_command = get_vehicle_accept_collision_command()
             env_command_information[AgentType.VEHICLE][victim_vehicle_id][
                 "ndd_command_distribution"
             ]["accept_collision"] = accept_command
@@ -385,10 +385,10 @@ def get_environment_avoidability(
 
     return maneuver_challenge_avoidance_dicts, env_command_information
 
-def modify_ndd_dict_according_to_avoidability(
+def modify_nde_cmd_veh_using_avoidability(
     unavoidable_collision_prob_factor, env_maneuver_challenge, env_command_information
 ):
-    ndd_control_command_dicts = get_ndd_distribution_from_ctx(
+    nde_control_commands_veh = get_nde_cmd_from_cmd_info(
         env_command_information, AgentType.VEHICLE
     )
 
@@ -398,18 +398,17 @@ def modify_ndd_dict_according_to_avoidability(
             # mark all rearend collision as unavoidable
             if env_command_information[AgentType.VEHICLE][veh_id].get("avoidable", True) is False:
                 # collision unavoidable
-                ndd_control_command_dicts[veh_id]["adversarial"].prob = (
-                    ndd_control_command_dicts[veh_id]["adversarial"].prob
-                    * unavoidable_collision_prob_factor
+                nde_control_commands_veh[veh_id]["adversarial"].prob = (
+                    nde_control_commands_veh[veh_id]["adversarial"].prob * unavoidable_collision_prob_factor
                 )
-                ndd_control_command_dicts[veh_id]["normal"].prob = (
-                    1 - ndd_control_command_dicts[veh_id]["adversarial"].prob
+                nde_control_commands_veh[veh_id]["normal"].prob = (
+                    1 - nde_control_commands_veh[veh_id]["adversarial"].prob
                 )
                 logger.trace(
-                    f"{veh_id} is marked as unavoidable collision and the prob is reduced to {ndd_control_command_dicts[veh_id]['adversarial'].prob}"
+                    f"{veh_id} is marked as unavoidable collision and the prob is reduced to {nde_control_commands_veh[veh_id]['adversarial'].prob}"
                 )
                 unavoidable_maneuver_challenge_hook(veh_id)
-    return ndd_control_command_dicts, env_command_information
+    return nde_control_commands_veh, env_command_information
 
 def record_adversarial_related_information(adversarial_pair_dict, env_command_information, record):
     if len(adversarial_pair_dict[AgentType.VEHICLE]):
@@ -463,14 +462,14 @@ def record_adversarial_related_information(adversarial_pair_dict, env_command_in
 def apply_collision_avoidance(
     env_future_trajectory,
     env_command_information,
-    ITE_control_command_dict,
+    nade_control_commands,
     record
 ):
     """after the NADE decision, apply collision avoidance for the victim vehicles.
 
     Args:
         env_command_information (_type_): _description_
-        ITE_control_command_dict (_type_): _description_
+        nade_control_commands (_type_): _description_
 
     Returns:
         _type_: _description_
@@ -485,7 +484,7 @@ def apply_collision_avoidance(
     )
     # no vehicle victim
     if len(adversarial_pair_dict[AgentType.VEHICLE]) == 0:
-        return ITE_control_command_dict, env_command_information, weight
+        return nade_control_commands, env_command_information, weight
 
     # victim vehicle set is all the vehicles that are victim by the adversarial vehicle, combine all vehicles in the adversarial_pair_dict values
     victim_vehicle_set = set()
@@ -516,14 +515,14 @@ def apply_collision_avoidance(
                     "additional_info": "all_avoidance_none",
                 }
             )
-            ITE_control_command_dict[AgentType.VEHICLE][
+            nade_control_commands[AgentType.VEHICLE][
                 victim_vehicle_id
             ] = env_command_information[AgentType.VEHICLE][victim_vehicle_id][
                 "ndd_command_distribution"
             ].get(
                 "accept_collision", None
             )
-        return ITE_control_command_dict, env_command_information, weight
+        return nade_control_commands, env_command_information, weight
 
     timestamp = utils.get_time()
     IS_prob = np.random.uniform(0, 1)
@@ -562,7 +561,7 @@ def apply_collision_avoidance(
                     )
                 )
                 if avoid_collision_command:
-                    ITE_control_command_dict[AgentType.VEHICLE][
+                    nade_control_commands[AgentType.VEHICLE][
                         victim_vehicle_id
                     ] = avoid_collision_command
                     env_command_information[AgentType.VEHICLE][victim_vehicle_id][
@@ -598,7 +597,7 @@ def apply_collision_avoidance(
                         "mode": "accept_collision",
                     }
                 )
-                ITE_control_command_dict[AgentType.VEHICLE][
+                nade_control_commands[AgentType.VEHICLE][
                     victim_vehicle_id
                 ] = env_command_information[AgentType.VEHICLE][victim_vehicle_id][
                     "ndd_command_distribution"
@@ -608,9 +607,9 @@ def apply_collision_avoidance(
         weight *= (1 - avoid_collision_ndd_prob) / (1 - avoid_collision_IS_prob)
 
     record.event_info[utils.get_time()].victim_command = {
-        str(ITE_control_command_dict[victim_vehicle_id])
+        str(nade_control_commands[victim_vehicle_id])
         for victim_vehicle_id in victim_vehicle_set
     }
 
-    return ITE_control_command_dict, env_command_information, weight
+    return nade_control_commands, env_command_information, weight
 

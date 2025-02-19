@@ -13,29 +13,29 @@ def unavoidable_maneuver_challenge_hook(veh_id):
 def adversarial_hook(veh_id):
     traci.vehicle.highlight(veh_id, (255, 0, 0, 255), duration=2)
 
-def get_ndd_distribution_from_ctx(env_command_information, agent_type):
-    ndd_control_command_dicts = Dict(
+def get_nde_cmd_from_cmd_info(env_command_information, agent_type):
+    nde_control_commands_agenttype = Dict(
         {
             agent_id: env_command_information[agent_type][agent_id]["ndd_command_distribution"]
             for agent_id in env_command_information[agent_type]
         }
     )
-    return ndd_control_command_dicts
+    return nde_control_commands_agenttype
 
-def update_ndd_distribution_to_vehicle_ctx(env_command_information, ndd_control_command_dicts):
-    for veh_id in ndd_control_command_dicts:
+def update_nde_cmd_to_vehicle_cmd_info(env_command_information, nde_control_commands_veh):
+    for veh_id in nde_control_commands_veh:
         env_command_information[AgentType.VEHICLE][veh_id][
             "ndd_command_distribution"
-        ] = ndd_control_command_dicts[veh_id]
+        ] = nde_control_commands_veh[veh_id]
     return env_command_information
 
 def get_environment_criticality(env_maneuver_challenge, env_command_information):
-    ndd_control_command_dicts = get_ndd_distribution_from_ctx(
+    nde_control_commands_veh = get_nde_cmd_from_cmd_info(
         env_command_information, AgentType.VEHICLE
     )
     env_criticality = {}
     for veh_id in env_maneuver_challenge[AgentType.VEHICLE]:
-        ndd_control_command_dict = ndd_control_command_dicts[veh_id]
+        ndd_control_command_dict = nde_control_commands_veh[veh_id]
         maneuver_challenge_dict = env_maneuver_challenge[AgentType.VEHICLE][
             veh_id
         ]

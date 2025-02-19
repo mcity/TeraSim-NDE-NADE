@@ -15,12 +15,12 @@ from terasim_nde_nade.utils import (
     get_environment_maneuver_challenge,
     add_avoid_accept_collision_command,
     get_environment_avoidability,
-    modify_ndd_dict_according_to_avoidability,
+    modify_nde_cmd_veh_using_avoidability,
     remove_collision_avoidance_command_using_avoidability,
     apply_collision_avoidance,
     get_environment_criticality,
-    get_ndd_distribution_from_ctx,
-    update_ndd_distribution_to_vehicle_ctx,
+    get_nde_cmd_from_cmd_info,
+    update_nde_cmd_to_vehicle_cmd_info,
     update_control_cmds_from_predicted_trajectory,
     adversarial_hook,
 )
@@ -71,7 +71,7 @@ class NADE(BaseEnv):
         # Step 2. Make ITE decision, includes the modification of NDD distribution according to avoidability
         # if should_continue_simulation_flag:
         (
-            ITE_control_cmds,
+            nade_control_commands,
             env_command_information,
             weight,
             env_future_trajectory,
@@ -81,22 +81,22 @@ class NADE(BaseEnv):
             env_command_information, env_observation
         )  # enable ITE
         self.importance_sampling_weight *= weight  # update weight by adversarial
-        ITE_control_cmds, env_command_information, weight = apply_collision_avoidance(
-            env_future_trajectory, env_command_information, ITE_control_cmds, self.record
+        nade_control_commands, env_command_information, weight = apply_collision_avoidance(
+            env_future_trajectory, env_command_information, nade_control_commands, self.record
         )
         self.importance_sampling_weight *= (
             weight  # update weight by collision avoidance
         )
-        ITE_control_cmds = update_control_cmds_from_predicted_trajectory(
-            ITE_control_cmds, env_future_trajectory
+        nade_control_commands = update_control_cmds_from_predicted_trajectory(
+            nade_control_commands, env_future_trajectory
         )
         if hasattr(self, "nnde_make_decisions"):
             nnde_control_commands, _ = self.nnde_make_decisions(ctx)
-            ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
-                ITE_control_cmds, nnde_control_commands
+            nade_control_commands = self.merge_NADE_NeuralNDE_control_commands(
+                nade_control_commands, nnde_control_commands
             )
         self.refresh_control_commands_state()
-        self.execute_control_commands(ITE_control_cmds)
+        self.execute_control_commands(nade_control_commands)
 
         self.record_step_data(env_command_information)
         return should_continue_simulation_flag
@@ -157,16 +157,16 @@ class NADE(BaseEnv):
                 NADE_control_commands[veh_id] = NeuralNDE_control_commands[veh_id]
         return NADE_control_commands
 
-    def record_step_data(self, veh_ctx_dicts):
+    def record_step_data(self, env_command_information):
         step_log = Dict()
-        for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
-            maneuver_challenge = veh_ctx_dict.get("maneuver_challenge", None)
+        for veh_id, veh_command_info in env_command_information[AgentType.VEHICLE].items():
+            maneuver_challenge = veh_command_info.get("maneuver_challenge", None)
             if maneuver_challenge and maneuver_challenge.get("adversarial", None):
                 step_log[veh_id]["maneuver_challenge"] = maneuver_challenge
 
             keys = ["avoidable", "conflict_vehicle_list", "mode"]
             step_log[veh_id].update(
-                {key: veh_ctx_dict[key] for key in keys if veh_ctx_dict.get(key)}
+                {key: veh_command_info[key] for key in keys if veh_command_info.get(key)}
             )
             if step_log[veh_id].get("avoidable"):
                 step_log[veh_id].pop(
@@ -192,7 +192,7 @@ class NADE(BaseEnv):
         """NADE decision here.
 
         Args:
-            control_command_dicts
+            env_command_information
             env_observation
         """
         env_future_trajectory = predict_environment_future_trajectory(
@@ -216,7 +216,7 @@ class NADE(BaseEnv):
         )
 
         # update the ndd probability according to collision avoidability
-        avoidability_dicts, env_command_information = get_environment_avoidability(
+        env_avoidability, env_command_information = get_environment_avoidability(
             env_maneuver_challenge,
             env_future_trajectory,
             env_observation,
@@ -229,13 +229,13 @@ class NADE(BaseEnv):
 
         # update the ndd probability according to collision avoidability
         (
-            modified_ndd_control_command_dicts,
+            tmp_nde_control_commands_veh,
             env_command_information,
-        ) = modify_ndd_dict_according_to_avoidability(
+        ) = modify_nde_cmd_veh_using_avoidability(
             self.unavoidable_collision_prob_factor, env_maneuver_challenge, env_command_information
         )
-        env_command_information = update_ndd_distribution_to_vehicle_ctx(
-            env_command_information, modified_ndd_control_command_dicts
+        env_command_information = update_nde_cmd_to_vehicle_cmd_info(
+            env_command_information, tmp_nde_control_commands_veh
         )
 
         env_criticality, env_command_information = get_environment_criticality(
@@ -243,11 +243,11 @@ class NADE(BaseEnv):
         )
 
         # get the NDD distribution for each vehicle (after the collision avoidance command is added and the ndd probability is adjusted)
-        ndd_control_command_dicts = {
-            AgentType.VEHICLE: get_ndd_distribution_from_ctx(
+        nde_control_commands = {
+            AgentType.VEHICLE: get_nde_cmd_from_cmd_info(
                 env_command_information, AgentType.VEHICLE
             ),
-            AgentType.VULNERABLE_ROAD_USER: get_ndd_distribution_from_ctx(
+            AgentType.VULNERABLE_ROAD_USER: get_nde_cmd_from_cmd_info(
                 env_command_information, AgentType.VULNERABLE_ROAD_USER
             ),
         }
@@ -255,31 +255,31 @@ class NADE(BaseEnv):
         self.step_weight = 1.0
         if self.allow_NADE_IS:
             (
-                ITE_control_command_dicts,
+                nade_control_commands,
                 env_command_information,
                 weight,
                 adversarial_flag,
             ) = self.NADE_importance_sampling(
-                ndd_control_command_dicts, env_maneuver_challenge, env_command_information
+                nde_control_commands, env_maneuver_challenge, env_command_information
             )
             if adversarial_flag:
                 self.latest_IS_time = utils.get_time()
                 self.allow_NADE_IS = False
         else:
             weight = 1.0
-            ITE_control_command_dicts = Dict(
+            nade_control_commands = Dict(
                 {
                     AgentType.VEHICLE: {
-                        veh_id: ndd_control_command_dicts[AgentType.VEHICLE][veh_id][
+                        veh_id: nde_control_commands[AgentType.VEHICLE][veh_id][
                             "normal"
                         ]
-                        for veh_id in ndd_control_command_dicts[AgentType.VEHICLE]
+                        for veh_id in nde_control_commands[AgentType.VEHICLE]
                     },
                     AgentType.VULNERABLE_ROAD_USER: {
-                        vru_id: ndd_control_command_dicts[
+                        vru_id: nde_control_commands[
                             AgentType.VULNERABLE_ROAD_USER
                         ][vru_id]["normal"]
-                        for vru_id in ndd_control_command_dicts[
+                        for vru_id in nde_control_commands[
                             AgentType.VULNERABLE_ROAD_USER
                         ]
                     },
@@ -289,7 +289,7 @@ class NADE(BaseEnv):
                 self.allow_NADE_IS = True
 
         return (
-            ITE_control_command_dicts,
+            nade_control_commands,
             env_command_information,
             weight,
             env_future_trajectory,
@@ -299,7 +299,7 @@ class NADE(BaseEnv):
 
     def NADE_importance_sampling(
         self,
-        ndd_control_command_dicts,
+        nde_control_commands,
         env_maneuver_challenge,
         env_command_information,
         exclude_IS_agent_set=None,
@@ -307,7 +307,7 @@ class NADE(BaseEnv):
         """Importance sampling for NADE.
 
         Args:
-            ndd_control_command_dict (dict): for each vehicle v_id, ndd_control_command_dict[veh_id] = ndd_control_command, ndd_pdf
+            nde_control_commands (dict): for each vehicle v_id, ndd_control_command_dict[veh_id] = ndd_control_command, ndd_pdf
             criticality_dict (dict): for each vehicle v_id, criticality_dict[veh_id] = criticality
 
         Returns:
@@ -316,19 +316,19 @@ class NADE(BaseEnv):
         weight = 1.0
         epsilon = 1.0
         # intialize the ITE control command dict with the same keys as the ndd_control_command_dict
-        ITE_control_command_dict = Dict(
+        nade_control_commands = Dict(
             {
                 AgentType.VEHICLE: {
-                    veh_id: ndd_control_command_dicts[AgentType.VEHICLE][veh_id][
+                    veh_id: nde_control_commands[AgentType.VEHICLE][veh_id][
                         "normal"
                     ]
-                    for veh_id in ndd_control_command_dicts[AgentType.VEHICLE]
+                    for veh_id in nde_control_commands[AgentType.VEHICLE]
                 },
                 AgentType.VULNERABLE_ROAD_USER: {
-                    vru_id: ndd_control_command_dicts[AgentType.VULNERABLE_ROAD_USER][
+                    vru_id: nde_control_commands[AgentType.VULNERABLE_ROAD_USER][
                         vru_id
                     ]["normal"]
-                    for vru_id in ndd_control_command_dicts[
+                    for vru_id in nde_control_commands[
                         AgentType.VULNERABLE_ROAD_USER
                     ]
                 },
@@ -344,10 +344,10 @@ class NADE(BaseEnv):
                 if agent_id in exclude_IS_agent_set:
                     continue
                 if env_maneuver_challenge[agent_type][agent_id].get("adversarial"):
-                    ndd_normal_prob = ndd_control_command_dicts[agent_type][
+                    ndd_normal_prob = nde_control_commands[agent_type][
                         agent_id
                     ].normal.prob
-                    ndd_adversarial_prob = ndd_control_command_dicts[agent_type][
+                    ndd_adversarial_prob = nde_control_commands[agent_type][
                         agent_id
                     ].adversarial.prob
                     assert (
@@ -357,7 +357,7 @@ class NADE(BaseEnv):
                     # get the importance sampling probability
                     IS_prob = self.get_IS_prob(
                         agent_id,
-                        ndd_control_command_dicts[agent_type],
+                        nde_control_commands[agent_type],
                         env_maneuver_challenge[agent_type],
                         env_command_information[agent_type],
                     )
@@ -367,9 +367,9 @@ class NADE(BaseEnv):
                     sampled_prob = np.random.uniform(0, 1)
                     if sampled_prob < IS_prob:  # select the negligece control command
                         weight *= ndd_adversarial_prob / IS_prob
-                        ITE_control_command_dict[agent_type][
+                        nade_control_commands[agent_type][
                             agent_id
-                        ] = ndd_control_command_dicts[agent_type][agent_id].adversarial
+                        ] = nde_control_commands[agent_type][agent_id].adversarial
                         env_command_information[agent_type][agent_id]["mode"] = "adversarial"
                         if agent_type == AgentType.VEHICLE:
                             adversarial_hook(agent_id)
@@ -379,25 +379,25 @@ class NADE(BaseEnv):
                         adversarial_flag = True
                     else:
                         weight *= ndd_normal_prob / (1 - IS_prob)
-                        ITE_control_command_dict[agent_type][
+                        nade_control_commands[agent_type][
                             agent_id
-                        ] = ndd_control_command_dicts[agent_type][agent_id]["normal"]
+                        ] = nde_control_commands[agent_type][agent_id]["normal"]
                         logger.trace(
                             f"time: {utils.get_time()}, agent_id: {agent_id} select normal control command, IS_prob: {IS_prob}, weight: {self.importance_sampling_weight}"
                         )
         self.step_epsilon = epsilon
         self.step_weight = weight
-        return ITE_control_command_dict, env_command_information, weight, adversarial_flag
+        return nade_control_commands, env_command_information, weight, adversarial_flag
 
     def get_IS_prob(
-        self, agent_id, ndd_control_command_dicts, env_maneuver_challenge, env_command_information
+        self, agent_id, nde_control_commands, env_maneuver_challenge, env_command_information
     ):
         if not env_maneuver_challenge[agent_id].get("adversarial"):
             raise ValueError("The vehicle is not in the adversarial mode.")
 
         IS_magnitude = IS_MAGNITUDE_DEFAULT
         try:
-            predicted_collision_type = ndd_control_command_dicts[
+            predicted_collision_type = nde_control_commands[
                 agent_id
             ].adversarial.info["predicted_collision_type"]
 
@@ -411,9 +411,9 @@ class NADE(BaseEnv):
             if not env_command_information[agent_id].get("avoidable", True):
                 IS_magnitude *= IS_MAGNITUDE_MULTIPLIER
             # logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
-            # logger.trace(f"Original prob: {ndd_control_command_dicts[veh_id]["adversarial"].prob}")
+            # logger.trace(f"Original prob: {nde_control_commands[veh_id]["adversarial"].prob}")
             # final_is_prob = np.clip(
-            #     ndd_control_command_dicts[veh_id]["adversarial"].prob * IS_magnitude,
+            #     nde_control_commands[veh_id]["adversarial"].prob * IS_magnitude,
             #     0,
             #     self.max_importance_sampling_prob,
             # )
@@ -423,7 +423,7 @@ class NADE(BaseEnv):
             logger.critical(f"Error in getting the importance sampling magnitude: {e}")
 
         return np.clip(
-            ndd_control_command_dicts[agent_id]["adversarial"].prob * IS_magnitude,
+            nde_control_commands[agent_id]["adversarial"].prob * IS_magnitude,
             0,
             self.max_importance_sampling_prob,
         )
