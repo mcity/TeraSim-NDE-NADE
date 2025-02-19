@@ -28,14 +28,14 @@ def check_collision(np.ndarray[double, ndim=2] traj1,
     """Check for collision between two trajectories.
     
     Args:
-        traj1, traj2: Trajectories to check
-        agent1_length, agent2_length: Agent lengths
-        agent1_width, agent2_width: Agent widths
-        agent1_type, agent2_type: Agent types
-        buffer: Safety buffer distance
+        traj1, traj2: Trajectories to check.
+        agent1_length, agent2_length: Agent lengths.
+        agent1_width, agent2_width: Agent widths.
+        agent1_type, agent2_type: Agent types.
+        buffer: Safety buffer distance.
     
     Returns:
-        tuple: (bool: collision detected, float: collision time or None)
+        tuple: (bool: collision detected, float: collision time or None).
     """
     # Convert trajectories to normal format
     traj1 = sumo_trajectory_to_normal_trajectory(traj1, agent1_length)
@@ -79,15 +79,15 @@ def check_trajectory_intersection(np.ndarray[double, ndim=2] trajectory1,
     """Check if two trajectories intersect.
     
     Args:
-        trajectory1, trajectory2: Trajectories to check
-        agent1_length, agent2_length: Agent lengths
-        agent1_width, agent2_width: Agent widths
-        agent1_type, agent2_type: Agent types
-        buffer: Safety buffer distance
-        distance_threshold: Maximum initial distance to consider for intersection
+        trajectory1, trajectory2: Trajectories to check.
+        agent1_length, agent2_length: Agent lengths.
+        agent1_width, agent2_width: Agent widths.
+        agent1_type, agent2_type: Agent types.
+        buffer: Safety buffer distance.
+        distance_threshold: Maximum initial distance to consider for intersection.
     
     Returns:
-        bool: Whether trajectories intersect
+        bool: Whether trajectories intersect.
     """
     # Quick distance check
     cdef double initial_distance = calculate_distance(

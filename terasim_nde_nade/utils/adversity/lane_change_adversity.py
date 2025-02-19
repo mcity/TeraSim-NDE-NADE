@@ -1,4 +1,5 @@
 import addict
+
 from terasim.overlay import traci
 
 from ..base import CommandType, NDECommand
@@ -7,6 +8,16 @@ from ..base import CommandType, NDECommand
 def derive_lane_change_adversarial_command(
     obs_dict, highlight_flag=False, highlight_color=[0, 255, 0, 255]
 ) -> addict.Dict:
+    """Derive the adversarial lane change command based on the observation.
+
+    Args:
+        obs_dict (dict): Observation of the ego agent.
+        highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to False.
+        highlight_color (list, optional): Color to highlight the vehicle. Defaults to [0, 255, 0, 255].
+
+    Returns:
+        addict.Dict: Adversarial command.
+    """
     adversarial_command_dict = addict.Dict()
     left_lc_state = traci.vehicle.getLaneChangeStatePretty(
         obs_dict["ego"]["veh_id"], 1

@@ -24,6 +24,18 @@ class NDE(EnvTemplateComplete):
         *args,
         **kwargs,
     ):
+        """Initialize the NDE environment.
+
+        Args:
+            vehicle_factory (VehicleFactory): Vehicle factory.
+            vru_factory (VulnerableRoadUserFactory): Vulnerable road user factory.
+            info_extractor (InfoExtractor): Information extractor.
+            warmup_time_lb (int, optional): Lower bound of warmup time. Defaults to 900.
+            warmup_time_ub (int, optional): Upper bound of warmup time. Defaults to 1200.
+            run_time (int, optional): Running time. Defaults to 300.
+            log_flag (bool, optional): Log flag. Defaults to False.
+            log_dir (str, optional): Log directory. Defaults to None.
+        """
         rng = np.random.default_rng()
         self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub))
         self.run_time = run_time
@@ -41,10 +53,23 @@ class NDE(EnvTemplateComplete):
         super().__init__(vehicle_factory, vru_factory, info_extractor, *args, **kwargs)
 
     def on_start(self, ctx):
+        """Start the simulation of NDE including simulation warm up.
+
+        Args:
+            ctx (dict): Simulation context information.
+
+        Returns:
+            bool: Flag to indicate if the simulation is started successfully.
+        """
         self.sumo_warmup(self.warmup_time)
         return super().on_start(ctx)
 
     def get_env_observation(self):
+        """Get the observation of the environment.
+
+        Returns:
+            dict: Observation of the environment.
+        """
         env_observation = {
             AgentType.VEHICLE: {
                 vehicle.id: vehicle.observation
@@ -58,6 +83,19 @@ class NDE(EnvTemplateComplete):
         return env_observation
 
     def executeMove(self, ctx, env_command_information=None, env_observation=None):
+        """Execute the move of the environment, i.e., moving forward the SUMO simulation by half step and updating all the vehicles and vrus.
+        Some of the vehicles and vrus may leave or enter the simulation.
+
+        Args:
+            ctx (dict): Simulation context information.
+            env_command_information (dict, optional): Command information of the environment. Defaults to None.
+            env_observation (dict, optional): Observation of the environment. Defaults to None.
+
+        Returns:
+            dict: Updated command information of the environment.
+            dict: Updated observation of the environment.
+            bool: Flag to indicate if the simulation should continue.
+        """
         # Move half step forward, update all vehicles and vrus (some of them may leave or enter the simulation)
         for veh_id in traci.vehicle.getIDList():
             traci.vehicle.setSpeed(veh_id, -1)
@@ -110,6 +148,11 @@ class NDE(EnvTemplateComplete):
         return env_command_information, env_observation, self.should_continue_simulation()
 
     def cache_history_tls_data(self, focus_tls_ids=None):
+        """Cache the history traffic light state data.
+
+        Args:
+            focus_tls_ids (list, optional): List of traffic light ids to focus on. Defaults to None.
+        """
         if not focus_tls_ids:
             focus_tls_ids = traci.trafficlight.getIDList()
         for tls_id in focus_tls_ids:
@@ -120,6 +163,11 @@ class NDE(EnvTemplateComplete):
             self.tls_info_cache[tls_id].append((current_time, tls_state))
 
     def sumo_warmup(self, warmup_time):
+        """Warm up the SUMO simulation.
+
+        Args:
+            warmup_time (float): Warm up time.
+        """
         # TODO: change vehicle type during the warmup time (might make warmup time longer)
         while True:
             while True:
@@ -137,12 +185,22 @@ class NDE(EnvTemplateComplete):
         self._vehicle_in_env_distance("before")
 
     def on_step(self, ctx):
+        """Step the simulation of NDE.
+
+        Args:
+            ctx (dict): Simulation context information.
+
+        Returns:
+            bool: Flag to indicate if the simulation should continue.
+        """
         control_cmds, infos = self.make_decisions(ctx)
         self.refresh_control_commands_state()
         self.execute_control_commands(control_cmds)
         return self.should_continue_simulation()
 
     def refresh_control_commands_state(self):
+        """Refresh the controlling status of all agents.
+        """
         current_time = traci.simulation.getTime()
         for veh_id in self.vehicle_list.keys():
             self.vehicle_list[veh_id].controller._update_controller_status(
@@ -154,18 +212,35 @@ class NDE(EnvTemplateComplete):
             )
 
     def _vehicle_in_env_distance(self, mode):
+        """Record the distance of all vehicles in the environment.
+
+        Args:
+            mode (str): Mode of the recording.
+        """
         veh_id_list = traci.vehicle.getIDList()
         distance_dist = self._get_distance(veh_id_list)
 
     def _get_distance(self, veh_id_list):
+        """Get the distance of all vehicles in the environment.
+
+        Args:
+            veh_id_list (list): List of vehicle ids.
+
+        Returns:
+            dict: Distance of all vehicles in the environment.
+        """
         distance_dist = {veh_id: utils.get_distance(veh_id) for veh_id in veh_id_list}
         return distance_dist
 
     def should_continue_simulation(self):
-        # stop when collision happens or 300s
+        """Determine if the simulation should continue. The simulation should stop when collision happens or the running time exceeds the limit.
+
+        Returns:
+            bool: Flag to indicate if the simulation should continue.
+        """
         num_colliding_vehicles = self.simulator.get_colliding_vehicle_number()
         self._vehicle_in_env_distance("after")
-        if num_colliding_vehicles >= 2:
+        if num_colliding_vehicles >= 2: # collision happens between two vehicles.
             colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
@@ -181,7 +256,7 @@ class NDE(EnvTemplateComplete):
                 }
             )
             return False
-        elif num_colliding_vehicles == 1:
+        elif num_colliding_vehicles == 1: # collision happens between a vehicle and a vru.
             colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
             collision_objects = traci.simulation.getCollisions()
@@ -202,7 +277,7 @@ class NDE(EnvTemplateComplete):
                 }
             )
             return False
-        elif utils.get_time() >= self.warmup_time + self.run_time:
+        elif utils.get_time() >= self.warmup_time + self.run_time: # running time exceeds the limit.
             self.record.update(
                 {
                     "veh_1_id": None,

@@ -96,7 +96,7 @@ adversity_cfg:
       _convert_: 'all'
       location: 'crosswalk'
       ego_type: 'vulnerable_road_user'
-      probability: 0.0001
+      probability: 0.1
       predicted_collision_type: "intersection_jaywalking"
 
     runningredlight:
@@ -104,7 +104,7 @@ adversity_cfg:
       _convert_: 'all'
       location: 'crosswalk'
       ego_type: 'vulnerable_road_user'
-      probability: 0.0001
+      probability: 0.1
       predicted_collision_type: "intersection_runningredlight"
 
     stopcrossing:
@@ -112,5 +112,5 @@ adversity_cfg:
       _convert_: 'all'
       location: 'crosswalk'
       ego_type: 'vulnerable_road_user'
-      probability: 0.0001
+      probability: 0.1
       predicted_collision_type: "intersection_stopcrossing"

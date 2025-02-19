@@ -1,11 +1,11 @@
-import os
-import numpy as np
-import terasim.utils as utils
 from addict import Dict
 from loguru import logger
+import numpy as np
+import os
 
 from terasim.overlay import traci
 from terasim.params import AgentType
+import terasim.utils as utils
 
 from .maneuver_challenge import get_maneuver_challenge
 from .tools import get_nde_cmd_from_cmd_info, unavoidable_maneuver_challenge_hook
@@ -13,11 +13,36 @@ from ..base import CommandType, NDECommand
 from ..trajectory import predict_future_trajectory_vehicle
 
 
+def get_vehicle_accept_collision_command():
+    """Get the accept collision command for the vehicle.
+
+    Returns:
+        NDECommand: Accept collision command for the vehicle
+    """
+    accept_command = NDECommand(
+        command_type=CommandType.ACCELERATION,
+        acceleration=0,
+        prob=0,
+        duration=2,
+    )
+    accept_command.info = {"mode": "accept_collision"}
+    return accept_command
+
 def get_vehicle_avoidance_command(
     adversarial_vehicle_id,
     victim_vehicle_id,
     emergency_brake_deceleration
 ):
+    """Get the avoidance command for the vehicle.
+
+    Args:
+        adversarial_vehicle_id (str): ID of the adversarial vehicle.
+        victim_vehicle_id (str): ID of the victim vehicle.
+        emergency_brake_deceleration (float): Emergency brake deceleration of the vehicle.
+
+    Returns:
+        NDECommand: Avoidance command for the vehicle.
+    """
     avoidance_command = NDECommand(
         command_type=CommandType.ACCELERATION,
         acceleration=-emergency_brake_deceleration,
@@ -33,19 +58,15 @@ def get_vehicle_avoidance_command(
     )
     return avoidance_command
 
-def get_vehicle_accept_collision_command():
-    accept_command = NDECommand(
-        command_type=CommandType.ACCELERATION,
-        acceleration=0,
-        prob=0,
-        duration=2,
-    )
-    accept_command.info = {"mode": "accept_collision"}
-    return accept_command
-
 def get_adversity_pair(env_command_information, potential=False):
-    """Get the adversarial pair dict.
-    potential: if True, return the potential adversarial pair dict, otherwise return the adversarial pair dict (vehicle actually do adversarial).
+    """Get the adversarial pair information.
+    
+    Args:
+        env_command_information (dict): Command information of the environment.
+        potential (bool): If True, return the potential adversarial pair information, otherwise return the adversity information for the agent actually doing adversarial actions.
+
+    Returns:
+        adversity_pair_dict (dict): Adversarial pair information.    
     """
     veh_command_information = {
         veh_id: info
@@ -87,15 +108,15 @@ def get_adversity_pair(env_command_information, potential=False):
 def remove_collision_avoidance_command_using_avoidability(
     env_observation, env_future_trajectory, env_command_information
 ):
-    """Remove the collision avoidance command for the vehicles that are not avoidable.
+    """Remove the collision avoidance command for the vehicles that encounters the unavoidable collision.
 
     Args:
-        env_observation (dict): the observation dicts
-        env_future_trajectory (dict): the trajectory dicts
-        env_command_information (dict): the vehicle context dicts
+        env_observation (dict): Observation of the environment.
+        env_future_trajectory (dict): Future trajectory of the environment.
+        env_command_information (dict): Command information of the environment.
 
     Returns:
-        env_command_information (dict): the updated vehicle context dicts
+        env_command_information (dict): Updated command information of the environment.
     """
     potential_adversity_pair = get_adversity_pair(
         env_command_information, potential=True
@@ -125,6 +146,19 @@ def remove_collision_avoidance_command_using_avoidability(
 def add_avoid_accept_collision_command(
     env_future_trajecotory, env_manuever_challenge, env_observation, env_command_information, sumo_net
 ):
+    """Add the avoidance and accept collision command for the vehicles that are victims in the adversarial mode.
+
+    Args:
+        env_future_trajecotory (dict): Future trajectory of the environment.
+        env_manuever_challenge (dict): Maneuver challenge of the environment.
+        env_observation (dict): Observation of the environment.
+        env_command_information (dict): Command information of the environment.
+        sumo_net (object): Sumo network object.
+
+    Returns:
+        dict: Updated future trajectory of the environment.
+        dict: Updated command information of the environment.
+    """
     potential_adversity_pair_dict = get_adversity_pair(
         env_command_information, potential=True
     )
@@ -258,6 +292,18 @@ def add_avoid_accept_collision_command(
 def get_environment_avoidability(
     env_maneuver_challenge, env_future_trajectory, env_observation, env_command_information
 ):
+    """Get the avoidability of the vehicles in the environment.
+    
+    Args:
+        env_maneuver_challenge (dict): Maneuver challenge of the environment.
+        env_future_trajectory (dict): Future trajectory of the environment.
+        env_observation (dict): Observation of the environment.
+        env_command_information (dict): Command information of the environment.
+    
+    Returns:
+        dict: Maneuver challenge for the avoidance command of the victim vehicles.
+        dict: Updated command information of the environment (including avoidability information).
+    """
     adversarial_future_trajectory_dict = Dict(
         {
             AgentType.VEHICLE: {
@@ -388,6 +434,17 @@ def get_environment_avoidability(
 def modify_nde_cmd_veh_using_avoidability(
     unavoidable_collision_prob_factor, env_maneuver_challenge, env_command_information
 ):
+    """Modify the probability of the NDE command for the vehicles that encounters the unavoidable collisions.
+
+    Args:
+        unavoidable_collision_prob_factor (float): Unavoidable collision probability factor.
+        env_maneuver_challenge (dict): Maneuver challenge of the environment.
+        env_command_information (dict): Command information of the environment.
+
+    Returns:
+        dict: Updated NDE command for the vehicles.
+        dict: Updated command information of the environment.
+    """
     nde_control_commands_veh = get_nde_cmd_from_cmd_info(
         env_command_information, AgentType.VEHICLE
     )
@@ -411,24 +468,40 @@ def modify_nde_cmd_veh_using_avoidability(
     return nde_control_commands_veh, env_command_information
 
 def record_adversarial_related_information(adversarial_pair_dict, env_command_information, record):
+    """Record the adversarial related information.
+
+    Args:
+        adversarial_pair_dict (dict): Adversarial pair information.
+        env_command_information (dict): Command information of the environment.
+        record (object): Record object.
+
+    Returns:
+        dict: Updated command information of the environment.
+        object: Updated record object.
+    """
+    adversity_flag = True
+    adversarial_agent_type = None
     if len(adversarial_pair_dict[AgentType.VEHICLE]):
+        adversarial_agent_type = AgentType.VEHICLE
+    elif len(adversarial_pair_dict[AgentType.VULNERABLE_ROAD_USER]):
+        adversarial_agent_type = AgentType.VULNERABLE_ROAD_USER
+    else:
+        adversity_flag = False
+    if adversity_flag:
         record.event_info[
             utils.get_time()
-        ].adversarial_pair_dict = adversarial_pair_dict[AgentType.VEHICLE]
-        record.event_info[utils.get_time()].adversarial_vehicle_id = list(
-            adversarial_pair_dict[AgentType.VEHICLE].keys()
+        ].adversarial_pair_dict = adversarial_pair_dict[adversarial_agent_type]
+        record.event_info[utils.get_time()].adversarial_agent_id = list(
+            adversarial_pair_dict[adversarial_agent_type].keys()
         )[0]
         adversarial_command_dict = {
-            veh_id: env_command_information[AgentType.VEHICLE][
-                veh_id
+            agent_id: env_command_information[adversarial_agent_type][
+                agent_id
             ].ndd_command_distribution.adversarial
-            for veh_id in adversarial_pair_dict[AgentType.VEHICLE]
+            for agent_id in adversarial_pair_dict[adversarial_agent_type]
         }
-
         victim_vehicle_id_set = set()
-        for victim_vehicle_list in adversarial_pair_dict[
-            AgentType.VEHICLE
-        ].values():
+        for victim_vehicle_list in adversarial_pair_dict[adversarial_agent_type].values():
             victim_vehicle_id_set.update(victim_vehicle_list)
 
         victim_command_dict = {
@@ -437,13 +510,13 @@ def record_adversarial_related_information(adversarial_pair_dict, env_command_in
         }
 
         record.event_info[utils.get_time()].adversarial_info_dict = {
-            veh_id: adversarial_command.info
-            for veh_id, adversarial_command in adversarial_command_dict.items()
+            agent_id: adversarial_command.info
+            for agent_id, adversarial_command in adversarial_command_dict.items()
         }
 
         adversarial_command_dict = {
-            veh_id: str(adversarial_command)
-            for veh_id, adversarial_command in adversarial_command_dict.items()
+            agent_id: str(adversarial_command)
+            for agent_id, adversarial_command in adversarial_command_dict.items()
         }
 
         victim_command_dict = {
@@ -457,7 +530,7 @@ def record_adversarial_related_information(adversarial_pair_dict, env_command_in
         record.event_info[
             utils.get_time()
         ].victim_command = victim_command_dict
-    return env_command_information
+    return env_command_information, record
 
 def apply_collision_avoidance(
     env_future_trajectory,
@@ -465,26 +538,30 @@ def apply_collision_avoidance(
     nade_control_commands,
     record
 ):
-    """after the NADE decision, apply collision avoidance for the victim vehicles.
+    """Apply collision avoidance for the victim vehicles.
 
     Args:
-        env_command_information (_type_): _description_
-        nade_control_commands (_type_): _description_
+        env_future_trajectory (dict): Future trajectory of the environment.
+        env_command_information (dict): Command information of the environment.
+        nade_control_commands (dict): NADE control commands.
 
     Returns:
-        _type_: _description_
+        dict: Updated NADE control commands.
+        dict: Updated command information of the environment.
+        float: Weight of the testing episode.
+        object: Updated record object.
     """
 
     adversarial_pair_dict = get_adversity_pair(env_command_information)
     avoid_collision_IS_prob = float(os.getenv("AVOID_COLLISION_IS_PROB", 0.2))
     avoid_collision_ndd_prob = 0.99
     weight = 1.0
-    env_command_information = record_adversarial_related_information(
+    env_command_information, record = record_adversarial_related_information(
         adversarial_pair_dict, env_command_information, record
     )
     # no vehicle victim
     if len(adversarial_pair_dict[AgentType.VEHICLE]) == 0:
-        return nade_control_commands, env_command_information, weight
+        return nade_control_commands, env_command_information, weight, record
 
     # victim vehicle set is all the vehicles that are victim by the adversarial vehicle, combine all vehicles in the adversarial_pair_dict values
     victim_vehicle_set = set()
@@ -522,7 +599,7 @@ def apply_collision_avoidance(
             ].get(
                 "accept_collision", None
             )
-        return nade_control_commands, env_command_information, weight
+        return nade_control_commands, env_command_information, weight, record
 
     timestamp = utils.get_time()
     IS_prob = np.random.uniform(0, 1)
@@ -611,5 +688,5 @@ def apply_collision_avoidance(
         for victim_vehicle_id in victim_vehicle_set
     }
 
-    return nade_control_commands, env_command_information, weight
+    return nade_control_commands, env_command_information, weight, record
 

@@ -12,7 +12,6 @@ from ..agents import (
     get_lanechange_longitudinal_speed,
     get_vehicle_info,
     get_vulnerbale_road_user_info
-
 )
 from ..base import CommandType
 
@@ -58,7 +57,15 @@ def predict_future_distance_velocity_vectorized(
 def get_vehicle_future_lane_id_from_edge(
     edge_id: str, upcoming_lane_id_list: List[str]
 ) -> str:
-    """Get the future lane ID for a vehicle given its edge ID."""
+    """Get the future lane ID for a vehicle given its edge ID.
+    
+    Args:
+        edge_id (str): Edge ID.
+        upcoming_lane_id_list (List[str]): List of upcoming lane IDs.
+
+    Returns:
+        str: Future lane ID.
+    """
     return next(
         (lane_id for lane_id in upcoming_lane_id_list if edge_id in lane_id), None
     )
@@ -71,7 +78,18 @@ def get_future_lane_id_index(
     original_lane_index: int,
     lateral_offset: int,
 ) -> Tuple[str, int]:
-    """Get the future lane ID and index for a vehicle."""
+    """Get the future lane ID and index for a vehicle.
+    
+    Args:
+        veh_id (str): Vehicle ID.
+        veh_edge_id (str): Vehicle edge ID.
+        upcoming_lane_id_list (List[str]): List of upcoming lane IDs.
+        original_lane_index (int): Original lane index.
+        lateral_offset (int): Lateral offset.
+
+    Returns:
+        Tuple[str, int]: Future lane ID and index.
+    """
     if traci.edge.getLaneNumber(veh_edge_id) == 1:
         veh_lane_index = 0
         veh_lane_id = veh_edge_id + "_0"
@@ -94,7 +112,6 @@ def get_future_lane_id_index(
 
 
 def get_future_position_on_route(
-    traci,
     veh_id: str,
     veh_edge_id: str,
     veh_lane_position: float,
@@ -106,7 +123,23 @@ def get_future_position_on_route(
     future_lateral_offset: int,
     upcoming_lane_id_list: List[str],
 ) -> Tuple[Tuple[float, float], float]:
-    """Predict the future position of a vehicle on its route."""
+    """Predict the future position of a vehicle on its route.
+    
+    Args:
+        veh_id (str): Vehicle ID.
+        veh_edge_id (str): Vehicle edge ID.
+        veh_lane_position (float): Vehicle lane position.
+        veh_lane_index (int): Vehicle lane index.
+        veh_lane_id (str): Vehicle lane ID.
+        veh_route_id_list (List[str]): Vehicle route ID list.
+        veh_route_length_list (List[float]): Vehicle route length list.
+        future_distance (float): Future distance.
+        future_lateral_offset (int): Future lateral offset.
+        upcoming_lane_id_list (List[str]): List of upcoming lane IDs.
+
+    Returns:
+        Tuple[Tuple[float, float], float]: Future position and heading.
+    """
     veh_lane_position += future_distance
     current_lane_length = traci.lane.getLength(veh_lane_id)
 
@@ -184,7 +217,21 @@ def predict_future_trajectory_vehicle(
 ) -> Tuple[np.ndarray, Dict[str, Any]]:
     """Predict the future trajectory of the vehicle.
     All position and heading in this function stays the same definition with sumo,
-    which is (x, y) and angle in degree (north is 0, east is 90, south is 180, west is 270)
+    which is (x, y) and angle in degree (north is 0, east is 90, south is 180, west is 270).
+
+    Args:
+        veh_id (str): Vehicle ID.
+        obs_dict (dict): Observation dictionary.
+        control_command (Any): Control command.
+        sumo_net (sumolib.net.Net): SUMO network object.
+        time_horizon_step (int): Number of time steps to predict.
+        time_resolution (float): Time resolution for prediction.
+        interpolate_resolution (float): Interpolation resolution.
+        current_time (float): Current simulation time.
+        veh_info (VehicleInfoForPredict): Vehicle information.
+
+    Returns:
+        Tuple[np.ndarray, Dict[str, Any]]: Future trajectory array and additional information.
     """
     info = addict.Dict()
     current_time = (
@@ -257,7 +304,6 @@ def predict_future_trajectory_vehicle(
             lanechange_finish_position,
             lanechange_finish_final_heading,
         ) = get_future_position_on_route(
-            traci,
             veh_id,
             veh_info["edge_id"],
             veh_info["lane_position"],
@@ -291,7 +337,6 @@ def predict_future_trajectory_vehicle(
         ):
             continue
         future_position, future_heading = get_future_position_on_route(
-            traci,
             veh_id,
             veh_info["edge_id"],
             veh_info["lane_position"],
@@ -329,13 +374,13 @@ def predict_future_trajectory_vulnerable_road_user(
     """Predict future trajectory of vulnerable road user in 0.5s time resolution.
 
     Args:
-        modality (str): modality of the control command
-        vru_info (dict): dictionary of vehicle information
-        control_command_dict (dict): dictionary of control command
-        current_time (float): current simulation time
+        modality (str): Modality of the control command.
+        vru_info (dict): Dictionary of vehicle information.
+        control_command_dict (dict): Dictionary of control command.
+        current_time (float): Current simulation time.
 
     Returns:
-        future_trajectory_array (np.array): future trajectory array
+        np.array: Future trajectory array.
     """
     if modality == "normal":
         return None
@@ -380,6 +425,16 @@ def predict_future_trajectory_vulnerable_road_user(
 
 @profile
 def predict_environment_future_trajectory(env_command_information, env_observation, sumo_net):
+    """Predict future trajectories for all agents in the environment.
+
+    Args:
+        env_command_information (dict): Environment command information.
+        env_observation (dict): Environment observation.
+        sumo_net (sumolib.net.Net): SUMO network object.
+
+    Returns:
+        dict: Environment future trajectory.
+    """
     # predict future trajectories for each vehicle
     current_time = traci.simulation.getTime()
     env_future_trajectory = {

@@ -1,12 +1,11 @@
-import math
-from collections import namedtuple
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
-
+import math
 import sumolib
+from typing import List, Optional
+
 from terasim.overlay import traci
 
-from terasim_nde_nade.utils.agents.base import AgentInfo
+from .base import AgentInfo
 
 
 @dataclass
@@ -30,7 +29,15 @@ class VehicleInfoForPredict(AgentInfo):
 
 
 def get_next_lane_edge(net, lane_id):
-    """Get the next lane and edge IDs for a given lane."""
+    """Get the next lane and edge IDs for a given lane.
+    
+    Args:
+        net (sumolib.net.Net): SUMO network object.
+        lane_id (str): Lane ID.
+
+    Returns:
+        tuple: Next lane ID and edge ID.
+    """
     origin_lane = net.getLane(lane_id)
     outgoing_lanes = [conn.getToLane() for conn in origin_lane.getOutgoing()]
     outgoing_edges = [lane.getEdge() for lane in outgoing_lanes]
@@ -38,7 +45,15 @@ def get_next_lane_edge(net, lane_id):
 
 
 def get_lane_angle(lane_id: str, mode: str = "start") -> float:
-    """Get the angle of a lane at a specific position."""
+    """Get the angle of a lane at a specific position.
+    
+    Args:
+        lane_id (str): Lane ID.
+        mode (str): Position mode (start or end).
+
+    Returns:
+        float: Lane angle.
+    """
     if mode == "start":
         relative_position = 0
     elif mode == "end":
@@ -55,7 +70,17 @@ def get_lanechange_longitudinal_speed(
     lane_width: Optional[float] = None,
     lanechange_duration: float = 1.0,
 ) -> float:
-    """Calculate the longitudinal speed during a lane change maneuver."""
+    """Calculate the longitudinal speed during a lane change maneuver.
+
+    Args:
+        veh_id (str): Vehicle ID.
+        current_speed (float): Current speed of the vehicle.
+        lane_width (float, optional): Lane width. Defaults to None.
+        lanechange_duration (float, optional): Duration of the lane change maneuver. Defaults to 1.0.
+
+    Returns:
+        float: Longitudinal speed during lane change.
+    """
     if lane_width is None:
         lane_width = traci.lane.getWidth(traci.vehicle.getLaneID(veh_id))
     lateral_speed = lane_width / lanechange_duration
@@ -63,7 +88,14 @@ def get_lanechange_longitudinal_speed(
 
 
 def get_upcoming_lane_id_list(veh_id: str) -> List[str]:
-    """Get a list of upcoming lane IDs for a vehicle."""
+    """Get a list of upcoming lane IDs for a vehicle.
+    
+    Args:
+        veh_id (str): Vehicle ID.
+
+    Returns:
+        List[str]: List of upcoming lane IDs.
+    """
     veh_next_links = traci.vehicle.getNextLinks(veh_id)
     current_lane_id = traci.vehicle.getLaneID(veh_id)
     lane_links = traci.lane.getLinks(current_lane_id)
@@ -89,7 +121,16 @@ def get_upcoming_lane_id_list(veh_id: str) -> List[str]:
 
 
 def get_vehicle_info(veh_id: str, obs_dict: dict, sumo_net) -> VehicleInfoForPredict:
-    """Generate vehicle information for future trajectory prediction."""
+    """Generate vehicle information for future trajectory prediction.
+    
+    Args:
+        veh_id (str): Vehicle ID.
+        obs_dict (dict): Observation dictionary.
+        sumo_net (sumolib.net.Net): SUMO network object.
+
+    Returns:
+        VehicleInfoForPredict: Vehicle information.
+    """
     veh_info = VehicleInfoForPredict(
         id=veh_id,
         acceleration=traci.vehicle.getAcceleration(veh_id),
@@ -115,7 +156,15 @@ def get_vehicle_info(veh_id: str, obs_dict: dict, sumo_net) -> VehicleInfoForPre
 
 
 def is_car_following(follow_id: str, leader_id: str) -> bool:
-    """Check if one vehicle is following another vehicle."""
+    """Check if one vehicle is following another vehicle.
+    
+    Args:
+        follow_id (str): Following vehicle ID.
+        leader_id (str): Leading vehicle ID.
+
+    Returns:
+        bool: True if the follow_id is following the leader_id, False otherwise.
+    """
     current_edge_id = traci.vehicle.getLaneID(follow_id)
     leader_edge_id = traci.vehicle.getLaneID(leader_id)
     current_angle = traci.vehicle.getAngle(follow_id)

@@ -1,10 +1,8 @@
 from itertools import chain
 from typing import Any, Dict, Optional, Tuple
 
-from loguru import logger
 from terasim.overlay import traci
 
-from ..agents.vehicle import get_lane_angle
 from .constants import (
     highway_cutin_prob,
     highway_rearend_prob,
@@ -18,6 +16,7 @@ from .constants import (
     roundabout_neglect_conflict_lead_prob,
     roundabout_rearend_prob,
 )
+from ..agents.vehicle import get_lane_angle
 
 # Cache for traffic light controlled lanes
 tls_controlled_lane_set = None
@@ -37,7 +36,14 @@ def cache_tls_controlled_lane_set():
 
 
 def get_distance_to_next_tls(veh_id: str) -> float:
-    """Get the distance to the next traffic light for a vehicle."""
+    """Get the distance to the next traffic light for a vehicle.
+    
+    Args:
+        veh_id (str): Vehicle ID.
+
+    Returns:
+        float: Distance to the next traffic light.
+    """
     next_tls_info = traci.vehicle.getNextTLS(veh_id)
     if next_tls_info:
         tls_distance = next_tls_info[0][2]
@@ -53,7 +59,18 @@ def get_location(
     highway_speed_threshold: float = 7.5,
     highlight_flag: bool = False,
 ) -> str:
-    """Determine the location type (highway, intersection, or roundabout) for a vehicle."""
+    """Determine the location type (highway, intersection, or roundabout) for a vehicle.
+    
+    Args:
+        veh_id (str): Vehicle ID.
+        lane_id (str, optional): Lane ID. Defaults to None.
+        distance_to_tls_threshold (float, optional): Distance threshold to a traffic light. Defaults to 25.
+        highway_speed_threshold (float, optional): Speed threshold for a highway. Defaults to 7.5.
+        highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to False.
+
+    Returns:
+        str: Location type.    
+    """
     global tls_controlled_lane_set
     if tls_controlled_lane_set is None:
         tls_controlled_lane_set = set()
@@ -79,7 +96,15 @@ def get_location(
 
 
 def is_head_on(ego_obs: Dict[str, Any], leader_info: Optional[Tuple]) -> bool:
-    """Check if two vehicles are in a head-on configuration."""
+    """Check if two vehicles are in a head-on configuration.
+    
+    Args:
+        ego_obs (Dict[str, Any]): Ego vehicle observation.
+        leader_info (Optional[Tuple]): Leader vehicle information.
+
+    Returns:
+        bool: Flag to indicate if the vehicles are in a head-on configuration.
+    """
     ego_veh_lane_id = ego_obs["lane_id"] if ego_obs else None
     lead_veh_lane_id = traci.vehicle.getLaneID(leader_info[0]) if leader_info else None
 
@@ -110,8 +135,15 @@ def get_collision_type_and_prob(
     negligence_command: Any,
     location: Optional[str] = None,
 ) -> Tuple[float, str]:
-    """
-    Given current observation and the negligence mode, detect what type of collisions will be generated.
+    """Given current observation and the negligence mode, detect what type of collisions will be generated.
+
+    Args:
+        obs_dict (Dict[str, Any]): Observation of the ego agent.
+        negligence_command (Any): Negligence command.
+        location (Optional[str], optional): Location of the adversarial event. Defaults to None.
+
+    Returns:
+        Tuple[float, str]: Collision probability and type.
     """
     if location is None:
         location = get_location(obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"])

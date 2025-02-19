@@ -1,19 +1,36 @@
+from addict import Dict
 import random
 
-from addict import Dict
 
-from terasim_nde_nade.utils import CommandType, NDECommand
-from terasim_nde_nade.utils.adversity.adversity_builder import build_adversities
+from terasim_nde_nade.utils import (
+    build_adversities,
+    CommandType, 
+    NDECommand,
+)
 
 
 class AdversityManager:
     def __init__(self, config):
+        """Initialize the AdversityManager module.
+
+        Args:
+            config (dict): Configuration of the adversities.
+        """
         self.config = config
         self.adversities = []
         if self.config is not None:
             self.adversities = build_adversities(self.config)
 
     def derive_command(self, obs_dict):
+        """Derive the command based on the observation.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            NDECommand: Command to be executed by the ego agent.
+            dict: Dictionary containing the normal and adversarial maneuvers.
+        """
         # get adversarial command candidates
         adversarial_command_dict = Dict()
         for adversity in self.adversities:

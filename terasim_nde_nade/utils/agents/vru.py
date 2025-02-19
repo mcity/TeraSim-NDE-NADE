@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from typing import List, Optional
 import numpy as np
+from typing import List, Optional
 
 from terasim.overlay import profile, traci
 
@@ -25,14 +25,16 @@ class VulnerableRoadUserInfoForPredict:
 
 
 @profile
-def get_vulnerbale_road_user_info(vru_id, obs_dict, sumo_net):
-    """Generate vehicle information for future trajectory prediction
+def get_vulnerbale_road_user_info(vru_id, obs_dict, sumo_net) -> VulnerableRoadUserInfoForPredict:
+    """Generate vulnerable road user information for future trajectory prediction.
 
     Args:
-        veh_id (str): input vehicle id
+        vru_id (str): VRU ID.
+        obs_dict (dict): observation dictionary.
+        sumo_net (sumolib.net.Net): SUMO network object
 
     Returns:
-        veh_info (dict): output dictionary of vehicle information
+        VulnerableRoadUserInfoForPredict: Vulnerable road user information.
     """
     ego_obs = obs_dict["ego"]
     vru_info = VulnerableRoadUserInfoForPredict(
@@ -51,58 +53,3 @@ def get_vulnerbale_road_user_info(vru_id, obs_dict, sumo_net):
         traci.lane.getLength(edge_id + "_0") for edge_id in vru_info.route_id_list
     ]
     return vru_info
-
-
-def predict_future_trajectory_vulnerable_road_user(
-    modality, vru_info, control_command_dict, current_time
-):
-    """Predict future trajectory of vulnerable road user in 0.5s time resolution.
-
-    Args:
-        modality (str): modality of the control command
-        vru_info (dict): dictionary of vehicle information
-        control_command_dict (dict): dictionary of control command
-        current_time (float): current simulation time
-
-    Returns:
-        future_trajectory_array (np.array): future trajectory array
-    """
-    if modality == "normal":
-        return None
-    elif modality == "adversarial":
-        assert control_command_dict[modality].command_type == CommandType.TRAJECTORY
-        future_trajectory_array = [
-            [
-                vru_info.position[0],
-                vru_info.position[1],
-                vru_info.heading,
-                vru_info.velocity,
-                0,
-            ]
-        ]
-        index_add = 5
-        for i in range(5):
-            if (i + 1) * index_add - 1 >= len(
-                control_command_dict[modality].future_trajectory
-            ) - 1:
-                p = control_command_dict[modality].future_trajectory[-1]
-                print("reach the end")
-            else:
-                p = control_command_dict[modality].future_trajectory[
-                    (i + 1) * index_add - 1
-                ]
-            future_trajectory_array.append(
-                [
-                    p[0],
-                    p[1],
-                    vru_info.heading,
-                    vru_info.velocity,
-                    (i + 1) * index_add * 0.1,
-                ]
-            )
-        future_trajectory_array = np.array(future_trajectory_array)
-        future_trajectory_array[:, -1] += current_time
-        return future_trajectory_array
-    else:
-        print(f"unknown modality: {modality}")
-        return None

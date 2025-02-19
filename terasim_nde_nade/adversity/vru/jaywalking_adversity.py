@@ -1,14 +1,22 @@
+import addict
 import math
 
-import addict
-import numpy as np
 from terasim.overlay import traci
 
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.utils import CommandType, NDECommand, is_car_following
+from terasim_nde_nade.utils import CommandType, NDECommand
 
 
-def is_pedestrian_moving_forward(p_id, sumonet):
+def is_pedestrian_moving_forward(p_id, sumonet) -> bool:
+    """Check if the pedestrian is moving forward.
+
+    Args:
+        p_id (str): Pedestrian ID.
+        sumonet (SumoNet): SumoNet object.
+
+    Returns:
+        bool: Flag to indicate if the pedestrian is moving forward.
+    """
     edge_id = traci.person.getRoadID(p_id)
     edge_shape = sumonet.getEdge(edge_id).getShape()
     edge_start = edge_shape[0]
@@ -28,10 +36,26 @@ def is_pedestrian_moving_forward(p_id, sumonet):
 
 class JaywalkingAdversity(AbstractAdversity):
     def __init__(self, location, ego_type, probability, predicted_collision_type):
+        """Initialize the JaywalkingAdversity module.
+
+        Args:
+            location (str): Location of the adversarial event.
+            ego_type (str): Type of the ego agent.
+            probability (float): Probability of the adversarial event.
+            predicted_collision_type (str): Predicted collision type.
+        """
         super().__init__(location, ego_type, probability, predicted_collision_type)
         self.sumo_net = None
 
-    def trigger(self, obs_dict):
+    def trigger(self, obs_dict) -> bool:
+        """Determine when to trigger the JaywalkingAdversity module.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            bool: Flag to indicate if the JaywalkingAdversity module should be triggered.
+        """
         self._adversarial_command_dict = addict.Dict()
 
         ego_id = obs_dict["ego"]["vru_id"]
@@ -72,6 +96,14 @@ class JaywalkingAdversity(AbstractAdversity):
         )
 
     def derive_command(self, obs_dict) -> addict.Dict:
+        """Derive the adversarial command based on the observation.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            addict.Dict: Adversarial command.
+        """
         if self.trigger(obs_dict) and self._probability > 0:
             ego_id = obs_dict["ego"]["vru_id"]
             current_angle = traci.person.getAngle(ego_id)

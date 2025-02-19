@@ -1,12 +1,4 @@
 from enum import Enum
-from typing import TypeVar, Union
-
-
-class AgentType(Enum):
-    """Type of agents in the simulation."""
-
-    VEHICLE = "vehicle"
-    VRU = "vru"
 
 
 class VRUType(Enum):
@@ -25,7 +17,3 @@ class CommandType(Enum):
     TRAJECTORY = "trajectory"
     ACCELERATION = "acceleration"
     CUSTOM = "custom"
-
-
-# Type variables for type hinting
-Agent = TypeVar("Agent", "Vehicle", "VRU")

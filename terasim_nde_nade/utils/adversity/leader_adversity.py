@@ -1,17 +1,25 @@
 import addict
+
 from terasim.overlay import traci
 
-from ..base import CommandType, NDECommand
+from .obs_processing import get_cf_acceleration, get_ff_acceleration
 from ..agents import is_car_following
-from .obs_processing import (
-    get_cf_acceleration,
-    get_ff_acceleration,
-)
+from ..base import CommandType, NDECommand
 
 
 def derive_leader_adversarial_command(
     obs_dict, highlight_flag=False, highlight_color=[255, 0, 0, 255]
 ) -> addict.Dict:
+    """Derive the adversarial leader negligence command based on the observation.
+
+    Args:
+        obs_dict (dict): Observation of the ego agent.
+        highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to False.
+        highlight_color (list, optional): Color to highlight the vehicle. Defaults to [255, 0, 0, 255].
+
+    Returns:
+        addict.Dict: Adversarial command.
+    """
     leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
     current_acceleration = obs_dict["ego"]["acceleration"]
     ff_acceleration = get_ff_acceleration(obs_dict)

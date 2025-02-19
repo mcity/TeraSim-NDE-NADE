@@ -1,6 +1,6 @@
+import addict
 import math
 
-import addict
 from terasim.overlay import traci
 
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
@@ -9,11 +9,27 @@ from terasim_nde_nade.utils import CommandType, NDECommand
 
 class RunningRedLightAdversity(AbstractAdversity):
     def __init__(self, location, ego_type, probability, predicted_collision_type):
+        """Initialize the RunningRedLightAdversity module.
+
+        Args:
+            location (str): Location of the adversarial event.
+            ego_type (str): Type of the ego agent.
+            probability (float): Probability of the adversarial event.
+            predicted_collision_type (str): Predicted collision type.
+        """
         super().__init__(location, ego_type, probability, predicted_collision_type)
         self.sumo_net = None
         self.next_crossroad_id = None
 
-    def trigger(self, obs_dict):
+    def trigger(self, obs_dict) -> bool:
+        """Determine when to trigger the RunningRedLightAdversity module.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            bool: Flag to indicate if the RunningRedLightAdversity module should be triggered.
+        """
         self._negligence_command_dict = addict.Dict()
 
         ego_id = obs_dict["ego"]["vru_id"]
@@ -50,6 +66,14 @@ class RunningRedLightAdversity(AbstractAdversity):
         return False
 
     def derive_command(self, obs_dict) -> addict.Dict:
+        """Derive the adversarial command based on the observation.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            addict.Dict: Adversarial command.
+        """
         if self.trigger(obs_dict) and self._probability > 0:
             # derive the trajectory command for the vru, which should have the following characteristics:
             # 1. The vru will cross the road in a straight line with the current angle

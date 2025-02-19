@@ -1,7 +1,7 @@
+import addict
 import math
 import random
 
-import addict
 from terasim.overlay import traci
 
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
@@ -10,10 +10,26 @@ from terasim_nde_nade.utils import CommandType, NDECommand
 
 class StopCrossingAdversity(AbstractAdversity):
     def __init__(self, location, ego_type, probability, predicted_collision_type):
+        """Initialize the StopCrossingAdversity module.
+
+        Args:
+            location (str): Location of the adversarial event.
+            ego_type (str): Type of the ego agent.
+            probability (float): Probability of the adversarial event.
+            predicted_collision_type (str): Predicted collision type.
+        """
         super().__init__(location, ego_type, probability, predicted_collision_type)
         self.sumo_net = None
 
-    def trigger(self, obs_dict):
+    def trigger(self, obs_dict) -> bool:
+        """Determine when to trigger the StopCrossingAdversity module.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+        
+        Returns:
+            bool: Flag to indicate if the StopCrossingAdversity module should be triggered.
+        """
         self._negligence_command_dict = addict.Dict()
 
         ego_id = obs_dict["ego"]["vru_id"]
@@ -21,6 +37,14 @@ class StopCrossingAdversity(AbstractAdversity):
         return self.sumo_net.getEdge(edge_id).getFunction() == "crossing"
 
     def derive_command(self, obs_dict) -> addict.Dict:
+        """Derive the adversarial command based on the observation.
+        
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            addict.Dict: Adversarial command.
+        """
         if self.trigger(obs_dict) and self._probability > 0:
             # derive the trajectory command for the vru, which should have the following characteristics:
             # 1. The vru first stop for 2 seconds

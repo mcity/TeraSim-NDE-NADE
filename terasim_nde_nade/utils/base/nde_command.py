@@ -1,9 +1,10 @@
+from pydantic import BaseModel, validator
 from typing import Any, Callable, Dict, List, Optional
 
-from pydantic import BaseModel, validator
 from terasim.overlay import traci
+from terasim.params import AgentType
 
-from .types import AgentType, CommandType
+from .types import CommandType
 
 
 class NDECommand(BaseModel):

@@ -1,12 +1,22 @@
 import addict
 
 from terasim_nde_nade.adversity.abstract_adversity import AbstractAdversity
-from terasim_nde_nade.utils import get_location
-from terasim_nde_nade.utils.adversity import derive_leader_adversarial_command
+from terasim_nde_nade.utils import (
+    derive_leader_adversarial_command,
+    get_location,
+)
 
 
 class LeaderAdversity(AbstractAdversity):
-    def trigger(self, obs_dict):
+    def trigger(self, obs_dict) -> bool:
+        """Determine when to trigger the LeaderAdversity module.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            bool: Flag to indicate if the LeaderAdversity module should be triggered.
+        """
         self._adversarial_command_dict = addict.Dict()
         vehicle_location = get_location(
             obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
@@ -23,6 +33,14 @@ class LeaderAdversity(AbstractAdversity):
             return False
 
     def derive_command(self, obs_dict) -> addict.Dict:
+        """Derive the adversarial command based on the observation.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            addict.Dict: Adversarial command.
+        """
         if self.trigger(obs_dict) and self._probability > 0:
             for key, command in self._adversarial_command_dict.items():
                 command.prob = self._probability

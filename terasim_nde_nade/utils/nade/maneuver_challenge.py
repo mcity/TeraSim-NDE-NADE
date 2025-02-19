@@ -3,13 +3,21 @@ from loguru import logger
 
 from terasim.params import AgentType
 from terasim.overlay import traci, profile
-from terasim_nde_nade.utils import is_intersect
 
+from .tools import avoidable_maneuver_challenge_hook
+from ..collision import check_trajectory_intersection
 
-def avoidable_maneuver_challenge_hook(veh_id):
-    traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
 
 def is_link_intersect(veh1_obs, veh2_obs):
+    """Check if the next link of the two vehicles are intersected.
+
+    Args:
+        veh1_obs (dict): Observation of the first vehicle.
+        veh2_obs (dict): Observation of the second vehicle.
+
+    Returns:
+        bool: Flag to indicate if the next link of the two vehicles are intersected.
+    """
     veh_1_edge_id = veh1_obs["ego"]["edge_id"]
     veh_2_edge_id = veh2_obs["ego"]["edge_id"]
     if veh_1_edge_id == veh_2_edge_id:
@@ -37,23 +45,27 @@ def get_maneuver_challenge(
     all_normal_agent_future,
     normal_agent_type,
     env_observation,
-    agent_ctx_dict,
+    agent_command_information,
     record_in_ctx=False,
     highlight_flag=True,
     buffer=0,
 ):
-    """Get the maneuver challenge for the adversarial vehicle.
+    """Get the challenge for the adversarial maneuver.
 
     Args:
-        adversarial_agent_id (str): the id of the adversarial agent
-        adversarial_agent_future (list): the future trajectory of the adversarial agent
-        adversarial_agent_type (str): "vehicle" or "vulnerable_road_user"
-        all_normal_agent_future (dict): all_normal_veh _future[veh_id] = future trajectory of the normal agent
-        normal_agent_type (str): "vehicle" or "vulnerable_road_user"
+        adversarial_agent_id (str): ID of the adversarial agent.
+        adversarial_agent_future (list): Future trajectory of the adversarial agent.
+        adversarial_agent_type (str): Type of the adversarial agent, i.e., "vehicle" or "vulnerable_road_user".
+        all_normal_agent_future (dict): Future trajectory of the normal command for all agents.
+        normal_agent_type (str): Type of the agents conducting the normal maneuver, i.e., "vehicle" or "vulnerable_road_user".
+        env_observation (dict): Environment observation.
+        agent_command_information (dict): Command information of the adversarial agent.
+        record_in_ctx (bool, optional): Flag to indicate if the information should be recorded in the context. Defaults to False.
+        highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to True.
+        buffer (int, optional): Buffer for the collision check. Defaults to 0.
 
     Returns:
-        num_affected_vehicles (int): the number of vehicles that will be affected by the adversarial vehicle
-        maneuver_challenge_info (dict): maneuver_challenge_info[veh_id] = 1 if the adversarial vehicle will affect the normal vehicle
+        dict: Maneuver challenge information.
     """
     # see if the one adversarial future will intersect with other normal futures
     final_collision_flag = False
@@ -82,14 +94,7 @@ def get_maneuver_challenge(
                 if leader is not None and leader[0] == adversarial_agent_id:
                     continue
 
-            # collision_flag = is_intersect(
-            #     adversarial_agent_future,
-            #     all_normal_agent_future[agent_id],
-            #     veh_length,
-            #     tem_len,
-            #     circle_r + buffer,
-            # ) # TODO: consider different vehicle length between the two colliding vehicles or vehicle and vulnerable road user
-            collision_flag = is_intersect(
+            collision_flag = check_trajectory_intersection(
                 adversarial_agent_future,
                 all_normal_agent_future[agent_id],
                 env_observation[adversarial_agent_type][adversarial_agent_id]["ego"][
@@ -106,9 +111,9 @@ def get_maneuver_challenge(
             )
             final_collision_flag = final_collision_flag or collision_flag
             if collision_flag and record_in_ctx:
-                if "conflict_vehicle_list" not in agent_ctx_dict:
-                    agent_ctx_dict["conflict_vehicle_list"] = []
-                agent_ctx_dict["conflict_vehicle_list"].append(agent_id)
+                if "conflict_vehicle_list" not in agent_command_information:
+                    agent_command_information["conflict_vehicle_list"] = []
+                agent_command_information["conflict_vehicle_list"].append(agent_id)
                 # logger.trace(
                 #     f"veh_id: {adversarial_veh_id} will collide with veh_id: {veh_id}"
                 # )
@@ -121,16 +126,19 @@ def get_maneuver_challenge(
     
 @profile
 def get_environment_maneuver_challenge(env_future_trajectory, env_observation, env_command_information):
-    """Get the maneuver challenge for each vehicle when it is in the adversarial mode while other vehicles are in the normal mode.
+    """Get the maneuver challenge for each agent when it is in the adversarial mode while other vehicles are in the normal mode.
     Note: We only consider the challenge for the following cases:
-    1. vehicle in the adversarial mode and the vehicle in the normal mode
-    2. vru in the adversarial mode and the vehicle in the normal mode
+    1. vehicle in the adversarial mode and the vehicle in the normal mode.
+    2. vru in the adversarial mode and the vehicle in the normal mode.
 
     Args:
-        env_future_trajectory (dict): env_future_trajectory[veh_id] = {"normal": normal_future_trajectory, "adversarial": adversarial_future_trajectory}
+        env_future_trajectory (dict): Future trajectory of the agents.
+        env_observation (dict): Environment observation.
+        env_command_information (dict): Command information of the agents.
 
     Returns:
-        maneuver_challenge_dict (dict): maneuver_challenge_dict[veh_id] = (num_affected_vehicles, affected_vehicles)
+        dict: Environment maneuver challenge information.
+        dict: Updated environment command information.
     """
     normal_future_trajectory_veh = Dict(
         {
