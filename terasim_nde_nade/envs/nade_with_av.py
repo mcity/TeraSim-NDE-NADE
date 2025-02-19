@@ -232,7 +232,7 @@ class NADEWithAV(NADE):
         # first_vehicle_veh = list(control_cmds.keys())[0]
         # for veh_id in control_cmds:
         #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
-        obs_dicts = self.get_observation_dicts()
+        obs_dicts = self.get_env_observation()
         # Make ITE decision, includes the modification of NDD distribution according to avoidability
         (
             control_cmds,

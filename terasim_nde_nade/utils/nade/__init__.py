@@ -11,4 +11,6 @@ from .tools import (
     get_criticality_dicts,
     update_control_cmds_from_predicted_trajectory,
     update_ndd_distribution_to_vehicle_ctx,
+    adversarial_hook,
+    unavoidable_maneuver_challenge_hook
 )

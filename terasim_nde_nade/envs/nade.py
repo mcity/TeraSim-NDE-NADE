@@ -22,6 +22,7 @@ from terasim_nde_nade.utils import (
     get_ndd_distribution_from_ctx,
     update_ndd_distribution_to_vehicle_ctx,
     update_control_cmds_from_predicted_trajectory,
+    adversarial_hook,
 )
 
 veh_length = 5.0
@@ -61,7 +62,7 @@ class NADE(BaseEnv):
         self.cache_history_tls_data()
         # Step 1. Make NDE decisions for all vehicles and vrus
         _, env_command_information = super().make_decisions(ctx)
-        env_observation = self.get_observation_dicts()
+        env_observation = self.get_env_observation()
         (
             env_command_information,
             env_observation,
@@ -198,7 +199,7 @@ class NADE(BaseEnv):
             env_command_information, env_observation, self.simulator.sumo_net
         )
         # get maneuver challenge and collision avoidability
-        # will mark the conflict vehicles in the veh_ctx_dicts
+        # will mark the conflict vehicles
         env_maneuver_challenge, env_command_information = get_maneuver_challenge_environment(
             env_future_trajectory,
             env_observation,
@@ -299,8 +300,8 @@ class NADE(BaseEnv):
     def NADE_importance_sampling(
         self,
         ndd_control_command_dicts,
-        maneuver_challenge_dicts,
-        ctx_dicts,
+        env_maneuver_challenge,
+        env_command_information,
         exclude_IS_agent_set=None,
     ):
         """Importance sampling for NADE.
@@ -339,10 +340,10 @@ class NADE(BaseEnv):
         )
 
         for agent_type in [AgentType.VEHICLE, AgentType.VULNERABLE_ROAD_USER]:
-            for agent_id in maneuver_challenge_dicts[agent_type]:
+            for agent_id in env_maneuver_challenge[agent_type]:
                 if agent_id in exclude_IS_agent_set:
                     continue
-                if maneuver_challenge_dicts[agent_type][agent_id].get("adversarial"):
+                if env_maneuver_challenge[agent_type][agent_id].get("adversarial"):
                     ndd_normal_prob = ndd_control_command_dicts[agent_type][
                         agent_id
                     ].normal.prob
@@ -357,8 +358,8 @@ class NADE(BaseEnv):
                     IS_prob = self.get_IS_prob(
                         agent_id,
                         ndd_control_command_dicts[agent_type],
-                        maneuver_challenge_dicts[agent_type],
-                        ctx_dicts[agent_type],
+                        env_maneuver_challenge[agent_type],
+                        env_command_information[agent_type],
                     )
                     epsilon = 1 - IS_prob
 
@@ -369,7 +370,7 @@ class NADE(BaseEnv):
                         ITE_control_command_dict[agent_type][
                             agent_id
                         ] = ndd_control_command_dicts[agent_type][agent_id].adversarial
-                        ctx_dicts[agent_type][agent_id]["mode"] = "adversarial"
+                        env_command_information[agent_type][agent_id]["mode"] = "adversarial"
                         if agent_type == AgentType.VEHICLE:
                             adversarial_hook(agent_id)
                         logger.info(
@@ -386,12 +387,12 @@ class NADE(BaseEnv):
                         )
         self.step_epsilon = epsilon
         self.step_weight = weight
-        return ITE_control_command_dict, ctx_dicts, weight, adversarial_flag
+        return ITE_control_command_dict, env_command_information, weight, adversarial_flag
 
     def get_IS_prob(
-        self, agent_id, ndd_control_command_dicts, maneuver_challenge_dicts, ctx_dicts
+        self, agent_id, ndd_control_command_dicts, env_maneuver_challenge, env_command_information
     ):
-        if not maneuver_challenge_dicts[agent_id].get("adversarial"):
+        if not env_maneuver_challenge[agent_id].get("adversarial"):
             raise ValueError("The vehicle is not in the adversarial mode.")
 
         IS_magnitude = IS_MAGNITUDE_DEFAULT
@@ -407,7 +408,7 @@ class NADE(BaseEnv):
                     break
 
             # if the vehicle is not avoidable, increase the importance sampling magnitude
-            if not ctx_dicts[agent_id].get("avoidable", True):
+            if not env_command_information[agent_id].get("avoidable", True):
                 IS_magnitude *= IS_MAGNITUDE_MULTIPLIER
             # logger.trace(f"IS_magnitude: {IS_magnitude} for {collision_type}")
             # logger.trace(f"Original prob: {ndd_control_command_dicts[veh_id]["adversarial"].prob}")

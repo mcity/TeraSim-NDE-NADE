@@ -44,7 +44,7 @@ class NDE(EnvTemplateComplete):
         self.sumo_warmup(self.warmup_time)
         return super().on_start(ctx)
 
-    def get_observation_dicts(self):
+    def get_env_observation(self):
         env_observation = {
             AgentType.VEHICLE: {
                 vehicle.id: vehicle.observation

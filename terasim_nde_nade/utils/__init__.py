@@ -26,6 +26,7 @@ from .nade import (
     get_ndd_distribution_from_ctx,
     update_ndd_distribution_to_vehicle_ctx,
     update_control_cmds_from_predicted_trajectory,
+    adversarial_hook
 )
 from .trajectory.trajectory_predictor import (
     get_future_position_on_route,

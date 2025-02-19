@@ -127,7 +127,7 @@ def get_maneuver_challenge_environment(env_future_trajectory, env_observation, e
     2. vru in the adversarial mode and the vehicle in the normal mode
 
     Args:
-        trajectory_dicts (dict): trajectory_dicts[veh_id] = {"normal": normal_future_trajectory, "adversarial": adversarial_future_trajectory}
+        env_future_trajectory (dict): env_future_trajectory[veh_id] = {"normal": normal_future_trajectory, "adversarial": adversarial_future_trajectory}
 
     Returns:
         maneuver_challenge_dict (dict): maneuver_challenge_dict[veh_id] = (num_affected_vehicles, affected_vehicles)
@@ -171,7 +171,7 @@ def get_maneuver_challenge_environment(env_future_trajectory, env_observation, e
             for veh_id in env_future_trajectory[AgentType.VEHICLE]
         }
     )
-    maneuver_challenge_dicts_vru = Dict(
+    maneuver_challenge_vru = Dict(
         {
             vru_id: get_maneuver_challenge(
                 vru_id,
@@ -196,8 +196,8 @@ def get_maneuver_challenge_environment(env_future_trajectory, env_observation, e
 
     for vru_id in env_command_information[AgentType.VULNERABLE_ROAD_USER]:
         env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id]["maneuver_challenge"] = (
-            maneuver_challenge_dicts_vru[vru_id]
-            if vru_id in maneuver_challenge_dicts_vru
+            maneuver_challenge_vru[vru_id]
+            if vru_id in maneuver_challenge_vru
             else {"normal": 0}
         )
 
@@ -235,7 +235,7 @@ def get_maneuver_challenge_environment(env_future_trajectory, env_observation, e
     )
     env_maneuver_challenge = {
         AgentType.VEHICLE: maneuver_challenge_veh,
-        AgentType.VULNERABLE_ROAD_USER: maneuver_challenge_dicts_vru,
+        AgentType.VULNERABLE_ROAD_USER: maneuver_challenge_vru,
     }
     return env_maneuver_challenge, env_command_information
 
