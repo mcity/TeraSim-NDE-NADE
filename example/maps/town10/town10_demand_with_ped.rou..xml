@@ -15,10 +15,6 @@
     <route id="r_2" edges="18 10 11 13 14 16 0 2 9 43 42 41 40 21 1 12"/>
     <route id="r_3" edges="37 36 34 33 19 15 31 30 29 28 18 10 11 13"/>
     <!-- Vehicles, persons and containers (sorted by depart) -->
-    <vType id="CAVs" maxSpeed="10"/>
-    <vehicle id="CAV" type="CAVs" route="r_2" depart="0">
-        <stop edge="18" endPos="10" duration="10"/>
-    </vehicle>
     <flow id="f_0" begin="0.00" from="18" to="35" via="10 11 13 14" end="3600.00" vehsPerHour="200"/>
     <flow id="f_1" begin="0.00" from="12" to="17" via="16 0 2 42 41 5 27 26 24" end="3600.00" vehsPerHour="200"/>
     <flow id="f_2" begin="0.00" from="5" to="19" via="6 8 38 20 23 37 36 34 33" end="3600.00" vehsPerHour="200"/>

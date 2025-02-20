@@ -29,7 +29,7 @@ class StopCrossingAdversity(AbstractAdversity):
         Returns:
             bool: Flag to indicate if the StopCrossingAdversity module should be triggered.
         """
-        self._negligence_command_dict = addict.Dict()
+        self._adversarial_command_dict = addict.Dict()
 
         ego_id = obs_dict["ego"]["vru_id"]
         edge_id = traci.person.getRoadID(ego_id)
@@ -82,26 +82,26 @@ class StopCrossingAdversity(AbstractAdversity):
                         current_time + (i + stop_duration) * dt,  # time
                     ]
                 )
-            negligence_command = NDECommand(
+            adversarial_command = NDECommand(
                 command_type=CommandType.TRAJECTORY,
                 future_trajectory=trajectory,
                 duration=duration,
                 prob=self._probability,
                 keep_route_mode=3,
             )
-            negligence_command.info.update(
+            adversarial_command.info.update(
                 {
                     "speed": speed,
                     "angle": current_angle,
-                    "mode": "negligence",
-                    "negligence_mode": "StopCrossing",
+                    "mode": "adversarial",
+                    "adversarial_mode": "StopCrossing",
                     "time_resolution": 0.1,
                     "predicted_collision_type": self._predicted_collision_type,
                     "location": self._location,
                 }
             )
-            self._negligence_command_dict.update(
-                addict.Dict({"StopCrossing": negligence_command})
+            self._adversarial_command_dict.update(
+                addict.Dict({"StopCrossing": adversarial_command})
             )
-            return self._negligence_command_dict
+            return self._adversarial_command_dict
         return addict.Dict()

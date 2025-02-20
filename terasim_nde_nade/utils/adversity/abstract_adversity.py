@@ -29,7 +29,7 @@ class AbstractAdversity(abc.ABC):
         self._ego_type = ego_type
         self._probability = probability
         self._predicted_collision_type = predicted_collision_type
-        self._negligence_command_dict = addict.Dict()
+        self._adversarial_command_dict = addict.Dict()
 
     @abstractmethod
     def trigger(self, obs_dict: Dict) -> bool:

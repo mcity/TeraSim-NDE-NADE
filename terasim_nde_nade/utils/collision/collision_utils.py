@@ -132,14 +132,14 @@ def is_head_on(ego_obs: Dict[str, Any], leader_info: Optional[Tuple]) -> bool:
 
 def get_collision_type_and_prob(
     obs_dict: Dict[str, Any],
-    negligence_command: Any,
+    adversarial_command: Any,
     location: Optional[str] = None,
 ) -> Tuple[float, str]:
-    """Given current observation and the negligence mode, detect what type of collisions will be generated.
+    """Given current observation and the adversarial mode, detect what type of collisions will be generated.
 
     Args:
         obs_dict (Dict[str, Any]): Observation of the ego agent.
-        negligence_command (Any): Negligence command.
+        adversarial_command (Any): Adversarial command.
         location (Optional[str], optional): Location of the adversarial event. Defaults to None.
 
     Returns:
@@ -148,15 +148,15 @@ def get_collision_type_and_prob(
     if location is None:
         location = get_location(obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"])
 
-    rear_end = negligence_command.info.get("is_car_following_flag", False)
-    negligence_mode = negligence_command.info.get("negligence_mode", None)
+    rear_end = adversarial_command.info.get("is_car_following_flag", False)
+    adversarial_mode = adversarial_command.info.get("adversarial_mode", None)
 
     if "roundabout" in location:
-        if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
+        if adversarial_mode == "LeftFoll" or adversarial_mode == "RightFoll":
             return roundabout_cutin_prob, "roundabout_cutin"
         elif rear_end:
             return roundabout_rearend_prob, "roundabout_rearend"
-        elif negligence_mode == "TrafficRule":
+        elif adversarial_mode == "TrafficRule":
             return roundabout_fail_to_yield_prob, "roundabout_fail_to_yield"
         else:
             return (
@@ -164,20 +164,20 @@ def get_collision_type_and_prob(
                 "roundabout_neglect_conflict_lead",
             )
     elif "highway" in location:
-        if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
+        if adversarial_mode == "LeftFoll" or adversarial_mode == "RightFoll":
             return highway_cutin_prob, "highway_cutin"
         else:
             return highway_rearend_prob, "highway_rearend"
     elif "intersection" in location:
-        if negligence_mode == "LeftFoll" or negligence_mode == "RightFoll":
+        if adversarial_mode == "LeftFoll" or adversarial_mode == "RightFoll":
             return intersection_cutin_prob, "intersection_cutin"
         elif rear_end:
             return intersection_rearend_prob, "intersection_rearend"
         elif is_head_on(
-            obs_dict["ego"], negligence_command.info.get("leader_info", None)
+            obs_dict["ego"], adversarial_command.info.get("leader_info", None)
         ):
             return intersection_headon_prob, "intersection_headon"
-        elif negligence_mode == "TrafficRule":
+        elif adversarial_mode == "TrafficRule":
             return intersection_tfl_prob, "intersection_tfl"
         else:
             return (

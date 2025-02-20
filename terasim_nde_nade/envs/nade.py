@@ -64,23 +64,26 @@ class NADE(BaseEnv):
         self.allow_NADE_IS = True
         self.latest_IS_time = -1
         return on_start_result
-
+    
+    def preparation(self):
+        """Prepare for the NADE step."""
+        self.distance_info.after.update(self.update_distance())
+        self.record.final_time = utils.get_time()
+        self.cache_history_tls_data()
+    
     @profile
-    def on_step(self, ctx):
-        """Step NADE.
+    def NDE_decision(self, ctx):
+        """Make NDE decisions for all vehicles and VRUs.
 
         Args:
             ctx (dict): Context dictionary.
 
         Returns:
+            dict: Environment command information.
+            dict: Environment observation.
             bool: Flag to indicate if the simulation should continue.
-        """
-        # Preparation
-        self.distance_info.after.update(self.update_distance()) # update agent driving distance
-        self.record.final_time = utils.get_time()  # update the final time at each step
-        self.cache_history_tls_data() # record the traffic light data
-
-        # NADE Step 1. Make NDE decisions for all vehicles and vrus
+        """  
+        
         _, env_command_information = super().make_decisions(ctx)
         env_observation = self.get_env_observation() # get the observation of the environment
         (
@@ -88,8 +91,18 @@ class NADE(BaseEnv):
             env_observation,
             should_continue_simulation_flag,
         ) = self.executeMove(ctx, env_command_information, env_observation) # move the simulation half step forward and update useful information
-        
-        # NADE Step 2. Make NADE decision, includes the modification of NDD distribution according to avoidability
+        return env_command_information, env_observation, should_continue_simulation_flag
+    
+    @profile
+    def NADE_decision_and_control(self, env_command_information, env_observation):
+        """
+        Make NADE decision, includes the modification of NDD distribution according to avoidability, and excute the control commands.
+
+        Args:
+            env_command_information (dict): Environment command information.
+            env_observation (dict): Environment observation.
+        """
+        # Make NADE decision, includes the modification of NDD distribution according to avoidability
         (
             nade_control_commands,
             env_command_information,
@@ -111,15 +124,34 @@ class NADE(BaseEnv):
             nade_control_commands, env_future_trajectory
         ) # update the control commands according to the predicted trajectory
         if hasattr(self, "nnde_make_decisions"): # leave the API for the NeuralNDE
-            nnde_control_commands, _ = self.nnde_make_decisions(ctx)
+            nnde_control_commands, _ = self.nnde_make_decisions()
             nade_control_commands = self.merge_NADE_NeuralNDE_control_commands(
                 nade_control_commands, nnde_control_commands
             )
         
-        # NADE Step 3. Execute the control commands
+        # Execute the control commands
         self.refresh_control_commands_state() # refresh the control status of all agents
         self.execute_control_commands(nade_control_commands) # execute the control commands
         self.record_step_data(env_command_information) # record the step data
+
+    @profile
+    def on_step(self, ctx):
+        """Step NADE.
+
+        Args:
+            ctx (dict): Context dictionary.
+
+        Returns:
+            bool: Flag to indicate if the simulation should continue.
+        """
+        # Preparation
+        self.preparation()
+
+        # NADE Step 1. Make NDE decisions for all vehicles and vrus
+        env_command_information, env_observation, should_continue_simulation_flag = self.NDE_decision(ctx)
+        
+        # NADE Step 2. Make NADE decision, includes the modification of NDD distribution according to avoidability, and excute the control commands
+        self.NADE_decision_and_control(env_command_information, env_observation)
 
         return should_continue_simulation_flag
 
