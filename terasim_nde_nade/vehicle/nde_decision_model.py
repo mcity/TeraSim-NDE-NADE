@@ -88,5 +88,6 @@ class NDEDecisionModel(IDMModel):
         return NDECommand(command_type=CommandType.DEFAULT, prob=1), {
             "ndd_command_distribution": {
                 "normal": NDECommand(command_type=CommandType.DEFAULT, prob=1)
-            }
+            },
+            "command_cache": NDECommand(command_type=CommandType.DEFAULT, prob=1),
         }

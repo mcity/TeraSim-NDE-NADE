@@ -63,6 +63,7 @@ class NADE(BaseEnv):
         self.distance_info = Dict({"before": self.update_distance(), "after": Dict()})
         self.allow_NADE_IS = True
         self.latest_IS_time = -1
+        self.centered_veh_id = None
         return on_start_result
     
     def preparation(self):
@@ -302,6 +303,7 @@ class NADE(BaseEnv):
             env_future_trajectory,
             env_observation,
             env_command_information,
+            centered_agent_set=self.excluded_agent_set,
         )
 
         # Step 3. Add collision avoidance and acceptance command for the victim vehicles.
@@ -319,6 +321,7 @@ class NADE(BaseEnv):
             env_future_trajectory,
             env_observation,
             env_command_information,
+            centered_agent_set=self.excluded_agent_set,
         )
         # If collision avoidance is not effective, remove the collision avoidance command.
         env_command_information = remove_collision_avoidance_command_using_avoidability(
@@ -399,7 +402,6 @@ class NADE(BaseEnv):
         nde_control_commands,
         env_maneuver_challenge,
         env_command_information,
-        exclude_IS_agent_set=None,
     ):
         """Select the NADE control commands based on the importance sampling theory.
 
@@ -407,7 +409,6 @@ class NADE(BaseEnv):
             nde_control_commands (dict): NDD distribution for each agent, including the normal, adversarial, collision_accept, and collision_avoid control commands, together with their probability.
             env_maneuver_challenge (dict): Environment maneuver challenge.
             env_command_information (dict): Environment command information.
-            exclude_IS_agent_set (set): Set of agent ids that should be excluded from the importance sampling.
 
         Returns:
             dict: NADE control commands.
@@ -438,13 +439,10 @@ class NADE(BaseEnv):
             }
         )
         adversarial_flag = False
-        exclude_IS_agent_set = (
-            set() if exclude_IS_agent_set is None else exclude_IS_agent_set
-        )
 
         for agent_type in [AgentType.VEHICLE, AgentType.VULNERABLE_ROAD_USER]:
             for agent_id in env_maneuver_challenge[agent_type]:
-                if agent_id in exclude_IS_agent_set:
+                if agent_id in self.excluded_agent_set:
                     continue
                 if env_maneuver_challenge[agent_type][agent_id].get("adversarial"):
                     ndd_normal_prob = nde_control_commands[agent_type][

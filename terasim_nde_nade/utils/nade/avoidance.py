@@ -290,7 +290,7 @@ def add_avoid_accept_collision_command(
     return env_future_trajecotory, env_command_information
 
 def get_environment_avoidability(
-    env_maneuver_challenge, env_future_trajectory, env_observation, env_command_information
+    env_maneuver_challenge, env_future_trajectory, env_observation, env_command_information, centered_agent_set=set()
 ):
     """Get the avoidability of the vehicles in the environment.
     
@@ -299,6 +299,7 @@ def get_environment_avoidability(
         env_future_trajectory (dict): Future trajectory of the environment.
         env_observation (dict): Observation of the environment.
         env_command_information (dict): Command information of the environment.
+        centered_agent_set (set, optional): Set of centered agent IDs.
     
     Returns:
         dict: Maneuver challenge for the avoidance command of the victim vehicles.
@@ -363,6 +364,7 @@ def get_environment_avoidability(
                 env_command_information[AgentType.VEHICLE][veh_id],
                 record_in_ctx=False,
                 buffer=0.5,  # buffer for the collision avoidance, 1m
+                centered_agent_set=centered_agent_set,
             )
             if maneuver_challenge_avoidance_dicts[AgentType.VEHICLE][veh_id].get(
                 "adversarial"
@@ -408,6 +410,7 @@ def get_environment_avoidability(
                 env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id],
                 record_in_ctx=False,
                 buffer=0.5,  # buffer for the collision avoidance, 1m
+                centered_agent_set=centered_agent_set,
             )
             if maneuver_challenge_avoidance_dicts[AgentType.VULNERABLE_ROAD_USER][
                 vru_id
@@ -536,7 +539,8 @@ def apply_collision_avoidance(
     env_future_trajectory,
     env_command_information,
     nade_control_commands,
-    record
+    record,
+    excluded_agent_set=set(),
 ):
     """Apply collision avoidance for the victim vehicles.
 
@@ -544,6 +548,8 @@ def apply_collision_avoidance(
         env_future_trajectory (dict): Future trajectory of the environment.
         env_command_information (dict): Command information of the environment.
         nade_control_commands (dict): NADE control commands.
+        record (object): Record object.
+        excluded_agent_set (set): Set of excluded agent IDs.
 
     Returns:
         dict: Updated NADE control commands.
@@ -565,8 +571,20 @@ def apply_collision_avoidance(
 
     # victim vehicle set is all the vehicles that are victim by the adversarial vehicle, combine all vehicles in the adversarial_pair_dict values
     victim_vehicle_set = set()
-    for victim_vehicle_list in adversarial_pair_dict[AgentType.VEHICLE].values():
-        victim_vehicle_set.update(victim_vehicle_list)
+    for agent_type in [AgentType.VEHICLE, AgentType.VULNERABLE_ROAD_USER]:
+        for victim_vehicle_list in adversarial_pair_dict[agent_type].values():
+            victim_vehicle_set.update(victim_vehicle_list)
+    
+    for agent_id in excluded_agent_set:
+        if agent_id in victim_vehicle_set:
+            record.event_info[utils.get_time()].update(
+                {
+                    "victim_vehicle_id": agent_id,
+                    "mode": "accept_collision",
+                    "additional_info": "CAV_neglected",
+                }
+            )
+            return nade_control_commands, env_command_information, 1.0, record
 
     avoidance_command_list = [
         env_command_information[AgentType.VEHICLE][veh_id]["ndd_command_distribution"].get(
@@ -610,7 +628,7 @@ def apply_collision_avoidance(
             adversarial_vehicle_id,
             victim_vehicle_list,
         ) in adversarial_pair_dict[AgentType.VEHICLE].items():
-            if adversarial_vehicle_id == "CAV":
+            if adversarial_vehicle_id in excluded_agent_set:
                 logger.critical(
                     f"adversarial_vehicle_id: {adversarial_vehicle_id}, victim_vehicle_list: {victim_vehicle_list}"
                 )

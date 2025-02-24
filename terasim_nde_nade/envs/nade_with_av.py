@@ -1,78 +1,82 @@
+from addict import Dict
 import copy
+from loguru import logger
+import numpy as np
 import random
 
-import numpy as np
-import terasim.utils as utils
-from addict import Dict
-from loguru import logger
-from terasim.envs.template import EnvTemplate
 from terasim.overlay import traci
+import terasim.utils as utils
+from terasim.params import AgentType
 
-from terasim_nde_nade.envs.nade import NADE
-from terasim_nde_nade.utils import (
+from .nade import NADE
+
+from ..utils import (
+    apply_collision_avoidance,
+    calclulate_distance_from_centered_agent,
     CommandType,
     NDECommand,
     get_collision_type_and_prob,
     is_car_following,
+    update_control_cmds_from_predicted_trajectory,
 )
 
+CAV_ID = "CAV"
+CAV_ROUTE_ID = "cav_route"
 
 class NADEWithAV(NADE):
-    def __init__(self, cache_radius=100, control_radius=50, *args, **kwargs):
+    def __init__(self, cav_cfg, cache_radius=100, control_radius=50, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.cav_cfg = cav_cfg
         self.cache_radius = cache_radius
         self.control_radius = control_radius
-
-    def cache_vehicle_history(self):
-        cav_context = traci.vehicle.getContextSubscriptionResults("CAV")
-        if cav_context:
-            cached_veh_ids = cav_context.keys()
-            for veh_id in cached_veh_ids:
-                _ = self.vehicle_list[
-                    veh_id
-                ].observation  # get the observation of the vehicle to cache it
-            # filter the cached_veh_ids by the controlled radius to controlled_veh_ids
-            controlled_veh_ids = []
-            for veh_id in cav_context:
-                if (
-                    cav_context[veh_id][traci.constants.VAR_DISTANCE]
-                    <= self.control_radius
-                ):
-                    controlled_veh_ids.append(veh_id)
-            return cached_veh_ids, controlled_veh_ids
-        else:
-            raise ValueError("CAV context is empty")
+        self.excluded_agent_set = set([CAV_ID])
 
     def on_start(self, ctx):
+        """Initialize the surrogate model and add AV to env.
+        
+        Args:
+            ctx (dict): Context dictionary.
+        """
         # initialize the surrogate model and add AV to env
         super().on_start(ctx)
         self.add_cav_safe()
 
     def add_cav_unsafe(self, edge_id="EG_35_1_14", lane_id=None, position=0, speed=0):
+        """Add a CAV to the simulation.
+
+        Args:
+            edge_id (str): Edge ID where the CAV is added.
+            lane_id (str): Lane ID where the CAV is added.
+            position (float): Position of the CAV.
+            speed (float): Speed of the CAV.
+        """
         if lane_id is None:
             lane_id = edge_id + "_0"
 
         self.add_vehicle(
-            veh_id="CAV",
-            route_id="cav_route",
+            veh_id=CAV_ID,
+            route_id=CAV_ROUTE_ID,
             lane="best",
             lane_id=lane_id,
             position=position,
             speed=speed,
         )
         # set the CAV with white color
-        traci.vehicle.setColor("CAV", (255, 255, 255, 255))
+        traci.vehicle.setColor(CAV_ID, (255, 255, 255, 255))
 
         traci.vehicle.subscribeContext(
-            "CAV",
+            CAV_ID,
             traci.constants.CMD_GET_VEHICLE_VARIABLE,
             self.cache_radius,
             [traci.constants.VAR_DISTANCE],
         )
 
     def add_cav_safe(self):
-        # Get the first edge of the CAV route
-        cav_route = traci.route.getEdges("cav_route")
+        """Add a CAV to the simulation safely.
+        """
+        # add the cav_route to the SUMO simulation
+        cav_route = self.cav_cfg.route
+        traci.route.add(CAV_ROUTE_ID, cav_route)
         edge_id = cav_route[0]
         lanes = traci.edge.getLaneNumber(edge_id)
         max_attempts = 10
@@ -90,9 +94,24 @@ class NADEWithAV(NADE):
                 return
 
         logger.warning("Unable to find a safe position for CAV, using fallback method")
-        self.add_cav_fallback()
+        self.add_cav_fallback(edge_id)
 
     def is_position_safe(self, lane_id, position, min_safe_distance):
+        """Check if the position is safe to add a CAV.
+
+        Args:
+            lane_id (str): Lane ID.
+            position (float): Position to check.
+            min_safe_distance (float): Minimum safe distance from other vehicles.
+
+        Returns:
+            bool: True if the position is safe, False otherwise.
+        """
+        # check if this lane allows vehicles
+        allowed = traci.lane.getAllowed(lane_id)
+        if "passenger" not in allowed:
+            return False
+
         # Check vehicles on the same lane
         vehicles = traci.lane.getLastStepVehicleIDs(lane_id)
         for veh in vehicles:
@@ -101,8 +120,12 @@ class NADEWithAV(NADE):
                 return False
         return True
 
-    def add_cav_fallback(self):
-        edge_id = "EG_35_1_14"
+    def add_cav_fallback(self, edge_id):
+        """Add a CAV to the simulation using a fallback method.
+
+        Args:
+            edge_id (str): Edge ID where the CAV is added.
+        """
         lane = random.randint(0, traci.edge.getLaneNumber(edge_id) - 1)
         lane_id = f"{edge_id}_{lane}"
         position = traci.lane.getLength(lane_id) / 2
@@ -118,6 +141,13 @@ class NADEWithAV(NADE):
         )
 
     def clear_area_around_position(self, lane_id, position, clear_distance):
+        """Clear the area around a position on a lane.
+
+        Args:
+            lane_id (str): Lane ID.
+            position (float): Position to clear around.
+            clear_distance (float): Distance to clear around the position.
+        """
         vehicles = traci.lane.getLastStepVehicleIDs(lane_id)
         for veh in vehicles:
             veh_pos = traci.vehicle.getLanePosition(veh)
@@ -125,223 +155,159 @@ class NADEWithAV(NADE):
                 traci.vehicle.remove(veh)
         logger.info(f"Cleared area around position {position} on lane {lane_id}")
 
-    def on_step(self, ctx):
-        cached_veh_ids, controlled_veh_ids = self.cache_vehicle_history()
-        # ctx["terasim_controlled_vehicle_ids"] = set(controlled_veh_ids)
-        return super().on_step(ctx)
+    def NADE_decision(self, env_command_information, env_observation):
+        """Make decisions using the NADE model.
 
-    def reroute_vehicle_if_necessary(self, veh_id, veh_ctx_dicts, obs_dicts):
-        if veh_id == "CAV":
-            logger.debug("CAV will not be rerouted.")
-            return False
-        super().reroute_vehicle_if_necessary(veh_id, veh_ctx_dicts, obs_dicts)
+        Args:
+            env_command_information (dict): Command information from the environment.
+            env_observation (dict): Observation from the environment.
 
-    def NADE_decision(self, control_command_dicts, veh_ctx_dicts, obs_dicts):
-        predicted_CAV_control_command = self.predict_cav_control_command(
-            control_command_dicts, veh_ctx_dicts, obs_dicts
-        )
-        if veh_ctx_dicts["CAV"] is None:
-            veh_ctx_dicts["CAV"] = Dict()
+        Returns:
+            tuple: Tuple containing the control commands, updated command information, weight, future trajectory, maneuver challenge, and criticality.
+        """
+        predicted_CAV_control_command = self.predict_cav_control_command(env_observation)
+        if env_command_information[AgentType.VEHICLE][CAV_ID] is None:
+            env_command_information[AgentType.VEHICLE][CAV_ID] = Dict()
         if predicted_CAV_control_command is not None:
-            veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
+            env_command_information[AgentType.VEHICLE][CAV_ID]["ndd_command_distribution"] = Dict(
                 {
-                    "negligence": predicted_CAV_control_command,
+                    "adversarial": predicted_CAV_control_command,
                     "normal": NDECommand(command_type=CommandType.DEFAULT, prob=0),
                 }
             )
         else:
-            veh_ctx_dicts["CAV"]["ndd_command_distribution"] = Dict(
+            env_command_information[AgentType.VEHICLE][CAV_ID]["ndd_command_distribution"] = Dict(
                 {
                     "normal": NDECommand(command_type=CommandType.DEFAULT, prob=1),
                 }
             )
-        CAV_command_cache = copy.deepcopy(control_command_dicts["CAV"])
-        control_command_dicts["CAV"] = NDECommand(
-            command_type=CommandType.DEFAULT, prob=1
+        CAV_command_cache = copy.deepcopy(env_command_information[AgentType.VEHICLE][CAV_ID]["command_cache"])
+
+        # filter the env_command_information and env_observation by the control radius from CAV
+        distance_from_CAV = calclulate_distance_from_centered_agent(
+            env_observation, CAV_ID, AgentType.VEHICLE
         )
+        neighbor_agent_set = set(
+            [agent_id for agent_id in distance_from_CAV if distance_from_CAV[agent_id] <= self.control_radius]
+        )
+        filtered_env_command_information = {
+            agent_type: {
+                agent_id: env_command_information[agent_type][agent_id]
+                for agent_id in env_command_information[agent_type]
+                if agent_id in neighbor_agent_set
+            }
+            for agent_type in env_command_information
+        }
+        filtered_env_observation = {
+            agent_type: {
+                agent_id: env_observation[agent_type][agent_id]
+                for agent_id in env_observation[agent_type]
+                if agent_id in neighbor_agent_set
+            }
+            for agent_type in env_observation
+        }
+
         (
-            ITE_control_command_dicts,
-            veh_ctx_dicts,
+            nade_control_commands,
+            filtered_env_command_information,
             weight,
-            trajectory_dicts,
-            maneuver_challenge_dicts,
-            env_criticality,
-        ) = super().NADE_decision(control_command_dicts, veh_ctx_dicts, obs_dicts)
-        ITE_control_command_dicts["CAV"] = CAV_command_cache
+            filtered_env_future_trajectory,
+            filtered_env_maneuver_challenge,
+            filtered_env_criticality,
+        ) = super().NADE_decision(filtered_env_command_information, filtered_env_observation)
+        nade_control_commands[AgentType.VEHICLE][CAV_ID] = CAV_command_cache
         return (
-            ITE_control_command_dicts,
-            veh_ctx_dicts,
+            nade_control_commands,
+            env_command_information,
             weight,
-            trajectory_dicts,
-            maneuver_challenge_dicts,
-            env_criticality,
+            filtered_env_future_trajectory,
+            filtered_env_maneuver_challenge,
+            filtered_env_criticality,
         )
 
-    def NADE_importance_sampling(
-        self,
-        ndd_control_command_dicts,
-        maneuver_challenge_dicts,
-        veh_ctx_dicts,
-        exclude_IS_veh_set=None,
-    ):
-        exclude_IS_veh_set = set(["CAV"])
-        return super().NADE_importance_sampling(
-            ndd_control_command_dicts,
-            maneuver_challenge_dicts,
-            veh_ctx_dicts,
-            exclude_IS_veh_set,
-        )
+    def NADE_decision_and_control(self, env_command_information, env_observation):
+        """Make decisions and control the agents around the CAV using the NADE model.
 
-    def apply_collision_avoidance(
-        self, trajectory_dicts, veh_ctx_dicts, ITE_control_command_dict
-    ):
-        # add another layer, if CAV is contained in the neglected vehicle list, then does not apply the collision avoidance (as AV will never be controlled)
-        negligence_pair_dict = self.get_negligence_pair_dict(veh_ctx_dicts)
-        veh_ctx_dicts = self.record_negligence_related_information(
-            negligence_pair_dict, veh_ctx_dicts
-        )
-        if len(negligence_pair_dict):
-            logger.critical("Apply CAV-related collision avoidance!")
-            neglected_vehicle_id_set = set()
-            for neglected_vehicle_list in negligence_pair_dict.values():
-                neglected_vehicle_id_set.update(neglected_vehicle_list)
-            if "CAV" in neglected_vehicle_id_set:
-                self.record.event_info[utils.get_time()].update(
-                    {
-                        "neglected_vehicle_id": "CAV",
-                        "mode": "accept_collision",
-                        "additional_info": "CAV_neglected",
-                    }
-                )
-                return ITE_control_command_dict, veh_ctx_dicts, 1.0
-        return super().apply_collision_avoidance(
-            trajectory_dicts, veh_ctx_dicts, ITE_control_command_dict
-        )
-
-    def on_step(self, ctx):
-        self.distance_info.after.update(self.update_distance())
-        self.record.final_time = utils.get_time()  # update the final time at each step
-        self.cache_history_tls_data()
-        # clear vehicle context dicts
-        veh_ctx_dicts = {}
-        # Make NDE decisions for all vehicles
-        control_cmds, veh_ctx_dicts = EnvTemplate.make_decisions(self, ctx)
-        CAV_control_command_cache = (
-            copy.deepcopy(control_cmds["CAV"]) if "CAV" in control_cmds else None
-        )
-        # first_vehicle_veh = list(control_cmds.keys())[0]
-        # for veh_id in control_cmds:
-        #     history_data = self.vehicle_list[veh_id].sensors["ego"].history_array
-        obs_dicts = self.get_env_observation()
-        # Make ITE decision, includes the modification of NDD distribution according to avoidability
-        (
-            control_cmds,
-            veh_ctx_dicts,
-            obs_dicts,
-            should_continue_simulation_flag,
-        ) = self.executeMove(ctx, control_cmds, veh_ctx_dicts, obs_dicts)
-        if "CAV" in traci.vehicle.getIDList():
+        Args:
+            env_command_information (dict): Command information from the environment.
+            env_observation (dict): Observation from the environment.
+        """
+        if CAV_ID in traci.vehicle.getIDList():
+            CAV_control_command_cache = env_command_information[AgentType.VEHICLE][CAV_ID]["command_cache"]
             (
-                ITE_control_cmds,
-                veh_ctx_dicts,
+                nade_control_commands,
+                env_command_information,
                 weight,
-                trajectory_dicts,
-                maneuver_challenge_dicts,
+                env_future_trajectory,
+                _,
                 _,
             ) = self.NADE_decision(
-                control_cmds, veh_ctx_dicts, obs_dicts
-            )  # enable ITE
+                env_command_information, env_observation
+            )
             self.importance_sampling_weight *= weight  # update weight by negligence
-            ITE_control_cmds, veh_ctx_dicts, weight = self.apply_collision_avoidance(
-                trajectory_dicts, veh_ctx_dicts, ITE_control_cmds
+            nade_control_commands, env_command_information, weight, self.record = apply_collision_avoidance(
+                env_future_trajectory, env_command_information, nade_control_commands, self.record, excluded_agent_set=self.excluded_agent_set
             )
             self.importance_sampling_weight *= (
-                weight  # update weight by collision avoidance
-            )
-            ITE_control_cmds = self.update_control_cmds_from_predicted_trajectory(
-                ITE_control_cmds, trajectory_dicts
-            )
+                weight  
+            ) # update weight by collision avoidance
+            nade_control_commands = update_control_cmds_from_predicted_trajectory(
+                nade_control_commands, env_future_trajectory, excluded_agent_set=self.excluded_agent_set
+            ) # update the control commands according to the predicted trajectory
             if hasattr(self, "nnde_make_decisions"):
-                nnde_control_commands, _ = self.nnde_make_decisions(ctx)
-                ITE_control_cmds = self.merge_NADE_NeuralNDE_control_commands(
-                    ITE_control_cmds, nnde_control_commands
+                nnde_control_commands, _ = self.nnde_make_decisions()
+                nade_control_commands = self.merge_NADE_NeuralNDE_control_commands(
+                    nade_control_commands, nnde_control_commands
                 )
             self.refresh_control_commands_state()
-            if "CAV" in ITE_control_cmds and CAV_control_command_cache is not None:
-                ITE_control_cmds["CAV"] = CAV_control_command_cache
-            self.execute_control_commands(ITE_control_cmds)
-            self.record_step_data(veh_ctx_dicts)
-        return should_continue_simulation_flag
-
-    def update_control_cmds_from_predicted_trajectory(
-        self, ITE_control_cmds, trajectory_dicts
-    ):
-        # only apply this function to other vehicles except CAV
-        if "CAV" not in ITE_control_cmds:
-            return super().update_control_cmds_from_predicted_trajectory(
-                ITE_control_cmds, trajectory_dicts
-            )
-        cav_command_cache = ITE_control_cmds.pop("CAV")
-        ITE_control_cmds = super().update_control_cmds_from_predicted_trajectory(
-            ITE_control_cmds, trajectory_dicts
-        )
-        ITE_control_cmds["CAV"] = cav_command_cache
-        return ITE_control_cmds
-
-    def predict_future_trajectory_dicts(self, obs_dicts, veh_ctx_dicts):
-        # only consider the vehicles that are around the CAV (within 50m range)
-
-        neighbor_veh_ids_set = set(
-            traci.vehicle.getContextSubscriptionResults("CAV").keys()
-        )
-        # add "CAV" to the neighbor_veh_ids_set
-        neighbor_veh_ids_set.add("CAV")
-
-        filtered_obs_dicts = {
-            veh_id: obs_dicts[veh_id]
-            for veh_id in obs_dicts
-            if veh_id in neighbor_veh_ids_set
-        }
-        filtered_veh_ctx_dicts = {
-            veh_id: veh_ctx_dicts[veh_id]
-            for veh_id in veh_ctx_dicts
-            if veh_id in neighbor_veh_ids_set
-        }
-        return super().predict_future_trajectory_dicts(
-            filtered_obs_dicts, filtered_veh_ctx_dicts
-        )
+            if CAV_ID in nade_control_commands[AgentType.VEHICLE] and CAV_control_command_cache is not None:
+                nade_control_commands[AgentType.VEHICLE][CAV_ID] = CAV_control_command_cache
+            self.execute_control_commands(nade_control_commands)
+            self.record_step_data(env_command_information)
 
     def calculate_total_distance(self):
+        """Calculate the total distance traveled by the CAV.
+
+        Returns:
+            float: Total distance traveled by the CAV.
+        """
         try:
-            CAV_distance = traci.vehicle.getDistance("CAV")
+            CAV_distance = traci.vehicle.getDistance(CAV_ID)
         except:
             CAV_distance = 0
-            veh_id = "CAV"
-            if veh_id not in self.distance_info.before:
-                CAV_distance += self.distance_info.after[veh_id]
+            if CAV_ID not in self.distance_info.before:
+                CAV_distance += self.distance_info.after[CAV_ID]
             else:
                 CAV_distance += (
-                    self.distance_info.after[veh_id] - self.distance_info.before[veh_id]
+                    self.distance_info.after[CAV_ID] - self.distance_info.before[CAV_ID]
                 )
         return CAV_distance
 
     def predict_cav_control_command(
-        self, control_command_dicts, veh_ctx_dicts, obs_dicts
+        self, env_observation
     ):
-        original_cav_speed = obs_dicts["CAV"]["ego"]["velocity"]
-        original_cav_acceleration = obs_dicts["CAV"]["ego"]["acceleration"]
-        new_cav_speed = traci.vehicle.getSpeedWithoutTraCI("CAV")
+        """Predict the control command for the CAV.
+
+        Args:
+            env_observation (dict): Observation from the environment.
+
+        Returns:
+            NDECommand: Predicted control command for the CAV.
+        """
+        original_cav_speed = env_observation[AgentType.VEHICLE][CAV_ID]["ego"]["velocity"]
+        original_cav_acceleration = env_observation[AgentType.VEHICLE][CAV_ID]["ego"]["acceleration"]
+        new_cav_speed = traci.vehicle.getSpeedWithoutTraCI(CAV_ID)
         new_cav_acceleration = (
             new_cav_speed - original_cav_speed
         ) / utils.get_step_size()
 
-        original_cav_angle = obs_dicts["CAV"]["ego"]["heading"]
-        cav_lane_id = traci.vehicle.getLaneID("CAV")
-        cav_lane_position = traci.vehicle.getLanePosition("CAV")
+        original_cav_angle = env_observation[AgentType.VEHICLE][CAV_ID]["ego"]["heading"]
+        cav_lane_id = traci.vehicle.getLaneID(CAV_ID)
+        cav_lane_position = traci.vehicle.getLanePosition(CAV_ID)
         cav_lane_angle = traci.lane.getAngle(
             laneID=cav_lane_id,
             relativePosition=max(
-                cav_lane_position - 0.5 * traci.vehicle.getLength("CAV"), 0
+                cav_lane_position - 0.5 * traci.vehicle.getLength(CAV_ID), 0
             ),
         )
         CAV_command = None
@@ -367,10 +333,10 @@ class NADEWithAV(NADE):
 
         if original_cav_acceleration - new_cav_acceleration > 1.5:
             # predict the cav control command as negligence
-            leader_info = traci.vehicle.getLeader("CAV")
+            leader_info = traci.vehicle.getLeader(CAV_ID)
             is_car_following_flag = False
             if leader_info is not None:
-                is_car_following_flag = is_car_following("CAV", leader_info[0])
+                is_car_following_flag = is_car_following(CAV_ID, leader_info[0])
             CAV_command = NDECommand(
                 command_type=CommandType.ACCELERATION,
                 acceleration=original_cav_acceleration,
@@ -384,54 +350,24 @@ class NADEWithAV(NADE):
 
         if CAV_command:
             _, predicted_collision_type = get_collision_type_and_prob(
-                obs_dict=obs_dicts["CAV"],
-                negligence_command=CAV_command,
+                obs_dict=env_observation[AgentType.VEHICLE][CAV_ID],
+                adversarial_command=CAV_command,
             )
             CAV_command.info.update(
                 {"predicted_collision_type": predicted_collision_type}
             )
         return CAV_command
 
-    def get_maneuver_challenge(
-        self,
-        negligence_veh_id,
-        negligence_veh_future,
-        all_normal_veh_future,
-        obs_dicts,
-        veh_ctx_dict,
-        record_in_ctx=False,
-        highlight_flag=True,
-        buffer=0,
-    ):
-        if negligence_veh_id != "CAV":
-            cav_future = (
-                {"CAV": all_normal_veh_future["CAV"]}
-                if "CAV" in all_normal_veh_future
-                else None
-            )
-            return super().get_maneuver_challenge(
-                negligence_veh_id,
-                negligence_veh_future,
-                cav_future,
-                obs_dicts,
-                veh_ctx_dict,
-                record_in_ctx,
-                highlight_flag,
-                buffer=buffer,
-            )
-        else:
-            return super().get_maneuver_challenge(
-                negligence_veh_id,
-                negligence_veh_future,
-                all_normal_veh_future,
-                obs_dicts,
-                veh_ctx_dict,
-                record_in_ctx,
-                highlight_flag,
-                buffer=buffer,
-            )
-
     def should_continue_simulation(self):
+        """Check if the simulation should continue. There are four conditions to stop the simulation:
+        1. Collision happens between two vehicles.
+        2. Collision happens between a vehicle and a VRU.
+        3. CAV leaves the simulation.
+        4. Simulation timeout.
+
+        Returns:
+            bool: True if the simulation should continue, False otherwise.
+        """
         num_colliding_vehicles = self.simulator.get_colliding_vehicle_number()
         self._vehicle_in_env_distance("after")
 
@@ -451,8 +387,29 @@ class NADEWithAV(NADE):
                 }
             )
             return False
-        elif "CAV" not in traci.vehicle.getIDList():
-            logger.info("CAV left the simulation, stop the simulation.")
+        elif num_colliding_vehicles == 1: # collision happens between a vehicle and a vru.
+            colliding_vehicles = self.simulator.get_colliding_vehicles()
+            veh_1_id = colliding_vehicles[0]
+            collision_objects = traci.simulation.getCollisions()
+            if veh_1_id == collision_objects[0].collider:
+                vru_1_id = collision_objects[0].victim
+            elif veh_1_id == collision_objects[0].victim:
+                vru_1_id = collision_objects[0].collider
+            else:
+                vru_1_id = None
+            self.record.update(
+                {
+                    "veh_1_id": veh_1_id,
+                    "veh_1_obs": self.vehicle_list[veh_1_id].observation,
+                    "vru_1_id": vru_1_id,
+                    "warmup_time": self.warmup_time,
+                    "run_time": self.run_time,
+                    "finish_reason": "collision",
+                }
+            )
+            return False
+        elif CAV_ID not in traci.vehicle.getIDList():
+            logger.info(f"{CAV_ID} left the simulation, stop the simulation.")
             self.record.update(
                 {
                     "veh_1_id": None,
@@ -477,30 +434,34 @@ class NADEWithAV(NADE):
             return False
         return True
 
-    def record_step_data(self, veh_ctx_dicts):
+    def record_step_data(self, env_command_information):
+        """Record the step data.
+
+        Args:
+            env_command_information (dict): Command information from the environment.
+        """
         step_log = Dict()
         bv_criticality_list = []
-        for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
-            maneuver_challenge = veh_ctx_dict.get("maneuver_challenge", None)
-            if maneuver_challenge and maneuver_challenge.get("negligence", None):
-                step_log[veh_id]["maneuver_challenge"] = maneuver_challenge
+        for agent_type in [AgentType.VEHICLE, AgentType.VULNERABLE_ROAD_USER]:
+            for agent_id, agent_command_info in env_command_information[agent_type].items():
+                maneuver_challenge = agent_command_info.get("maneuver_challenge", None)
+                if maneuver_challenge and maneuver_challenge.get("adversarial", None):
+                    step_log[agent_id]["maneuver_challenge"] = maneuver_challenge
 
-            keys = ["avoidable", "conflict_vehicle_list", "mode"]
-            step_log[veh_id].update(
-                {key: veh_ctx_dict[key] for key in keys if veh_ctx_dict.get(key)}
-            )
-            if step_log[veh_id].get("avoidable"):
-                step_log[veh_id].pop(
-                    "avoidable"
-                )  # remove the avoidable key if it is True
-            if veh_id != "CAV":
-                criticality = 0.0
-                if (
-                    "criticality" in veh_ctx_dict
-                    and "negligence" in veh_ctx_dict["criticality"]
-                ):
-                    criticality = veh_ctx_dict["criticality"]["negligence"]
-                bv_criticality_list.append(criticality)
+                keys = ["avoidable", "conflict_vehicle_list", "mode"]
+                step_log[agent_id].update(
+                    {key: agent_command_info[key] for key in keys if agent_command_info.get(key)}
+                )
+                if step_log[agent_id].get("avoidable"):
+                    step_log[agent_id].pop("avoidable") # remove the avoidable key if it is True
+                if agent_id != CAV_ID:
+                    criticality = 0.0
+                    if (
+                        "criticality" in agent_command_info
+                        and "adversarial" in agent_command_info["criticality"]
+                    ):
+                        criticality = agent_command_info["criticality"]["adversarial"]
+                    bv_criticality_list.append(criticality)
         # pop the empty dict
         step_log = {k: v for k, v in step_log.items() if v}
         step_log = {
@@ -512,31 +473,40 @@ class NADEWithAV(NADE):
         self.record.weight_step_info[time_step] = self.step_weight
         self.record.epsilon_step_info[time_step] = self.step_epsilon
         self.record.criticality_step_info[time_step] = sum(bv_criticality_list)
-        self.record.drl_obs[time_step] = self.collect_drl_obs(veh_ctx_dicts).tolist()
+        self.record.drl_obs[time_step] = self.collect_drl_obs(env_command_information).tolist()
         overall_avoidable = True
-        for veh_id in veh_ctx_dicts:
-            if not veh_ctx_dicts[veh_id].get("avoidable", True):
-                overall_avoidable = False
+        for agent_type in env_command_information:
+            for agent_id in env_command_information[agent_type]:
+                if not env_command_information[agent_type][agent_id].get("avoidable", True):
+                    overall_avoidable = False
         self.record.avoidable[time_step] = overall_avoidable
 
         return step_log
 
-    def collect_drl_obs(self, veh_ctx_dicts):
-        CAV_global_position = list(traci.vehicle.getPosition("CAV"))
-        CAV_speed = traci.vehicle.getSpeed("CAV")
-        CAV_heading = traci.vehicle.getAngle("CAV")
-        CAV_driving_distance = traci.vehicle.getDistance("CAV")
+    def collect_drl_obs(self, env_command_information):
+        """Collect the observation for D2RL-based adversity model.
+
+        Args:
+            env_command_information (dict): Command information from the environment.
+
+        Returns:
+            np.ndarray: Observation for D2RL-based adversity model.
+        """
+        CAV_global_position = list(traci.vehicle.getPosition(CAV_ID))
+        CAV_speed = traci.vehicle.getSpeed(CAV_ID)
+        CAV_heading = traci.vehicle.getAngle(CAV_ID)
+        CAV_driving_distance = traci.vehicle.getDistance(CAV_ID)
         # position x, position y, CAV driving distance, velocity, heading
         vehicle_info_list = []
         controlled_bv_num = 1
-        for veh_id, veh_ctx_dict in veh_ctx_dicts.items():
-            if veh_id == "CAV":
+        for veh_id, veh_command_information in env_command_information[AgentType.VEHICLE].items():
+            if veh_id == CAV_ID:
                 continue
             if (
-                "criticality" in veh_ctx_dict
-                and "negligence" in veh_ctx_dict["criticality"]
+                "criticality" in veh_command_information
+                and "negligence" in veh_command_information["criticality"]
             ):
-                criticality = veh_ctx_dict["criticality"]["negligence"]
+                criticality = veh_command_information["criticality"]["adversarial"]
                 if criticality > 0:
                     vehicle_local_position = list(traci.vehicle.getPosition(veh_id))
                     vehicle_relative_position = [

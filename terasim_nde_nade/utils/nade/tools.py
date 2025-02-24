@@ -100,7 +100,7 @@ def get_environment_criticality(env_maneuver_challenge, env_command_information)
     return env_criticality, env_command_information
 
 def update_control_cmds_from_predicted_trajectory(
-    nade_control_commands, env_future_trajectory
+    nade_control_commands, env_future_trajectory, excluded_agent_set=set()
 ):
     """Update the env_command_information with the predicted future trajectories.
     Change the command type from acceleration to trajectory if the predicted collision type is rearend.
@@ -108,12 +108,15 @@ def update_control_cmds_from_predicted_trajectory(
     Args:
         nade_control_commands (dict): NDE command distribution.
         env_future_trajectory (dict): Predicted future trajectories.
+        excluded_agent_set (set, optional): Set of excluded agents. Defaults to set().
 
     Returns:
         dict: Updated NDE command distribution.
     """
     for agent_type in nade_control_commands:
         for agent_id in nade_control_commands[agent_type]:
+            if agent_id in excluded_agent_set:
+                continue
             if (
                 nade_control_commands[agent_type][agent_id].info.get("mode")
                 == "avoid_collision"

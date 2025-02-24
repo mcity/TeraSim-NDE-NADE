@@ -19,6 +19,7 @@ from .collision import (
     get_location,
     is_head_on,
 )
+from .geometry import calclulate_distance_from_centered_agent
 from .nade import (
     get_environment_maneuver_challenge,
     add_avoid_accept_collision_command,
@@ -50,6 +51,7 @@ __all__ = [
     "get_collision_type_and_prob",
     "get_location",
     "is_head_on",
+    "calclulate_distance_from_centered_agent",
     "get_environment_maneuver_challenge",
     "add_avoid_accept_collision_command",
     "get_environment_avoidability",

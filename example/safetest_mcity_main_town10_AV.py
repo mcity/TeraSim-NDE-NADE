@@ -7,7 +7,7 @@ from omegaconf import DictConfig
 from terasim.logger.infoextractor import InfoExtractor
 from terasim.simulator import Simulator
 
-from terasim_nde_nade.envs import NADE
+from terasim_nde_nade.envs import NADEWithAV
 from terasim_nde_nade.vehicle import NDEVehicleFactory
 from terasim_nde_nade.vru import NDEVulnerableRoadUserFactory
 
@@ -42,7 +42,9 @@ for log_file, log_level in zip(log_files, log_levels):
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
-    env = NADE(
+    assert "CAV_cfg" in cfg, "CAV_cfg is not in the config file"
+    env = NADEWithAV(
+        cav_cfg = cfg.CAV_cfg,
         vehicle_factory=NDEVehicleFactory(cfg=cfg),
         vru_factory=NDEVulnerableRoadUserFactory(cfg=cfg),
         info_extractor=InfoExtractor,

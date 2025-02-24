@@ -49,6 +49,7 @@ def get_maneuver_challenge(
     record_in_ctx=False,
     highlight_flag=True,
     buffer=0,
+    centered_agent_set=set(),
 ):
     """Get the challenge for the adversarial maneuver.
 
@@ -63,17 +64,26 @@ def get_maneuver_challenge(
         record_in_ctx (bool, optional): Flag to indicate if the information should be recorded in the context. Defaults to False.
         highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to True.
         buffer (int, optional): Buffer for the collision check. Defaults to 0.
+        excluded_agent_set (set, optional): Set of excluded agent IDs. Defaults to set().
 
     Returns:
         dict: Maneuver challenge information.
     """
+    if adversarial_agent_id not in centered_agent_set:
+        filtered_normal_agent_future = {
+            agent_id: all_normal_agent_future[agent_id]
+            for agent_id in all_normal_agent_future
+            if agent_id in centered_agent_set
+        }
+    else:
+        filtered_normal_agent_future = all_normal_agent_future
     # see if the one adversarial future will intersect with other normal futures
     final_collision_flag = False
-    if adversarial_agent_future is not None and all_normal_agent_future is not None:
-        for agent_id in all_normal_agent_future:
+    if adversarial_agent_future is not None and filtered_normal_agent_future is not None:
+        for agent_id in filtered_normal_agent_future:
             if agent_id == adversarial_agent_id:
                 continue
-            if all_normal_agent_future[agent_id] is None:
+            if filtered_normal_agent_future[agent_id] is None:
                 print(
                     f"agent_id: {agent_id}, all_normal_agent_future[agent_id]: {all_normal_agent_future[agent_id]}"
                 )
@@ -96,7 +106,7 @@ def get_maneuver_challenge(
 
             collision_flag = check_trajectory_intersection(
                 adversarial_agent_future,
-                all_normal_agent_future[agent_id],
+                filtered_normal_agent_future[agent_id],
                 env_observation[adversarial_agent_type][adversarial_agent_id]["ego"][
                     "length"
                 ],
@@ -125,7 +135,7 @@ def get_maneuver_challenge(
         return {"normal": 0}
     
 @profile
-def get_environment_maneuver_challenge(env_future_trajectory, env_observation, env_command_information):
+def get_environment_maneuver_challenge(env_future_trajectory, env_observation, env_command_information, centered_agent_set=set()):
     """Get the maneuver challenge for each agent when it is in the adversarial mode while other vehicles are in the normal mode.
     Note: We only consider the challenge for the following cases:
     1. vehicle in the adversarial mode and the vehicle in the normal mode.
@@ -135,6 +145,7 @@ def get_environment_maneuver_challenge(env_future_trajectory, env_observation, e
         env_future_trajectory (dict): Future trajectory of the agents.
         env_observation (dict): Environment observation.
         env_command_information (dict): Command information of the agents.
+        centered_agent_set (set, optional): Set of centered agent IDs. Defaults to set().
 
     Returns:
         dict: Environment maneuver challenge information.
@@ -175,6 +186,7 @@ def get_environment_maneuver_challenge(env_future_trajectory, env_observation, e
                 env_observation,
                 env_command_information[AgentType.VEHICLE][veh_id],
                 record_in_ctx=True,
+                centered_agent_set=centered_agent_set,
             )
             for veh_id in env_future_trajectory[AgentType.VEHICLE]
         }
@@ -190,6 +202,7 @@ def get_environment_maneuver_challenge(env_future_trajectory, env_observation, e
                 env_observation,
                 env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id],
                 record_in_ctx=True,
+                centered_agent_set=centered_agent_set,
             )
             for vru_id in env_future_trajectory[AgentType.VULNERABLE_ROAD_USER]
         }

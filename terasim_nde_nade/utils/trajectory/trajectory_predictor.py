@@ -410,8 +410,8 @@ def predict_future_trajectory_vulnerable_road_user(
                 [
                     p[0],
                     p[1],
-                    vru_info.heading,
-                    vru_info.velocity,
+                    p[2],
+                    p[3],
                     (i + 1) * index_add * 0.1,
                 ]
             )
