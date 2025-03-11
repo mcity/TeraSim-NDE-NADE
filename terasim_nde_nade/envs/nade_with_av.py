@@ -53,6 +53,11 @@ class NADEWithAV(NADE):
         if lane_id is None:
             lane_id = edge_id + "_0"
 
+        if hasattr(self.cav_cfg, "type"):
+            cav_type = self.cav_cfg.type
+        else:
+            cav_type = "DEFAULT_VEHTYPE"
+
         self.add_vehicle(
             veh_id=CAV_ID,
             route_id=CAV_ROUTE_ID,
@@ -60,6 +65,7 @@ class NADEWithAV(NADE):
             lane_id=lane_id,
             position=position,
             speed=speed,
+            type_id=cav_type,
         )
         # set the CAV with white color
         traci.vehicle.setColor(CAV_ID, (255, 255, 255, 255))
@@ -74,9 +80,14 @@ class NADEWithAV(NADE):
     def add_cav_safe(self):
         """Add a CAV to the simulation safely.
         """
-        # add the cav_route to the SUMO simulation
-        cav_route = self.cav_cfg.route
-        traci.route.add(CAV_ROUTE_ID, cav_route)
+        # handle the route of cav: first check if there are any existing routes with the same name
+        if CAV_ROUTE_ID in traci.route.getIDList():
+            cav_route = traci.route.getEdges(CAV_ROUTE_ID)
+        else:
+            # add the cav_route to the SUMO simulation
+            assert hasattr(self.cav_cfg, "route"), "CAV route is not defined in the config file"
+            cav_route = self.cav_cfg.route
+            traci.route.add(CAV_ROUTE_ID, cav_route)
         edge_id = cav_route[0]
         lanes = traci.edge.getLaneNumber(edge_id)
         max_attempts = 10
@@ -91,6 +102,8 @@ class NADEWithAV(NADE):
             if self.is_position_safe(lane_id, position, min_safe_distance):
                 self.add_cav_unsafe(edge_id, lane_id, position)
                 logger.info(f"CAV added safely at lane {lane_id}, position {position}")
+                if self.simulator.gui_flag:
+                    traci.gui.trackVehicle("View #0", CAV_ID)
                 return
 
         logger.warning("Unable to find a safe position for CAV, using fallback method")
