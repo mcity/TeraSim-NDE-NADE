@@ -171,10 +171,7 @@ class NADEWithAV(NADE):
     @profile
     def NDE_decision(self, ctx):
         if CAV_ID in traci.vehicle.getIDList():
-            import time
-            t0 = time.time()
             cav_context_subscription_results = traci.vehicle.getContextSubscriptionResults(CAV_ID)
-            print(f"Time to get context subscription results: {time.time() - t0}")
             self.simulator.ctx = {
                 "terasim_controlled_vehicle_ids": list(cav_context_subscription_results.keys()),
             }
