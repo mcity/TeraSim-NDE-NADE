@@ -86,7 +86,7 @@ class NADE(BaseEnv):
         """  
         
         _, env_command_information = super().make_decisions(ctx)
-        env_observation = self.get_env_observation() # get the observation of the environment
+        env_observation = self.get_env_observation(ctx) # get the observation of the environment
         (
             env_command_information,
             env_observation,

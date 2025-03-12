@@ -65,22 +65,36 @@ class NDE(EnvTemplateComplete):
         self.sumo_warmup(self.warmup_time)
         return super().on_start(ctx)
 
-    def get_env_observation(self):
+    def get_env_observation(self, ctx):
         """Get the observation of the environment.
 
         Returns:
             dict: Observation of the environment.
         """
         env_observation = {
-            AgentType.VEHICLE: {
-                vehicle.id: vehicle.observation
-                for vehicle in self.vehicle_list.values()
-            },
-            AgentType.VULNERABLE_ROAD_USER: {
+            AgentType.VEHICLE: {},
+            AgentType.VULNERABLE_ROAD_USER: {},
+        }
+        if "terasim_controlled_vehicle_ids" in ctx:
+            env_observation[AgentType.VEHICLE] = {
+                veh.id: veh.observation
+                for veh in self.vehicle_list.values()
+                if veh.id in ctx["terasim_controlled_vehicle_ids"]
+            }
+        else:
+            env_observation[AgentType.VEHICLE] = {
+                veh.id: veh.observation for veh in self.vehicle_list.values()
+            }
+        if "terasim_controlled_vulnerable_road_user_ids" in ctx:
+            env_observation[AgentType.VULNERABLE_ROAD_USER] = {
                 vru.id: vru.observation
                 for vru in self.vulnerable_road_user_list.values()
-            },
-        }
+                if vru.id in ctx["terasim_controlled_vulnerable_road_user_ids"]
+            }
+        else:
+            env_observation[AgentType.VULNERABLE_ROAD_USER] = {
+                vru.id: vru.observation for vru in self.vulnerable_road_user_list.values()
+            }
         return env_observation
 
     def executeMove(self, ctx, env_command_information=None, env_observation=None):
@@ -175,7 +189,7 @@ class NDE(EnvTemplateComplete):
                 traci.simulationStep()
                 if traci.simulation.getTime() > warmup_time:
                     break
-            if traci.vehicle.getIDCount() > 500:
+            if traci.vehicle.getIDCount() > 2500:
                 logger.warning(
                     f"Too many vehicles in the simulation: {traci.vehicle.getIDCount()}, Restarting..."
                 )

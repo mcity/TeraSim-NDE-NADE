@@ -4,7 +4,7 @@ from loguru import logger
 import numpy as np
 import random
 
-from terasim.overlay import traci
+from terasim.overlay import traci, profile
 import terasim.utils as utils
 from terasim.params import AgentType
 
@@ -168,6 +168,19 @@ class NADEWithAV(NADE):
                 traci.vehicle.remove(veh)
         logger.info(f"Cleared area around position {position} on lane {lane_id}")
 
+    @profile
+    def NDE_decision(self, ctx):
+        if CAV_ID in traci.vehicle.getIDList():
+            import time
+            t0 = time.time()
+            cav_context_subscription_results = traci.vehicle.getContextSubscriptionResults(CAV_ID)
+            print(f"Time to get context subscription results: {time.time() - t0}")
+            self.simulator.ctx = {
+                "terasim_controlled_vehicle_ids": list(cav_context_subscription_results.keys()),
+            }
+        return super().NDE_decision(self.simulator.ctx)
+
+    @profile
     def NADE_decision(self, env_command_information, env_observation):
         """Make decisions using the NADE model.
 
@@ -238,6 +251,7 @@ class NADEWithAV(NADE):
             filtered_env_criticality,
         )
 
+    @profile
     def NADE_decision_and_control(self, env_command_information, env_observation):
         """Make decisions and control the agents around the CAV using the NADE model.
 
