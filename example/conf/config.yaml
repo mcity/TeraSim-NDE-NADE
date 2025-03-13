@@ -1,0 +1,119 @@
+MOBIL_lc_flag: True
+stochastic_acc_flag: False
+sumo_net_file_path: "maps/town10/town10.net.xml"
+
+adversity_cfg:
+  vehicle:
+    roundabout_cutin:
+      _target_: terasim_nde_nade.adversity.vehicles.lanechange_adversity.LanechangeAdversity
+      _convert_: 'all'
+      location: 'roundabout'
+      ego_type: 'vehicle'
+      probability: 2.3123152310029683e-05
+      predicted_collision_type: "roundabout_cutin"
+    
+    roundabout_rearend:
+      _target_: terasim_nde_nade.adversity.vehicles.leader_adversity.LeaderAdversity
+      _convert_: 'all'
+      location: 'roundabout'
+      ego_type: 'vehicle'
+      probability: 1.8383121748678325e-10
+      predicted_collision_type: "roundabout_rearend"
+
+    roundabout_fail_to_yield:
+      _target_: terasim_nde_nade.adversity.vehicles.trafficrule_adversity.TrafficRuleAdversity
+      _convert_: 'all'
+      location: 'roundabout'
+      ego_type: 'vehicle'
+      probability: 0.0005025411072000003
+      predicted_collision_type: "roundabout_fail_to_yield"
+
+    # roundabout_neglect_conflict_lead:
+    #   _target_: terasim_nde_nade.adversity.roundabout_cutin_adversity.RoundaboutCutinAdversity
+    #   _convert_: 'all'
+    #   location: 'roundabout'
+    #   ego_type: 'vehicle'
+    #   probability: 0.00027119028871789013
+
+    highway_cutin:
+      _target_: terasim_nde_nade.adversity.vehicles.lanechange_adversity.LanechangeAdversity
+      _convert_: 'all'
+      location: 'highway'
+      ego_type: 'vehicle'
+      probability: 3.1996225726187704e-05
+      predicted_collision_type: "highway_cutin"
+
+    highway_rearend:
+      _target_: terasim_nde_nade.adversity.vehicles.leader_adversity.LeaderAdversity
+      _convert_: 'all'
+      location: 'highway'
+      ego_type: 'vehicle'
+      probability: 0 # 0.8783674048511999
+      predicted_collision_type: "highway_rearend"
+
+    intersection_cutin:
+      _target_: terasim_nde_nade.adversity.vehicles.lanechange_adversity.LanechangeAdversity
+      _convert_: 'all'
+      location: 'intersection'
+      ego_type: 'vehicle'
+      probability: 6.694592721399203e-05
+      predicted_collision_type: "intersection_cutin"
+
+    intersection_rearend:
+      _target_: terasim_nde_nade.adversity.vehicles.leader_adversity.LeaderAdversity
+      _convert_: 'all'
+      location: 'intersection'
+      ego_type: 'vehicle'
+      probability: 0.00017365940078885788
+      predicted_collision_type: "intersection_rearend"
+
+    intersection_headon:
+      _target_: terasim_nde_nade.adversity.vehicles.headon_adversity.HeadonAdversity
+      _convert_: 'all'
+      location: 'intersection'
+      ego_type: 'vehicle'
+      probability: 1.0663168272664859e-08
+      predicted_collision_type: "intersection_headon"
+
+    intersection_tfl:
+      _target_: terasim_nde_nade.adversity.vehicles.trafficrule_adversity.TrafficRuleAdversity
+      _convert_: 'all'
+      location: 'intersection'
+      ego_type: 'vehicle'
+      probability: 0.010141902545438387
+      predicted_collision_type: "intersection_tfl"
+
+    # intersection_neglect_conflict_lead:
+    #   _target_: terasim_nde_nade.adversity.roundabout_cutin_adversity.RoundaboutCutinAdversity
+    #   _convert_: 'all'
+    #   location: 'roundabout'
+    #   ego_type: 'vehicle'
+    #   probability: 0.015050715723004704
+
+  vulnerable_road_user:
+    jaywalking:
+      _target_: terasim_nde_nade.adversity.vru.jaywalking_adversity.JaywalkingAdversity
+      _convert_: 'all'
+      location: 'crosswalk'
+      ego_type: 'vulnerable_road_user'
+      probability: 0.1
+      predicted_collision_type: "intersection_jaywalking"
+
+    runningredlight:
+      _target_: terasim_nde_nade.adversity.vru.runningredlight_adversity.RunningRedLightAdversity
+      _convert_: 'all'
+      location: 'crosswalk'
+      ego_type: 'vulnerable_road_user'
+      probability: 0.1
+      predicted_collision_type: "intersection_runningredlight"
+
+    stopcrossing:
+      _target_: terasim_nde_nade.adversity.vru.stopcrossing_adversity.StopCrossingAdversity
+      _convert_: 'all'
+      location: 'crosswalk'
+      ego_type: 'vulnerable_road_user'
+      probability: 0.1
+      predicted_collision_type: "intersection_stopcrossing"
+
+CAV_cfg:
+  route: ['13', '14', '35', '24', '44', '17', '5', '6'] # list of SUMO edges (example for Carla Town10)

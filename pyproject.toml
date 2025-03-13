@@ -1,0 +1,35 @@
+[build-system]
+requires = ["poetry-core>=1.0.0", "Cython>=3.0.8", "setuptools", "wheel", "numpy"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "terasim_nde_nade"
+version = "2024.05.31.1626"
+description = "TeraSim NDE NADE package"
+authors = [ "Haowei Sun <haoweis@umich.edu>",]
+license = "CC BY-NC 4.0"
+repository = "https://github.com/michigan-traffic-lab/TeraSim-NDE-ITE"
+classifiers = [ "Programming Language :: Python :: 3", "Operating System :: OS Independent",]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+black = "^23.7.0"
+isort = "^5.12.0"
+flake8 = "^6.1.0"
+mypy = "^1.5.1"
+sphinx = "^7.1.2"
+sphinx-rtd-theme = "^1.3.0"
+
+
+[tool.poetry.dependencies]
+python = "^3.10"
+Cython = "^3.0.8"
+shapely = "^2.0.3"
+toml = "^0.10.2"
+loguru = "^0.7.0"
+hydra-core = "^1.3.2"
+omegaconf = "^2.3.0"
+
+[tool.poetry.build]
+script = "build.py"

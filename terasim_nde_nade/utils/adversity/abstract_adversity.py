@@ -1,0 +1,56 @@
+import abc
+from abc import abstractmethod
+import addict
+from typing import Any, Dict
+
+
+class AbstractAdversity(abc.ABC):
+    def __new__(cls, *args: Any, **kwargs: Any):
+        instance: AbstractAdversity = super().__new__(cls)
+        instance._adversity_output = []
+        return instance
+
+    def __init__(
+        self,
+        location,
+        ego_type,
+        probability,
+        predicted_collision_type,
+    ):
+        """Initialize the AbstractAdversity class. This class is an abstract class that defines the interface for the different types of adversities that can be triggered in the simulation.
+
+        Args:
+            location (str): Location of the adversarial event.
+            ego_type (str): Type of the ego agent.
+            probability (float): Probability of the adversarial event.
+            predicted_collision_type (str): Predicted collision type.
+        """
+        self._location = location
+        self._ego_type = ego_type
+        self._probability = probability
+        self._predicted_collision_type = predicted_collision_type
+        self._adversarial_command_dict = addict.Dict()
+
+    @abstractmethod
+    def trigger(self, obs_dict: Dict) -> bool:
+        """Determine when to trigger the adversarial event.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            bool: Flag to indicate if the adversarial event should be triggered.
+        """
+        pass
+
+    @abstractmethod
+    def derive_command(self, obs_dict: Dict) -> addict.Dict:
+        """Derive the adversarial command based on the observation.
+
+        Args:
+            obs_dict (dict): Observation of the ego agent.
+
+        Returns:
+            addict.Dict: Adversarial command.
+        """
+        pass
