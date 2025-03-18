@@ -30,6 +30,7 @@ class NADEWithAV(NADE):
         self.cache_radius = cache_radius
         self.control_radius = control_radius
         self.excluded_agent_set = set([CAV_ID])
+        self.insert_bv = False
 
     def on_start(self, ctx):
         """Initialize the surrogate model and add AV to env.
@@ -168,6 +169,31 @@ class NADEWithAV(NADE):
                 traci.vehicle.remove(veh)
         logger.info(f"Cleared area around position {position} on lane {lane_id}")
 
+    def preparation(self):
+        """Prepare for the NADE step."""
+        super().preparation()
+        # if not self.insert_bv and traci.vehicle.getRoadID("CAV") == "379459612#1-AddedOnRampEdge":
+        #     traci.vehicle.add(
+        #         "BV",
+        #         "test_merge",
+        #         typeID="veh_passenger",
+        #         departSpeed="max",
+        #         departLane="2",
+        #     )
+        #     self.insert_bv = True
+
+        # if not self.insert_bv and traci.vehicle.getRoadID("CAV") == "424040132#2" and traci.vehicle.getLanePosition("CAV") > 200:
+        #     traci.vehicle.add(
+        #         "BV",
+        #         "test_merge2",
+        #         typeID="veh_passenger",
+        #         departSpeed=traci.vehicle.getSpeed("CAV"),
+        #         departLane="0",
+        #         arrivalLane="1",
+        #         departPos="1150",
+        #     )
+        #     self.insert_bv = True
+
     @profile
     def NDE_decision(self, ctx):
         if CAV_ID in traci.vehicle.getIDList():
@@ -194,8 +220,9 @@ class NADEWithAV(NADE):
         if predicted_CAV_control_command is not None:
             env_command_information[AgentType.VEHICLE][CAV_ID]["ndd_command_distribution"] = Dict(
                 {
-                    "adversarial": predicted_CAV_control_command,
-                    "normal": NDECommand(command_type=CommandType.DEFAULT, prob=0),
+                    # "adversarial": predicted_CAV_control_command,
+                    # "normal": NDECommand(command_type=CommandType.DEFAULT, prob=0),
+                    "normal": predicted_CAV_control_command,
                 }
             )
         else:
@@ -335,42 +362,77 @@ class NADEWithAV(NADE):
             ),
         )
         CAV_command = None
-        # use the difference between the lane change angle adn the original cav angle to predict the control command (LEFT turn or RIGHT turn)
-        # the angle is defined as SUmo's angle, the north is 0, the east is 90, the south is 180, the west is 270
-        # the angle is in degree
-        angle_diff = (cav_lane_angle - original_cav_angle + 180) % 360 - 180
 
-        if angle_diff > 10:
-            CAV_command = NDECommand(
-                command_type=CommandType.LEFT,
-                prob=1,
-                duration=1.0,
-                info={"negligence_mode": "LeftFoll"},
-            )
-        elif angle_diff < -10:
-            CAV_command = NDECommand(
-                command_type=CommandType.RIGHT,
-                prob=1,
-                duration=1.0,
-                info={"negligence_mode": "RightFoll"},
-            )
+        # step 1. use CAV signal to predict the control command
+        cav_signal = traci.vehicle.getSignals(CAV_ID)
+        if cav_signal == 1: # right turn signal, please consider the drive rule: lefthand or righthand
+            if self.drive_rule == "righthand":
+                CAV_command = NDECommand(
+                    command_type=CommandType.RIGHT,
+                    prob=1,
+                    duration=1.0,
+                    info={"negligence_mode": "RightFoll"},
+                )
+            else:
+                CAV_command = NDECommand(
+                    command_type=CommandType.LEFT,
+                    prob=1,
+                    duration=1.0,
+                    info={"negligence_mode": "LeftFoll"},
+                )
+        elif cav_signal == 2: # left turn signal, please consider the drive rule: lefthand or righthand
+            if self.drive_rule == "righthand":
+                CAV_command = NDECommand(
+                    command_type=CommandType.LEFT,
+                    prob=1,
+                    duration=1.0,
+                    info={"negligence_mode": "LeftFoll"},
+                )
+            else:
+                CAV_command = NDECommand(
+                    command_type=CommandType.RIGHT,
+                    prob=1,
+                    duration=1.0,
+                    info={"negligence_mode": "RightFoll"},
+                )
 
-        if original_cav_acceleration - new_cav_acceleration > 1.5:
-            # predict the cav control command as negligence
-            leader_info = traci.vehicle.getLeader(CAV_ID)
-            is_car_following_flag = False
-            if leader_info is not None:
-                is_car_following_flag = is_car_following(CAV_ID, leader_info[0])
-            CAV_command = NDECommand(
-                command_type=CommandType.ACCELERATION,
-                acceleration=original_cav_acceleration,
-                prob=1,
-                duration=1.0,
-                info={
-                    "negligence_mode": "Lead",
-                    "is_car_following_flag": is_car_following_flag,
-                },
-            )
+        elif cav_signal == 0: # no signal
+            # step 2. use the difference between the lane change angle adn the original cav angle to predict the control command (LEFT turn or RIGHT turn)
+            # the angle is defined as SUmo's angle, the north is 0, the east is 90, the south is 180, the west is 270
+            # the angle is in degree
+            angle_diff = (cav_lane_angle - original_cav_angle + 180) % 360 - 180
+
+            if angle_diff > 10:
+                CAV_command = NDECommand(
+                    command_type=CommandType.LEFT,
+                    prob=1,
+                    duration=1.0,
+                    info={"negligence_mode": "LeftFoll"},
+                )
+            elif angle_diff < -10:
+                CAV_command = NDECommand(
+                    command_type=CommandType.RIGHT,
+                    prob=1,
+                    duration=1.0,
+                    info={"negligence_mode": "RightFoll"},
+                )
+
+            if original_cav_acceleration - new_cav_acceleration > 1.5:
+                # predict the cav control command as negligence
+                leader_info = traci.vehicle.getLeader(CAV_ID)
+                is_car_following_flag = False
+                if leader_info is not None:
+                    is_car_following_flag = is_car_following(CAV_ID, leader_info[0])
+                CAV_command = NDECommand(
+                    command_type=CommandType.ACCELERATION,
+                    acceleration=original_cav_acceleration,
+                    prob=1,
+                    duration=1.0,
+                    info={
+                        "negligence_mode": "Lead",
+                        "is_car_following_flag": is_car_following_flag,
+                    },
+                )
 
         if CAV_command:
             _, predicted_collision_type = get_collision_type_and_prob(

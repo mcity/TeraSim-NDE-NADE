@@ -53,8 +53,8 @@ def check_collision(np.ndarray[double, ndim=2] traj1,
         traj_point1 = traj1[i]
         traj_point2 = traj2[i]
         
-        center_list_1 = get_circle_centers(traj_point1, agent1_length, agent1_type)
-        center_list_2 = get_circle_centers(traj_point2, agent2_length, agent2_type)
+        center_list_1 = get_circle_centers(traj_point1, agent1_length, agent1_width, agent1_type)
+        center_list_2 = get_circle_centers(traj_point2, agent2_length, agent2_width, agent2_type)
         
         for j in range(center_list_1.shape[0]):
             for k in range(center_list_2.shape[0]):
@@ -108,7 +108,11 @@ def check_trajectory_intersection(np.ndarray[double, ndim=2] trajectory1,
     if collision_detected:
         return True
 
-    # Check for path intersection
-    line1 = LineString(trajectory1[:, :2])
-    line2 = LineString(trajectory2[:, :2])
-    return line1.intersects(line2) 
+    # Check for path intersection section by section    
+    cdef int i
+    for i in range(1, trajectory1.shape[0]):
+        line1 = LineString(trajectory1[i-1:i+1, :2])
+        line2 = LineString(trajectory2[i-1:i+1, :2])
+        if line1.intersects(line2):
+            return True
+    return False

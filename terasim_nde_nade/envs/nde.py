@@ -21,6 +21,7 @@ class NDE(EnvTemplateComplete):
         run_time=300,
         log_flag=False,
         log_dir=None,
+        drive_rule="righthand",
         *args,
         **kwargs,
     ):
@@ -35,6 +36,7 @@ class NDE(EnvTemplateComplete):
             run_time (int, optional): Running time. Defaults to 300.
             log_flag (bool, optional): Log flag. Defaults to False.
             log_dir (str, optional): Log directory. Defaults to None.
+            drive_rule (str, optional): Drive rule. Defaults to "righthand".
         """
         rng = np.random.default_rng()
         self.warmup_time = int(rng.integers(low=warmup_time_lb, high=warmup_time_ub))
@@ -51,6 +53,7 @@ class NDE(EnvTemplateComplete):
         self.step_epsilon = 1.0
         self.step_weight = 1.0
         self.excluded_agent_set = set()
+        self.drive_rule = drive_rule
         super().__init__(vehicle_factory, vru_factory, info_extractor, *args, **kwargs)
 
     def on_start(self, ctx):

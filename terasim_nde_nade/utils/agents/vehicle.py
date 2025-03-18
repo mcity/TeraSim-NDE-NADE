@@ -155,25 +155,30 @@ def get_vehicle_info(veh_id: str, obs_dict: dict, sumo_net) -> VehicleInfoForPre
     return veh_info
 
 
-def is_car_following(follow_id: str, leader_id: str) -> bool:
+def is_car_following(follow_id: str, leader_id: str, angle_difference_threshold: float = 5.0) -> bool:
     """Check if one vehicle is following another vehicle.
     
     Args:
         follow_id (str): Following vehicle ID.
         leader_id (str): Leading vehicle ID.
+        angle_difference_threshold (float, optional): Angle difference threshold for lane change detection. Defaults to 5.0.
 
     Returns:
         bool: True if the follow_id is following the leader_id, False otherwise.
     """
-    current_edge_id = traci.vehicle.getLaneID(follow_id)
-    leader_edge_id = traci.vehicle.getLaneID(leader_id)
+    current_lane_id = traci.vehicle.getLaneID(follow_id)
+    current_edge_id = traci.vehicle.getRoadID(follow_id)
+    leader_lane_id = traci.vehicle.getLaneID(leader_id)
+    leader_edge_id = traci.vehicle.getRoadID(leader_id)
     current_angle = traci.vehicle.getAngle(follow_id)
     leader_angle = traci.vehicle.getAngle(leader_id)
 
     # Check if vehicles are on the same link
-    if current_edge_id == leader_edge_id:
+    if current_lane_id == leader_lane_id:
         return True
-    elif abs((current_angle - leader_angle + 180) % 360 - 180) <= 5:
+    elif current_edge_id == leader_edge_id:
+        return False
+    elif abs((current_angle - leader_angle + 180) % 360 - 180) <= angle_difference_threshold:
         return True
 
     # Check future links
@@ -185,8 +190,8 @@ def is_car_following(follow_id: str, leader_id: str) -> bool:
     follower_future_junction_lane_id = follower_future_link_infos[0][4]
 
     if (
-        leader_edge_id in follower_future_lane_id
-        or leader_edge_id in follower_future_junction_lane_id
+        leader_lane_id in follower_future_lane_id
+        or leader_lane_id in follower_future_junction_lane_id
     ):
         return True
 
@@ -214,3 +219,26 @@ def is_car_following(follow_id: str, leader_id: str) -> bool:
         return True
 
     return False
+
+def is_lane_changing(veh_id, obs_dict, angle_threshold=5):
+    """Check if a vehicle is lane changing.
+
+    Args:
+        veh_id (str): Vehicle ID.
+        obs_dict (dict): Observation dictionary.
+        angle_threshold (int, optional): Angle threshold for lane change detection. Defaults to 5.
+    
+    Returns:
+        bool: True if the vehicle is lane changing, False otherwise.
+    """
+    original_angle = obs_dict["ego"]["heading"]
+    lane_id = obs_dict["ego"]["lane_id"]
+    lane_position = traci.vehicle.getLanePosition(veh_id)
+    lane_angle = traci.lane.getAngle(
+        laneID=lane_id,
+        relativePosition=max(
+            lane_position - 0.5 * traci.vehicle.getLength(veh_id), 0
+        ),
+    )
+    angle_diff = (lane_angle - original_angle + 180) % 360 - 180
+    return abs(angle_diff) >= angle_threshold

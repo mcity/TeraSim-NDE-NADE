@@ -3,12 +3,16 @@ from .adversity import (
     AbstractAdversity,
     build_adversities,
     AdversityManager,
+    derive_follower_adversarial_command,
     derive_lane_change_adversarial_command,
     derive_leader_adversarial_command,
+    derive_merge_adversarial_command_speeding,
+    derive_merge_adversarial_command_lanechange,
     derive_traffic_rule_adversarial_command,
 )
 from .agents import (
     is_car_following,
+    is_lane_changing,
 )
 from .base import (
     CommandType,
@@ -42,10 +46,14 @@ __all__ = [
     "AbstractAdversity",
     "build_adversities",
     "AdversityManager",
+    "derive_follower_adversarial_command",
     "derive_lane_change_adversarial_command",
     "derive_leader_adversarial_command",
+    "derive_merge_adversarial_command_speeding",
+    "derive_merge_adversarial_command_lanechange",
     "derive_traffic_rule_adversarial_command",
     "is_car_following",
+    "is_lane_changing",
     "CommandType",
     "NDECommand",
     "get_collision_type_and_prob",

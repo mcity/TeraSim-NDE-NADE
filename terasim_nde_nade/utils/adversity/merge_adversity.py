@@ -1,0 +1,139 @@
+import addict
+
+from terasim.overlay import traci
+
+from .obs_processing import get_cf_acceleration, get_ff_acceleration
+
+from ..agents import is_car_following
+from ..base import CommandType, NDECommand
+
+
+def derive_merge_adversarial_command_speeding(
+    obs_dict, highlight_flag=False, highlight_color=[0, 255, 0, 255]
+) -> addict.Dict:
+    """Derive the adversarial command for potential merging vehicle based on the observation.
+
+    Args:
+        obs_dict (dict): Observation of the ego agent.
+        highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to False.
+        highlight_color (list, optional): Color to highlight the vehicle. Defaults to [0, 255, 0, 255].
+
+    Returns:
+        addict.Dict: Adversarial command.
+    """
+    adversarial_command_dict = addict.Dict()
+
+    leader_info = traci.vehicle.getLeader(obs_dict["ego"]["veh_id"], 40)
+    safe_acceleration = get_ff_acceleration(obs_dict)
+
+    right_leaders = traci.vehicle.getRightLeaders(obs_dict["ego"]["veh_id"])
+
+    is_car_following_flag = False
+    if leader_info is not None: # there is a leading vehicle, not neglect it
+        leader_velocity = traci.vehicle.getSpeed(leader_info[0])
+        # if the vehicle and the leading vehicle are both stopped, disable adversarial
+        if (
+            obs_dict["ego"]["velocity"] < 0.5
+            and leader_velocity < 0.5
+        ):
+            return adversarial_command_dict
+        
+        # if the vehicle is car following, update the safe acceleration to be the car following acceleration
+        is_car_following_flag = is_car_following(
+            obs_dict["ego"]["veh_id"], leader_info[0]
+        )
+        if is_car_following_flag:
+            safe_acceleration = get_cf_acceleration(obs_dict, leader_info)
+    
+    # compare the safe acceleration with the cooperative acceleration considering the left leaders (merging vehicles)
+    cooperative_acceleration = safe_acceleration
+    right_leader_info = None
+    if len(right_leaders) > 0:
+        for right_leader in right_leaders:
+            # SUMO sometimes regards the vehicle in front of the ego vehicle as the left leader
+            is_car_following_flag_right_leader = is_car_following(
+                obs_dict["ego"]["veh_id"], right_leader[0], angle_difference_threshold=0.0
+            )
+            if is_car_following_flag_right_leader:
+                is_car_following_flag = True
+                tmp_safe_acceleration = get_cf_acceleration(obs_dict, right_leader)
+                if tmp_safe_acceleration < safe_acceleration:
+                    safe_acceleration = tmp_safe_acceleration
+                    leader_info = right_leader
+            else:
+                tmp_cooperative_acceleration = get_cf_acceleration(obs_dict, right_leader)
+                if tmp_cooperative_acceleration < cooperative_acceleration:
+                    cooperative_acceleration = tmp_cooperative_acceleration
+                    right_leader_info = right_leader
+
+    # if the safe following acceleration is significantly larger than the cooperative accelerations considering the merging vehicles
+    if safe_acceleration - cooperative_acceleration > 1.5:
+        adversarial_command = NDECommand(
+            command_type=CommandType.ACCELERATION,
+            duration=2.0,
+            acceleration=safe_acceleration,
+        )
+        adversarial_command.info.update(
+            {
+                "is_car_following_flag": is_car_following_flag,
+                "leader_info": leader_info,
+                "safe_acceleration": safe_acceleration,
+                "cooperative_acceleration": cooperative_acceleration,
+                "right_leader_info": right_leader_info,
+                "current_acceleration": obs_dict["ego"]["acceleration"],
+                "mode": "adversarial",
+                "adversarial_mode": "MergeSpeedUp",
+            }
+        )
+        adversarial_command_dict.update(addict.Dict({"MergeSpeedUp": adversarial_command}))
+        if highlight_flag:
+            traci.vehicle.setColor(
+                obs_dict["ego"]["veh_id"], highlight_color
+            )  # highlight the vehicle with red
+
+    return adversarial_command_dict
+
+
+def derive_merge_adversarial_command_lanechange(
+    obs_dict, highlight_flag=False, highlight_color=[0, 255, 0, 255]
+) -> addict.Dict:
+    """Derive the adversarial command for potential merging vehicle based on the observation.
+
+    Args:
+        obs_dict (dict): Observation of the ego agent.
+        highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to False.
+        highlight_color (list, optional): Color to highlight the vehicle. Defaults to [0, 255, 0, 255].
+
+    Returns:
+        addict.Dict: Adversarial command.
+    """
+    adversarial_command_dict = addict.Dict()
+
+    target_lane_id = obs_dict["ego"]["edge_id"]+"_1" # the target lane is the right lane
+    right_leaders = traci.vehicle.getRightLeaders(obs_dict["ego"]["veh_id"])
+    right_followers = traci.vehicle.getRightFollowers(obs_dict["ego"]["veh_id"])
+    
+    safe_flag = True
+    for right_leader in right_leaders:
+        right_leader_lane_id = traci.vehicle.getLaneID(right_leader[0])
+        if right_leader_lane_id == target_lane_id and right_leader[1] <= 20:
+            safe_flag = False
+            break
+    for right_follower in right_followers:
+        right_follower_lane_id = traci.vehicle.getLaneID(right_follower[0])
+        if right_follower_lane_id == target_lane_id and right_follower[1] <= 20:
+            safe_flag = False
+            break
+
+    if safe_flag:
+        adversarial_command_dict["MergeLaneChange"] = NDECommand(
+            command_type=CommandType.RIGHT, duration=1.0
+        )
+        adversarial_command_dict["MergeLaneChange"].info.update(
+            {"mode": "adversarial", "adversarial_mode": "MergeLaneChange"}
+        )
+        if highlight_flag:
+            traci.vehicle.setColor(
+                obs_dict["ego"]["veh_id"], highlight_color
+            )  # highlight the vehicle with green
+    return adversarial_command_dict

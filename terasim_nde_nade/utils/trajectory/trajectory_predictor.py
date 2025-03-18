@@ -315,6 +315,22 @@ def predict_future_trajectory_vehicle(
             lateral_offset,
             veh_info["upcoming_lane_id_list"],
         )
+        original_x, original_y = trajectory_array[0], trajectory_array[1]
+        dx = (lanechange_finish_position[0] - original_x)/lanechange_finish_timestep
+        dy = (lanechange_finish_position[1] - original_y)/lanechange_finish_timestep
+        for i in range(1, lanechange_finish_timestep):
+            middle_trajectory_point = np.array(
+                [
+                    original_x + i*dx,
+                    original_y + i*dy,
+                    lanechange_finish_final_heading,
+                    future_velocity_array[i],
+                    duration_array[i],
+                ]
+            )
+            trajectory_array = np.vstack(
+                (trajectory_array,middle_trajectory_point)
+            )
         lanechange_finish_trajectory_point = np.array(
             [
                 lanechange_finish_position[0],
@@ -364,7 +380,7 @@ def predict_future_trajectory_vehicle(
         )
 
     future_trajectory_array = trajectory_array
-    future_trajectory_array[:, -1] += current_time
+    future_trajectory_array[:, -1] += current_time        
     return future_trajectory_array, info
 
 
