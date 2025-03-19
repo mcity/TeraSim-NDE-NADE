@@ -9,13 +9,13 @@ from ...utils import (
 
 class FollowerAdversity(AbstractAdversity):
     def trigger(self, obs_dict) -> bool:
-        """Determine when to trigger the LeaderAdversity module.
+        """Determine when to trigger the FollowerAdversity module.
 
         Args:
             obs_dict (dict): Observation of the ego agent.
 
         Returns:
-            bool: Flag to indicate if the LeaderAdversity module should be triggered.
+            bool: Flag to indicate if the FollowerAdversity module should be triggered.
         """
         self._adversarial_command_dict = addict.Dict()
         vehicle_location = get_location(

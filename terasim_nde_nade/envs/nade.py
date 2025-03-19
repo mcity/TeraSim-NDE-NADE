@@ -1,7 +1,6 @@
 from addict import Dict
 import json
 from loguru import logger
-import math
 import numpy as np
 import os
 
@@ -23,14 +22,11 @@ from ..utils import (
     modify_nde_cmd_veh_using_avoidability,
     predict_environment_future_trajectory, 
     remove_collision_avoidance_command_using_avoidability,
+    StaticAdversityManager,
     update_control_cmds_from_predicted_trajectory,
     update_nde_cmd_to_vehicle_cmd_info,
 )
 
-veh_length = 5.0
-veh_width = 1.85
-circle_r = 1.3
-tem_len = math.sqrt(circle_r**2 - (veh_width / 2) ** 2)
 IS_MAGNITUDE_DEFAULT = 20
 IS_MAGNITUDE_MULTIPLIER = 40
 IS_MAGNITUDE_MAPPING = {
@@ -59,6 +55,12 @@ class NADE(BaseEnv):
             3e-4  # the factor to reduce the probability of the anavoidable collision
         )
         self.log = Dict()
+        # initialize the static adversities
+        if "adversity_cfg" in self.configuration and "static" in self.configuration.adversity_cfg:
+            self.static_adversities = StaticAdversityManager(self.configuration.adversity_cfg.static)
+            self.static_adversities.execute()
+        else:
+            self.static_adversities = None
         on_start_result = super().on_start(ctx)
         self.distance_info = Dict({"before": self.update_distance(), "after": Dict()})
         self.allow_NADE_IS = True

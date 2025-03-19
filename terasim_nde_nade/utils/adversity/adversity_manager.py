@@ -2,7 +2,7 @@ from addict import Dict
 import random
 
 
-from .adversity_builder import build_adversities
+from .adversity_builder import build_adversities, build_static_adversities
 
 from ..base import (
     CommandType, 
@@ -66,3 +66,30 @@ class AdversityManager:
         )[0]
 
         return command, command_dict
+    
+
+class StaticAdversityManager:
+    def __init__(self, config):
+        """Initialize the StaticAdversityManager module.
+
+        Args:
+            config (dict): Configuration of the adversities.
+        """
+        self.config = config
+        self.adversities = []
+        if self.config is not None:
+            self.adversities = build_static_adversities(self.config)
+
+    def execute(self):
+        """Trigger and excute the adversarial events.
+        """
+        if len(self.adversities) == 0:
+            return
+        elif len(self.adversities) == 1:
+            self.adversities[0].execute()
+        else:
+            # randomly select one adversarial event to excute
+            selected_adversity = random.choice(self.adversities)
+            selected_adversity.execute()
+        return
+        

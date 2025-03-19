@@ -9,7 +9,7 @@ from ..base import CommandType, NDECommand
 def derive_follower_adversarial_command(
     obs_dict, highlight_flag=False, highlight_color=[255, 0, 0, 255]
 ) -> addict.Dict:
-    """Derive the adversarial leader negligence command based on the observation.
+    """Derive the adversarial follower negligence command based on the observation.
 
     Args:
         obs_dict (dict): Observation of the ego agent.
@@ -25,10 +25,10 @@ def derive_follower_adversarial_command(
     # get adversarial command candidates
     adversarial_command_dict = addict.Dict()
 
-    if follower_info is not None and follower_info[0] != "":  # there is a leading vehicle, add lead neglgience type
+    if follower_info is not None and follower_info[0] != "":  # there is a following vehicle, add follower neglgience type
         if follower_info[1] > 40:
             return adversarial_command_dict
-        # if the vehicle and the leading vehicle are both stopped, disable adversarial
+        # if the vehicle and the following vehicle are both stopped, disable adversarial
         if (
             obs_dict["ego"]["velocity"] < 0.5
             and traci.vehicle.getSpeed(follower_info[0]) < 0.5

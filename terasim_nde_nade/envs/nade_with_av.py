@@ -198,8 +198,14 @@ class NADEWithAV(NADE):
     def NDE_decision(self, ctx):
         if CAV_ID in traci.vehicle.getIDList():
             cav_context_subscription_results = traci.vehicle.getContextSubscriptionResults(CAV_ID)
+            tmp_terasim_controlled_vehicle_ids = list(cav_context_subscription_results.keys())
+            # also exclude the static adversarial vehicles
+            for adversity in self.static_adversities.adversities:
+                for object_id in adversity._static_adversarial_object_id_list:
+                    if object_id in tmp_terasim_controlled_vehicle_ids:
+                        tmp_terasim_controlled_vehicle_ids.remove(object_id)
             self.simulator.ctx = {
-                "terasim_controlled_vehicle_ids": list(cav_context_subscription_results.keys()),
+                "terasim_controlled_vehicle_ids": tmp_terasim_controlled_vehicle_ids,
             }
         return super().NDE_decision(self.simulator.ctx)
 
@@ -366,7 +372,7 @@ class NADEWithAV(NADE):
         # step 1. use CAV signal to predict the control command
         cav_signal = traci.vehicle.getSignals(CAV_ID)
         if cav_signal == 1: # right turn signal, please consider the drive rule: lefthand or righthand
-            if self.drive_rule == "righthand":
+            if self.configuration.drive_rule == "righthand":
                 CAV_command = NDECommand(
                     command_type=CommandType.RIGHT,
                     prob=1,
@@ -381,7 +387,7 @@ class NADEWithAV(NADE):
                     info={"negligence_mode": "LeftFoll"},
                 )
         elif cav_signal == 2: # left turn signal, please consider the drive rule: lefthand or righthand
-            if self.drive_rule == "righthand":
+            if self.configuration.drive_rule == "righthand":
                 CAV_command = NDECommand(
                     command_type=CommandType.LEFT,
                     prob=1,

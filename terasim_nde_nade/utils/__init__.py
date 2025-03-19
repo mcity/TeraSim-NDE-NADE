@@ -1,8 +1,11 @@
 """TeraSim NDE/NADE utilities package."""
 from .adversity import (
     AbstractAdversity,
+    AbstractStaticAdversity,
     build_adversities,
+    build_static_adversities,
     AdversityManager,
+    StaticAdversityManager,
     derive_follower_adversarial_command,
     derive_lane_change_adversarial_command,
     derive_leader_adversarial_command,
@@ -44,8 +47,11 @@ from .trajectory import (
 
 __all__ = [
     "AbstractAdversity",
+    "AbstractStaticAdversity",
     "build_adversities",
+    "build_static_adversities",
     "AdversityManager",
+    "StaticAdversityManager",
     "derive_follower_adversarial_command",
     "derive_lane_change_adversarial_command",
     "derive_leader_adversarial_command",

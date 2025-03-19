@@ -1,3 +1,8 @@
+from .static import (
+    CollisionAdversity,
+    ConstructionAdversity,
+    StalledObjectAdversity,
+)
 from .vehicles import (
     HeadonAdversity,
     LanechangeAdversity,
@@ -11,6 +16,9 @@ from .vru import (
 )
 
 __all__ = [
+    "CollisionAdversity",
+    "ConstructionAdversity",
+    "StalledObjectAdversity",
     "HeadonAdversity",
     "LanechangeAdversity",
     "LeaderAdversity",

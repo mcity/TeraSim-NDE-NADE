@@ -54,3 +54,46 @@ class AbstractAdversity(abc.ABC):
             addict.Dict: Adversarial command.
         """
         pass
+
+
+class AbstractStaticAdversity(abc.ABC):
+    def __new__(cls, *args: Any, **kwargs: Any):
+        instance: AbstractStaticAdversity = super().__new__(cls)
+        instance._adversity_output = []
+        return instance
+
+    def __init__(
+        self,
+        lane_id,
+        lane_position=-1,
+        object_type="",
+        other_settings=None
+    ):
+        """Initialize the AbstractStaticAdversity class. This class is an abstract class that defines the interface for the different types of adversities that can be triggered in the simulation.
+
+        Args:
+            lane_id (str): Lane ID of the adversarial event.
+            lane_position (int): Lane position of the adversarial event. Default is -1.
+            object_type (str): Type of the object. Default is an empty string.
+            other_settings (dict): Other settings for the adversarial event. Default is None.
+        """
+        self._lane_id = lane_id
+        self._lane_position = lane_position
+        self._object_type = object_type
+        self._static_adversarial_object_id_list = []
+        self._other_settings = other_settings
+
+    @abstractmethod
+    def is_effective(self) -> bool:
+        """Check if the adversarial event is effective.
+
+        Returns:
+            bool: Flag to indicate if the adversarial event is effective.
+        """
+        pass
+
+    @abstractmethod
+    def execute(self):
+        """Excute the adversarial event.
+        """
+        pass
