@@ -76,20 +76,23 @@ class StaticAdversityManager:
             config (dict): Configuration of the adversities.
         """
         self.config = config
-        self.adversities = []
+        self.adversity = None
         if self.config is not None:
-            self.adversities = build_static_adversities(self.config)
+            adversities = build_static_adversities(self.config)
+            if len(adversities) > 0:
+                self.adversity = random.choice(adversities)
 
-    def execute(self):
-        """Trigger and excute the adversarial events.
+    def initialize(self):
+        """Initialize the adversarial events.
         """
-        if len(self.adversities) == 0:
-            return
-        elif len(self.adversities) == 1:
-            self.adversities[0].execute()
-        else:
-            # randomly select one adversarial event to excute
-            selected_adversity = random.choice(self.adversities)
-            selected_adversity.execute()
+        if self.adversity is not None:
+            self.adversity.initialize()
+        return
+    
+    def update(self):
+        """Update the adversarial events.
+        """
+        if self.adversity is not None:
+            self.adversity.update()
         return
         

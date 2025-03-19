@@ -36,8 +36,8 @@ class StalledObjectAdversity(AbstractStaticAdversity):
                 self._object_type = "DEFAULT_VEHTYPE"
         return True
     
-    def execute(self):
-        """Execute the adversarial event.
+    def initialize(self):
+        """Initialize the adversarial event.
         """
         assert self.is_effective(), "Adversarial event is not effective."
         stalled_object_id = f"BV_{self._object_type}_stalled_object"
@@ -50,7 +50,9 @@ class StalledObjectAdversity(AbstractStaticAdversity):
             routeID=stalled_object_route_id,
             typeID=self._object_type,
         )
+        traci.vehicle.setSpeedMode(stalled_object_id, 0)
+        traci.vehicle.setLaneChangeMode(stalled_object_id, 0)        
         traci.vehicle.moveTo(stalled_object_id, self._lane_id, self._lane_position)
         traci.vehicle.setSpeed(stalled_object_id, 0)
-        traci.vehicle.setSpeedMode(stalled_object_id, 0)
-        traci.vehicle.setLaneChangeMode(stalled_object_id, 0)
+
+    

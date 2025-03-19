@@ -22,8 +22,8 @@ class ConstructionAdversity(AbstractStaticAdversity):
             return False
         return True
     
-    def execute(self):
-        """Execute the adversarial event.
+    def initialize(self):
+        """Initialize the adversarial event.
         """
         assert self.is_effective(), "Adversarial event is not effective."
         traci.lane.setDisallowed(self._lane_id, ["all"])

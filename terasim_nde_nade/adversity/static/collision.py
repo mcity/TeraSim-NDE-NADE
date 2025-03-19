@@ -1,4 +1,5 @@
 from loguru import logger
+import math
 import random
 
 from terasim.overlay import traci
@@ -48,15 +49,17 @@ class CollisionAdversity(AbstractStaticAdversity):
             return False
         return True
     
-    def execute(self):
-        """Execute the adversarial event.
+    def initialize(self):
+        """Initialize the adversarial event.
         """
         assert self.is_effective(), "Adversarial event is not effective."
         object1_id = f"BV_1_{self._object_type[0]}_collision"
         object2_id = f"BV_2_{self._object_type[1]}_collision"
         self._static_adversarial_object_id_list.append(object1_id)
         self._static_adversarial_object_id_list.append(object2_id)
+
         edge_id = traci.lane.getEdgeID(self._lane_id)
+        object1_lane_index = int(self._lane_id.split("_")[-1])
         collision_object_route_id = f"r_stalled_object"
         traci.route.add(collision_object_route_id, [edge_id])
         traci.vehicle.add(
@@ -64,48 +67,118 @@ class CollisionAdversity(AbstractStaticAdversity):
             routeID=collision_object_route_id,
             typeID=self._object_type[0],
         )
-
-        traci.vehicle.moveTo(object1_id, self._lane_id, self._lane_position)
-        traci.vehicle.setSpeed(object1_id, 0)
         traci.vehicle.setSpeedMode(object1_id, 0)
         traci.vehicle.setLaneChangeMode(object1_id, 0)
+        traci.vehicle.moveTo(object1_id, self._lane_id, self._lane_position)
+        traci.vehicle.setSpeed(object1_id, 0)
+
         traci.vehicle.add(
             object2_id,
             routeID=collision_object_route_id,
             typeID=self._object_type[1],
         )
+        traci.vehicle.setSpeedMode(object2_id, 0)
+        traci.vehicle.setLaneChangeMode(object2_id, 0)
         if "collision_type" in self._other_settings:
             collision_type = self._other_settings["collision_type"]
         else:
             collision_type = "rear_end"
         if collision_type == "rear_end":
             object1_length = traci.vehicletype.getLength(self._object_type[0])
+            object1_position = traci.vehicle.getPosition(object1_id)
+            object1_angle = traci.vehicle.getAngle(object1_id)
             traci.vehicle.moveTo(object2_id, self._lane_id, self._lane_position - object1_length)
-        elif collision_type == "side_swipe":
-            lane_index = int(self._lane_id.split("_")[-1])
-            if lane_index == 0:
-                angle_diff = -20.0
-            elif lane_index == traci.edge.getLaneNumber(edge_id) - 1:
-                angle_diff = 20.0
-            else:
-                angle_diff = random.choice([-10.0, 10.0])
-            object2_length = traci.vehicletype.getLength(self._object_type[1])
-            lane_position_object2 = random.choice(
-                [self._lane_position - object2_length / 2, self._lane_position + object2_length / 2]
-            )
-            traci.vehicle.moveTo(object2_id, self._lane_id, lane_position_object2)
+            object2_lane_index = object1_lane_index
             object2_position = traci.vehicle.getPosition(object2_id)
             object2_angle = traci.vehicle.getAngle(object2_id)
+        elif collision_type == "side_swipe":
+            lane1_width = traci.lane.getWidth(self._lane_id)
+            object1_length = traci.vehicletype.getLength(self._object_type[0])
+            object1_width = traci.vehicletype.getWidth(self._object_type[0])
+            object2_length = traci.vehicletype.getLength(self._object_type[1])
+            object2_width = traci.vehicletype.getWidth(self._object_type[1])
+            longitudinal_offset = random.uniform(-object1_length, object2_length)
+            angle_offset = random.uniform(0, 5)
+            if object1_lane_index == 0:
+                direction = 1
+            elif object1_lane_index == traci.edge.getLaneNumber(edge_id) - 1:
+                direction = -1
+            else:
+                direction = random.choice([-1, 1])
+
+            # move object1
+            object1_angle = traci.vehicle.getAngle(object1_id)
+            original_object1_position = traci.vehicle.getPosition(object1_id)
+            object1_position = [
+                original_object1_position[0] - direction*(lane1_width-object1_width)/2*math.cos(math.radians(object1_angle)),
+                original_object1_position[1] - direction*(lane1_width-object1_width)/2*math.sin(math.radians(object1_angle))
+            ]
+            traci.vehicle.moveToXY(
+                object1_id, 
+                edge_id, 
+                object1_lane_index,
+                object1_position[0],
+                object1_position[1],
+                angle=object1_angle,
+                keepRoute=2
+            )
+            # move object2
+            lateral_offset = 0.5
+            object2_lane_index = object1_lane_index + direction
+            object2_lane_id = f"{edge_id}_{object2_lane_index}"
+            lane2_width = traci.lane.getWidth(object2_lane_id)
+            traci.vehicle.moveTo(object2_id, object2_lane_id, self._lane_position+longitudinal_offset)
+            original_object2_angle = traci.vehicle.getAngle(object2_id)
+            original_object2_position = traci.vehicle.getPosition(object2_id)
+            object2_position = [
+                original_object2_position[0] + direction*(lane2_width-object2_width+lateral_offset)/2*math.cos(math.radians(original_object2_angle)),
+                original_object2_position[1] + direction*(lane2_width-object2_width+lateral_offset)/2*math.sin(math.radians(original_object2_angle))
+            ]
+            object2_angle = original_object2_angle - angle_offset * direction
             traci.vehicle.moveToXY(
                 object2_id, 
                 edge_id, 
-                lane_index, 
+                object2_lane_index,
                 object2_position[0],
                 object2_position[1],
-                object2_angle + angle_diff
+                angle=object2_angle,
+                keepRoute=2
             )
         else:
-            raise ValueError(f"Collision type {collision_type} is not supported.")
+            raise ValueError(f"Collision type {collision_type} is not supported.")            
         traci.vehicle.setSpeed(object2_id, 0)
-        traci.vehicle.setSpeedMode(object2_id, 0)
-        traci.vehicle.setLaneChangeMode(object2_id, 0)
+
+        self.object1_id = object1_id
+        self.object1_edge_id = edge_id
+        self.object1_lane_index = object1_lane_index
+        self.object1_position = object1_position
+        self.object1_angle = object1_angle
+
+        self.object2_id = object2_id
+        self.object2_edge_id = edge_id
+        self.object2_lane_index = object2_lane_index
+        self.object2_position = object2_position
+        self.object2_angle = object2_angle
+
+    def update(self):
+        traci.vehicle.moveToXY(
+            self.object1_id, 
+            self.object1_edge_id, 
+            self.object1_lane_index,
+            self.object1_position[0],
+            self.object1_position[1],
+            angle=self.object1_angle,
+            keepRoute=2
+        )
+        traci.vehicle.setSpeed(self.object1_id, 0)
+        traci.vehicle.moveToXY(
+            self.object2_id, 
+            self.object2_edge_id, 
+            self.object2_lane_index,
+            self.object2_position[0],
+            self.object2_position[1],
+            angle=self.object2_angle,
+            keepRoute=2
+        )
+        traci.vehicle.setSpeed(self.object2_id, 0)
+        return

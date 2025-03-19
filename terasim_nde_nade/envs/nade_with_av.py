@@ -200,12 +200,15 @@ class NADEWithAV(NADE):
             cav_context_subscription_results = traci.vehicle.getContextSubscriptionResults(CAV_ID)
             tmp_terasim_controlled_vehicle_ids = list(cav_context_subscription_results.keys())
             # also exclude the static adversarial vehicles
-            for adversity in self.static_adversities.adversities:
-                for object_id in adversity._static_adversarial_object_id_list:
+            static_adversarial_object_id_list = []
+            if self.static_adversity is not None:
+                for object_id in self.static_adversity.adversity._static_adversarial_object_id_list:
+                    static_adversarial_object_id_list.append(object_id)
                     if object_id in tmp_terasim_controlled_vehicle_ids:
                         tmp_terasim_controlled_vehicle_ids.remove(object_id)
             self.simulator.ctx = {
                 "terasim_controlled_vehicle_ids": tmp_terasim_controlled_vehicle_ids,
+                "static_adversarial_object_id_list": static_adversarial_object_id_list,
             }
         return super().NDE_decision(self.simulator.ctx)
 

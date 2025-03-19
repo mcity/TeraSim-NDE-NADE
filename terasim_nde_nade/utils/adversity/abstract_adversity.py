@@ -93,7 +93,12 @@ class AbstractStaticAdversity(abc.ABC):
         pass
 
     @abstractmethod
-    def execute(self):
-        """Excute the adversarial event.
+    def initialize(self):
+        """Initialize the adversarial event.
+        """
+        pass
+
+    def update(self):
+        """Update the adversarial event.
         """
         pass

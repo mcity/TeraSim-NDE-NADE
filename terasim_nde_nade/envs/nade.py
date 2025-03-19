@@ -57,10 +57,10 @@ class NADE(BaseEnv):
         self.log = Dict()
         # initialize the static adversities
         if "adversity_cfg" in self.configuration and "static" in self.configuration.adversity_cfg:
-            self.static_adversities = StaticAdversityManager(self.configuration.adversity_cfg.static)
-            self.static_adversities.execute()
+            self.static_adversity = StaticAdversityManager(self.configuration.adversity_cfg.static)
+            self.static_adversity.initialize()
         else:
-            self.static_adversities = None
+            self.static_adversity = None
         on_start_result = super().on_start(ctx)
         self.distance_info = Dict({"before": self.update_distance(), "after": Dict()})
         self.allow_NADE_IS = True
@@ -68,8 +68,28 @@ class NADE(BaseEnv):
         self.centered_veh_id = None
         return on_start_result
     
+    def sumo_warmup(self, warmup_time):
+        while True:
+            while True:
+                traci.simulationStep()
+                if self.static_adversity is not None:
+                    self.static_adversity.update()
+                if traci.simulation.getTime() > warmup_time:
+                    break
+            if traci.vehicle.getIDCount() > 2500:
+                logger.warning(
+                    f"Too many vehicles in the simulation: {traci.vehicle.getIDCount()}, Restarting..."
+                )
+                traci.load(self.simulator.sumo_cmd[1:])
+            else:
+                break
+        self.record.warmup_vehicle_num = traci.vehicle.getIDCount()
+        self._vehicle_in_env_distance("before")
+    
     def preparation(self):
         """Prepare for the NADE step."""
+        if self.static_adversity is not None:
+            self.static_adversity.update()
         self.distance_info.after.update(self.update_distance())
         self.record.final_time = utils.get_time()
         self.cache_history_tls_data()
