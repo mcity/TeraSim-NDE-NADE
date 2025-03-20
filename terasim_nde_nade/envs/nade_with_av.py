@@ -201,7 +201,7 @@ class NADEWithAV(NADE):
             tmp_terasim_controlled_vehicle_ids = list(cav_context_subscription_results.keys())
             # also exclude the static adversarial vehicles
             static_adversarial_object_id_list = []
-            if self.static_adversity is not None:
+            if self.static_adversity is not None and self.static_adversity.adversity is not None:
                 for object_id in self.static_adversity.adversity._static_adversarial_object_id_list:
                     static_adversarial_object_id_list.append(object_id)
                     if object_id in tmp_terasim_controlled_vehicle_ids:

@@ -7,6 +7,11 @@ from .obs_processing import get_cf_acceleration, get_ff_acceleration
 from ..agents import is_car_following
 from ..base import CommandType, NDECommand
 
+from ...params import RAMP_EDGE_FEATURE
+
+
+TIME_HEADWAY_THRESHOLD = 2.0
+
 
 def derive_merge_adversarial_command_speeding(
     obs_dict, highlight_flag=False, highlight_color=[0, 255, 0, 255]
@@ -116,14 +121,22 @@ def derive_merge_adversarial_command_lanechange(
     safe_flag = True
     for right_leader in right_leaders:
         right_leader_lane_id = traci.vehicle.getLaneID(right_leader[0])
-        if right_leader_lane_id == target_lane_id and right_leader[1] <= 20:
-            safe_flag = False
-            break
+        right_leader_speed = traci.vehicle.getSpeed(right_leader[0])
+        # calculate time headway
+        if right_leader_speed < obs_dict["ego"]["velocity"]:
+            time_headway = right_leader[1] / (obs_dict["ego"]["velocity"] - right_leader_speed)
+            if right_leader_lane_id == target_lane_id and time_headway <= TIME_HEADWAY_THRESHOLD:
+                safe_flag = False
+                break
     for right_follower in right_followers:
         right_follower_lane_id = traci.vehicle.getLaneID(right_follower[0])
-        if right_follower_lane_id == target_lane_id and right_follower[1] <= 20:
-            safe_flag = False
-            break
+        right_follower_speed = traci.vehicle.getSpeed(right_follower[0])
+        # calculate time headway
+        if obs_dict["ego"]["velocity"] < right_follower_speed:
+            time_headway = right_follower[1] / (right_follower_speed - obs_dict["ego"]["velocity"])
+            if right_follower_lane_id == target_lane_id and time_headway <= TIME_HEADWAY_THRESHOLD:
+                safe_flag = False
+                break
 
     if safe_flag:
         adversarial_command_dict["MergeLaneChange"] = NDECommand(
@@ -137,3 +150,22 @@ def derive_merge_adversarial_command_lanechange(
                 obs_dict["ego"]["veh_id"], highlight_color
             )  # highlight the vehicle with green
     return adversarial_command_dict
+
+
+def exist_merging_vehicle(obs_dict) -> bool:
+    """Determine if there is a merging vehicle in the observation.
+
+    Args:
+        obs_dict (dict): Observation of the ego agent.
+
+    Returns:
+        bool: Flag to indicate if there is a merging vehicle.
+    """
+    # Assumption: the merging vehicle is in the rightmost lane
+    if RAMP_EDGE_FEATURE in obs_dict["ego"]["lane_id"]:
+        merging_lane_id = obs_dict["ego"]["edge_id"] + "_0"
+        merging_vehicle_ids = list(traci.lane.getLastStepVehicleIDs(merging_lane_id))
+        ego_id = obs_dict["ego"]["veh_id"]
+        if len(merging_vehicle_ids) > 0 and ego_id not in merging_vehicle_ids:
+            return True
+    return False

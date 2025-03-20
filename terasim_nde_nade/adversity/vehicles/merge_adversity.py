@@ -5,6 +5,7 @@ from ...utils import (
     AbstractAdversity,
     derive_merge_adversarial_command_speeding,
     derive_merge_adversarial_command_lanechange,
+    exist_merging_vehicle,
     get_location,
     is_lane_changing,
 )
@@ -12,21 +13,22 @@ from ...utils import (
 
 class MergeAdversity(AbstractAdversity):
     def trigger(self, obs_dict) -> bool:
-        """Determine when to trigger the LanechangeAdversity module.
+        """Determine when to trigger the MergeAdversity module.
 
         Args:
             obs_dict (dict): Observation of the ego agent.
 
         Returns:
-            bool: Flag to indicate if the LanechangeAdversity module should be triggered.
+            bool: Flag to indicate if the MergeAdversity module should be triggered.
         """
         self._adversarial_command_dict = addict.Dict()
         vehicle_location = get_location(
             obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], highway_speed_threshold=30
         )
         is_lane_changing_flag = is_lane_changing(obs_dict["ego"]["veh_id"], obs_dict)
-        # specific location and edge name with RAMP_EDGE_FEATURE
-        if vehicle_location == self._location and RAMP_EDGE_FEATURE in obs_dict["ego"]["lane_id"] and not is_lane_changing_flag:
+        exist_merging_vehicle_flag = exist_merging_vehicle(obs_dict)
+        # specific location and not doing lane change and exist merging vehicle
+        if vehicle_location == self._location and not is_lane_changing_flag and exist_merging_vehicle_flag:
             adversarial_command_dict = {}
             # lane index == 1 means the vehicle is in the second leftmost lane, then, adversarial behavior is just speeding
             if obs_dict["ego"]["lane_index"] == 1:
@@ -52,7 +54,7 @@ class MergeAdversity(AbstractAdversity):
         Returns:
             addict.Dict: Adversarial command.
         """
-        if self.trigger(obs_dict) and self._probability > 0:
+        if self._probability > 0 and self.trigger(obs_dict):
             for key, command in self._adversarial_command_dict.items():
                 command.prob = self._probability
                 command.info.update(

@@ -44,7 +44,7 @@ class StopCrossingAdversity(AbstractAdversity):
         Returns:
             addict.Dict: Adversarial command.
         """
-        if self.trigger(obs_dict) and self._probability > 0:
+        if self._probability > 0 and self.trigger(obs_dict):
             # derive the trajectory command for the vru, which should have the following characteristics:
             # 1. The vru first stop for 2 seconds
             # 2. The vru will use the max speed to cross the road

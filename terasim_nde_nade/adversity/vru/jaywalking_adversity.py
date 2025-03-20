@@ -103,7 +103,7 @@ class JaywalkingAdversity(AbstractAdversity):
         Returns:
             addict.Dict: Adversarial command.
         """
-        if self.trigger(obs_dict) and self._probability > 0:
+        if self._probability > 0 and self.trigger(obs_dict):
             ego_id = obs_dict["ego"]["vru_id"]
             current_angle = traci.person.getAngle(ego_id)
             future_angle = (current_angle - 90) % 360  # 左转

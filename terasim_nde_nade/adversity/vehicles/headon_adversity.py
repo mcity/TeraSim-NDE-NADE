@@ -41,7 +41,7 @@ class HeadonAdversity(AbstractAdversity):
         Returns:
             addict.Dict: Adversarial command.
         """
-        if self.trigger(obs_dict) and self._probability > 0:
+        if self._probability > 0 and self.trigger(obs_dict):
             for key, command in self._adversarial_command_dict.items():
                 command.prob = self._probability
                 command.info.update(

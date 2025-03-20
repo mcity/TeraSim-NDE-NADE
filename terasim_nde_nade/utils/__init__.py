@@ -11,6 +11,7 @@ from .adversity import (
     derive_leader_adversarial_command,
     derive_merge_adversarial_command_speeding,
     derive_merge_adversarial_command_lanechange,
+    exist_merging_vehicle,
     derive_traffic_rule_adversarial_command,
 )
 from .agents import (
@@ -57,6 +58,7 @@ __all__ = [
     "derive_leader_adversarial_command",
     "derive_merge_adversarial_command_speeding",
     "derive_merge_adversarial_command_lanechange",
+    "exist_merging_vehicle",
     "derive_traffic_rule_adversarial_command",
     "is_car_following",
     "is_lane_changing",
