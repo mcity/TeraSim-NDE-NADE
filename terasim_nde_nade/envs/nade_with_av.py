@@ -24,11 +24,12 @@ CAV_ID = "CAV"
 CAV_ROUTE_ID = "cav_route"
 
 class NADEWithAV(NADE):
-    def __init__(self, cav_cfg, cache_radius=100, control_radius=50, *args, **kwargs):
+    def __init__(self, cav_cfg, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.cav_cfg = cav_cfg
-        self.cache_radius = cache_radius
-        self.control_radius = control_radius
+        self.cache_radius = 100 if "cache_radius" not in cav_cfg else cav_cfg.cache_radius
+        self.control_radius = 50 if "control_radius" not in cav_cfg else cav_cfg.control_radius
+        print(self.cache_radius,self.control_radius)
         self.excluded_agent_set = set([CAV_ID])
         self.insert_bv = False
 
