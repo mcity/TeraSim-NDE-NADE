@@ -1,5 +1,6 @@
 from addict import Dict
 from loguru import logger
+import numpy as np
 
 from terasim.agent.agent_controller import AgentController
 from terasim.overlay import traci
@@ -90,7 +91,7 @@ class NDEController(AgentController):
                 # other commands will have duration, which will keep the controller busy
                 self.is_busy = True
                 # if the control command is a trajectory, then interpolate the trajectory
-                control_command = interpolate_control_command(control_command)
+                control_command = interpolate_control_command(control_command, obs_dict)
                 self.cached_control_command = Dict(
                     {
                         "timestep": traci.simulation.getTime(),
@@ -255,19 +256,41 @@ class NDEController(AgentController):
         traci.vehicle.setLaneChangeMode(veh_id, 0)
 
 
-def interpolate_control_command(control_command):
+def interpolate_control_command(control_command, obs_dict):
     """Interpolate the control command.
 
     Args:
         control_command (NDECommand): Control command.
+        obs_dict (dict): Observation of the ego agent.
 
     Returns:
         NDECommand: Interpolated control command.
     """
     if control_command.command_type == CommandType.TRAJECTORY:
-        control_command.future_trajectory = interpolate_future_trajectory(
-            control_command.future_trajectory, 0.1
-        )  # TODO: Angle cannot be interpolated
+        # 1. interpolate the trajectory
+        future_trajectory_array = np.array(control_command.future_trajectory)
+        # 1.1 check first point of the trajectory, if it is not the current position, add it
+        trajectory_array = np.vstack(
+            (
+                np.array(
+                    [
+                        obs_dict["ego"]["position"][0],
+                        obs_dict["ego"]["position"][1],
+                        obs_dict["ego"]["heading"],
+                        obs_dict["ego"]["velocity"],
+                        0,
+                    ]
+                ),
+                future_trajectory_array,
+            )
+        )
+        # 1.2 clear the time of the trajectory, start from 0, with time resolution which is equal to the time resolution of the control command 
+        trajectory_array[:, -1] = np.array(
+            [i*control_command.time_resolution for i in range(len(trajectory_array))]
+        )
+        # 1.3 interpolate the trajectory
+        interpolated_trajecotory = interpolate_future_trajectory(trajectory_array, traci.simulation.getDeltaT())
+        control_command.future_trajectory = interpolated_trajecotory[1:]  # TODO: Angle cannot be interpolated
         return control_command
     else:
         return control_command

@@ -19,11 +19,10 @@ class NDECommand(BaseModel):
     agent_type: AgentType = AgentType.VEHICLE
     command_type: CommandType = CommandType.DEFAULT
     acceleration: float = 0.0
-    future_trajectory: List[List] = [
-        []
-    ]  # shape: (n, 5) for [x, y, heading, velocity, time]
+    future_trajectory: List[List] = [[]]  # shape: (n, 5) for [x, y, heading, velocity, time]
     prob: float = 1.0
     duration: float = None
+    time_resolution: float = None
     info: Dict[str, Any] = {}
     custom_control_command: Dict[str, Any] = None
     custom_execute_control_command: Callable = None

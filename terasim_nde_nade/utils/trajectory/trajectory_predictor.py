@@ -7,6 +7,8 @@ from loguru import logger
 from terasim.overlay import profile, traci
 from terasim.params import AgentType
 
+from .trajectory_utils_cy import interpolate_future_trajectory
+
 from ..agents import (
     VehicleInfoForPredict,
     get_lanechange_longitudinal_speed,
@@ -292,7 +294,7 @@ def predict_future_trajectory_vehicle(
         ]
     )
 
-    lanechange_finish_trajectory_point = None
+    maneuver_finish_trajectory_point = None
     if (
         control_command.command_type == CommandType.LEFT
         or control_command.command_type == CommandType.RIGHT
@@ -331,7 +333,7 @@ def predict_future_trajectory_vehicle(
             trajectory_array = np.vstack(
                 (trajectory_array,middle_trajectory_point)
             )
-        lanechange_finish_trajectory_point = np.array(
+        maneuver_finish_trajectory_point = np.array(
             [
                 lanechange_finish_position[0],
                 lanechange_finish_position[1],
@@ -341,15 +343,50 @@ def predict_future_trajectory_vehicle(
             ]
         )
         trajectory_array = np.vstack(
-            (trajectory_array, lanechange_finish_trajectory_point)
+            (trajectory_array, maneuver_finish_trajectory_point)
         )
-
+    elif control_command.command_type == CommandType.TRAJECTORY:
+        # 1. interpolate the trajectory
+        future_trajectory_array = np.array(control_command.future_trajectory)
+        # 1.1 check first point of the trajectory, if it is not the current position, add it
+        if not np.isclose(future_trajectory_array[0, -1], current_time):
+            future_trajectory_array = np.vstack(
+                (
+                    np.array(
+                        [
+                            veh_info.position[0],
+                            veh_info.position[1],
+                            veh_info.heading,
+                            future_velocity_array[0],
+                            0,
+                        ]
+                    ),
+                    future_trajectory_array,
+                )
+            )
+        # 1.2 clear the time of the trajectory, start from 0, with time resolution which is equal to the time resolution of the control command 
+        future_trajectory_array[:, -1] = np.array(
+            [i*control_command.time_resolution for i in range(len(future_trajectory_array))]
+        )
+        # 1.3 interpolate the trajectory
+        interpolated_trajecotory = interpolate_future_trajectory(future_trajectory_array, interpolate_resolution)
+        # 1.4 add the interpolated trajectory to the trajectory array, pay attention to the time (not exceeding the last element of the duration array)
+        for i in range(1, len(interpolated_trajecotory)):
+            if interpolated_trajecotory[i, -1] > duration_array[-1]:
+                break 
+            trajectory_array = np.vstack(
+                (trajectory_array, interpolated_trajecotory[i])
+            )
+        # 1.5 get the last point of the trajectory
+        maneuver_finish_trajectory_point = trajectory_array[-1]
+        assert maneuver_finish_trajectory_point[-1] in duration_array, "Interpolation of future_trajectory in control_command is wrong!"
+    
     for duration, distance, velocity in zip(
         duration_array[1:], future_distance_array[1:], future_velocity_array[1:]
     ):
         if (
-            lanechange_finish_trajectory_point is not None
-            and duration <= lanechange_finish_trajectory_point[-1]
+            maneuver_finish_trajectory_point is not None
+            and duration <= maneuver_finish_trajectory_point[-1]
         ):
             continue
         future_position, future_heading = get_future_position_on_route(
