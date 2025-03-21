@@ -55,4 +55,18 @@ class StalledObjectAdversity(AbstractStaticAdversity):
         traci.vehicle.moveTo(stalled_object_id, self._lane_id, self._lane_position)
         traci.vehicle.setSpeed(stalled_object_id, 0)
 
+        self._duration=0
+        self._is_active = True
+        self.stalled_object_id = stalled_object_id
+
+    def update(self):
+        if "duration" in self._other_settings:
+            self._duration += traci.simulation.getDeltaT()
+            if self._is_active and self._duration >= self._other_settings["duration"]:
+                try:
+                    traci.vehicle.remove(self.stalled_object_id)
+                except:
+                    logger.warning(f"Failed to remove the vehicle {self.stalled_object_id}.")
+                self._is_active = False
+
     

@@ -93,7 +93,11 @@ class NADEWithAV(NADE):
         edge_id = cav_route[0]
         lanes = traci.edge.getLaneNumber(edge_id)
         max_attempts = 10
-        min_safe_distance = 10  # Minimum safe distance from other vehicles
+        if hasattr(self.cav_cfg, "type"):
+            cav_type = self.cav_cfg.type
+        else:
+            cav_type = "DEFAULT_VEHTYPE"
+        min_safe_distance = 10 + traci.vehicletype.getLength(cav_type)  # Minimum safe distance from other vehicles
 
         for attempt in range(max_attempts):
             lane = random.randint(0, lanes - 1)
@@ -381,14 +385,14 @@ class NADEWithAV(NADE):
                     command_type=CommandType.RIGHT,
                     prob=1,
                     duration=1.0,
-                    info={"negligence_mode": "RightFoll"},
+                    info={"adversarial_mode": "RightFoll"},
                 )
             else:
                 CAV_command = NDECommand(
                     command_type=CommandType.LEFT,
                     prob=1,
                     duration=1.0,
-                    info={"negligence_mode": "LeftFoll"},
+                    info={"adversarial_mode": "LeftFoll"},
                 )
         elif cav_signal == 2: # left turn signal, please consider the drive rule: lefthand or righthand
             if self.configuration.drive_rule == "righthand":
@@ -396,14 +400,14 @@ class NADEWithAV(NADE):
                     command_type=CommandType.LEFT,
                     prob=1,
                     duration=1.0,
-                    info={"negligence_mode": "LeftFoll"},
+                    info={"adversarial_mode": "LeftFoll"},
                 )
             else:
                 CAV_command = NDECommand(
                     command_type=CommandType.RIGHT,
                     prob=1,
                     duration=1.0,
-                    info={"negligence_mode": "RightFoll"},
+                    info={"adversarial_mode": "RightFoll"},
                 )
 
         elif cav_signal == 0: # no signal
@@ -417,14 +421,14 @@ class NADEWithAV(NADE):
                     command_type=CommandType.LEFT,
                     prob=1,
                     duration=1.0,
-                    info={"negligence_mode": "LeftFoll"},
+                    info={"adversarial_mode": "LeftFoll"},
                 )
             elif angle_diff < -10:
                 CAV_command = NDECommand(
                     command_type=CommandType.RIGHT,
                     prob=1,
                     duration=1.0,
-                    info={"negligence_mode": "RightFoll"},
+                    info={"adversarial_mode": "RightFoll"},
                 )
 
             if original_cav_acceleration - new_cav_acceleration > 1.5:
@@ -439,7 +443,7 @@ class NADEWithAV(NADE):
                     prob=1,
                     duration=1.0,
                     info={
-                        "negligence_mode": "Lead",
+                        "adversarial_mode": "Lead",
                         "is_car_following_flag": is_car_following_flag,
                     },
                 )

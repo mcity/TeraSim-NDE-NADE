@@ -160,25 +160,38 @@ class CollisionAdversity(AbstractStaticAdversity):
         self.object2_position = object2_position
         self.object2_angle = object2_angle
 
+        self._duration=0
+        self._is_active = True
+
     def update(self):
-        traci.vehicle.moveToXY(
-            self.object1_id, 
-            self.object1_edge_id, 
-            self.object1_lane_index,
-            self.object1_position[0],
-            self.object1_position[1],
-            angle=self.object1_angle,
-            keepRoute=2
-        )
-        traci.vehicle.setSpeed(self.object1_id, 0)
-        traci.vehicle.moveToXY(
-            self.object2_id, 
-            self.object2_edge_id, 
-            self.object2_lane_index,
-            self.object2_position[0],
-            self.object2_position[1],
-            angle=self.object2_angle,
-            keepRoute=2
-        )
-        traci.vehicle.setSpeed(self.object2_id, 0)
+        if "duration" in self._other_settings:
+            self._duration += traci.simulation.getDeltaT()
+            if self._is_active and self._duration >= self._other_settings["duration"]:
+                try:
+                    traci.vehicle.remove(self.object1_id)
+                    traci.vehicle.remove(self.object2_id)
+                except:
+                    logger.warning(f"Failed to remove the vehicle {self.object1_id} or {self.object2_id}.")
+                self._is_active = False
+        if self._is_active:
+            traci.vehicle.moveToXY(
+                self.object1_id, 
+                self.object1_edge_id, 
+                self.object1_lane_index,
+                self.object1_position[0],
+                self.object1_position[1],
+                angle=self.object1_angle,
+                keepRoute=2
+            )
+            traci.vehicle.setSpeed(self.object1_id, 0)
+            traci.vehicle.moveToXY(
+                self.object2_id, 
+                self.object2_edge_id, 
+                self.object2_lane_index,
+                self.object2_position[0],
+                self.object2_position[1],
+                angle=self.object2_angle,
+                keepRoute=2
+            )
+            traci.vehicle.setSpeed(self.object2_id, 0)
         return
