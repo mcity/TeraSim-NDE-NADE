@@ -1,6 +1,8 @@
 MOBIL_lc_flag: True
 stochastic_acc_flag: False
 sumo_net_file_path: "maps/town10/town10.net.xml"
+sumo_cfg_file_path: "map/town10/town10.sumocfg"
+drive_rule: "righthand"
 
 adversity_cfg:
   vehicle:
@@ -34,6 +36,14 @@ adversity_cfg:
     #   location: 'roundabout'
     #   ego_type: 'vehicle'
     #   probability: 0.00027119028871789013
+
+    # highway_cutin_abort:
+    #   _target_: terasim_nde_nade.adversity.vehicles.LanechangeAbortAdversity
+    #   _convert_: 'all'
+    #   location: 'highway'
+    #   ego_type: 'vehicle'
+    #   probability: 1e-5 # 0.8783674048511999
+    #   predicted_collision_type: "highway_cutin"
 
     highway_cutin:
       _target_: terasim_nde_nade.adversity.vehicles.lanechange_adversity.LanechangeAdversity
