@@ -5,6 +5,7 @@ from .static import (
 )
 from .vehicles import (
     HeadonAdversity,
+    LanechangeAbortAdversity,
     LanechangeAdversity,
     LeaderAdversity,
     TrafficRuleAdversity,
@@ -20,6 +21,7 @@ __all__ = [
     "ConstructionAdversity",
     "StalledObjectAdversity",
     "HeadonAdversity",
+    "LanechangeAbortAdversity",
     "LanechangeAdversity",
     "LeaderAdversity",
     "TrafficRuleAdversity",

@@ -137,6 +137,10 @@ def update_control_cmds_from_predicted_trajectory(
                     ].future_trajectory = env_future_trajectory[agent_type][agent_id][
                         nade_control_commands[agent_type][agent_id].info.get("mode")
                     ]
+                    time_resolution = nade_control_commands[agent_type][agent_id].future_trajectory[1,-1] - nade_control_commands[agent_type][agent_id].future_trajectory[0,-1]
+                    nade_control_commands[agent_type][
+                        agent_id
+                    ].time_resolution = time_resolution
                     logger.info(
                         f"agent_id: {agent_id} is updated to trajectory command with mode: {nade_control_commands[agent_type][agent_id].info.get('mode')}, trajectory: {nade_control_commands[agent_type][agent_id].future_trajectory}"
                     )

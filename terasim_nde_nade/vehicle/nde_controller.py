@@ -180,9 +180,9 @@ class NDEController(AgentController):
         assert control_command.command_type == CommandType.TRAJECTORY
         # get the closest timestep trajectory point in control_command.trajectory to current timestep
         trajectory_array = control_command.future_trajectory
-        current_timestep = traci.simulation.getTime()
+        next_timestep = traci.simulation.getTime() + traci.simulation.getDeltaT()
         closest_timestep_trajectory = min(
-            trajectory_array, key=lambda x: abs(x[-1] - current_timestep)
+            trajectory_array, key=lambda x: abs(x[-1] - next_timestep)
         )
         # set the position of the vehicle to the closest timestep trajectory point
         traci.vehicle.moveToXY(
@@ -191,8 +191,8 @@ class NDEController(AgentController):
             laneIndex=-1,
             x=closest_timestep_trajectory[0],
             y=closest_timestep_trajectory[1],
-            # angle=closest_timestep_trajectory[2],
-            keepRoute=1,
+            angle=closest_timestep_trajectory[2],
+            keepRoute=control_command.keep_route_mode,
         )
         logger.info(
             f"Setting position of {veh_id} to {closest_timestep_trajectory[0], closest_timestep_trajectory[1]}, current position is {traci.vehicle.getPosition(veh_id)}"
@@ -290,6 +290,8 @@ def interpolate_control_command(control_command, obs_dict):
         )
         # 1.3 interpolate the trajectory
         interpolated_trajecotory = interpolate_future_trajectory(trajectory_array, traci.simulation.getDeltaT())
+        # 1.4 update the time of the trajectory
+        interpolated_trajecotory[:, -1] += traci.simulation.getTime()
         control_command.future_trajectory = interpolated_trajecotory[1:]  # TODO: Angle cannot be interpolated
         return control_command
     else:
