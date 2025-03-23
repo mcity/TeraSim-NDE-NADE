@@ -94,16 +94,6 @@ def get_maneuver_challenge(
             if not link_intersection_flag:
                 continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
 
-            # if the adversarial_veh_id is the header of the normal_veh_id, then the two vehicles will not collide
-            # TODO: traci.vehicle.getLeader() can not detect the leading vulnerable road user
-            if (
-                normal_agent_type == AgentType.VEHICLE
-                and adversarial_agent_type == AgentType.VEHICLE
-            ):
-                leader = traci.vehicle.getLeader(agent_id)
-                if leader is not None and leader[0] == adversarial_agent_id:
-                    continue
-
             collision_flag = check_trajectory_intersection(
                 adversarial_agent_future,
                 filtered_normal_agent_future[agent_id],

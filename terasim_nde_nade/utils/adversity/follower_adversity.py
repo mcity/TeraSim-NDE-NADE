@@ -39,19 +39,11 @@ def derive_follower_adversarial_command(
         is_car_following_flag = is_car_following(
             follower_info[0], obs_dict["ego"]["veh_id"]
         )
-        if is_car_following_flag:
-            follower_velocity = traci.vehicle.getSpeed(follower_info[0])
-            # ego vehicle is stopping or the velocity difference between the ego vehicle and the follower is small
-            if (
-                obs_dict["ego"]["velocity"] < 0.5
-                or abs(obs_dict["ego"]["velocity"] - follower_velocity) < 2
-            ):
-                return adversarial_command_dict
 
         # if ego vehicle is decelerating and the follower is still accelerating
         follower_acceleration = traci.vehicle.getAcceleration(follower_info[0])
         if current_acceleration <= 0 and follower_acceleration >= 0:
-            emergency_decel = traci.vehicle.getEmergencyDecel(obs_dict["ego"]["veh_id"])
+            emergency_decel = traci.vehicle.getEmergencyDecel(obs_dict["ego"]["veh_id"]) * -1
             adversarial_command = NDECommand(
                 command_type=CommandType.ACCELERATION,
                 duration=2.0,

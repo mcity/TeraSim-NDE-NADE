@@ -86,8 +86,7 @@ def get_environment_criticality(env_maneuver_challenge, env_command_information)
             veh_id
         ]
         env_criticality[veh_id] = {
-            modality: ndd_control_command_dict[modality].prob
-            * maneuver_challenge_dict[modality]
+            modality: ndd_control_command_dict[modality].prob * maneuver_challenge_dict[modality]
             for modality in maneuver_challenge_dict
             if modality != "info"
         }
@@ -136,7 +135,7 @@ def update_control_cmds_from_predicted_trajectory(
                         agent_id
                     ].future_trajectory = env_future_trajectory[agent_type][agent_id][
                         nade_control_commands[agent_type][agent_id].info.get("mode")
-                    ]
+                    ][1:]
                     time_resolution = nade_control_commands[agent_type][agent_id].future_trajectory[1,-1] - nade_control_commands[agent_type][agent_id].future_trajectory[0,-1]
                     nade_control_commands[agent_type][
                         agent_id
