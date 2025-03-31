@@ -110,6 +110,7 @@ class NADEWithAV(NADE):
                 logger.info(f"CAV added safely at lane {lane_id}, position {position}")
                 if self.simulator.gui_flag:
                     traci.gui.trackVehicle("View #0", CAV_ID)
+                    traci.gui.setZoom("View #0", 10000)
                 return
 
         logger.warning("Unable to find a safe position for CAV, using fallback method")
@@ -469,28 +470,27 @@ class NADEWithAV(NADE):
             bool: True if the simulation should continue, False otherwise.
         """
         num_colliding_vehicles = self.simulator.get_colliding_vehicle_number()
+        colliding_vehicles = self.simulator.get_colliding_vehicles()
         self._vehicle_in_env_distance("after")
-
+        collision_objects = traci.simulation.getCollisions()
         if num_colliding_vehicles >= 2:
-            colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
             self.record.update(
                 {
+                    "finish_reason": "collision",
+                    "crash_liability": collision_objects[0].collider,
                     "veh_1_id": veh_1_id,
                     "veh_1_obs": self.vehicle_list[veh_1_id].observation,
                     "veh_2_id": veh_2_id,
                     "veh_2_obs": self.vehicle_list[veh_2_id].observation,
                     "warmup_time": self.warmup_time,
                     "run_time": self.run_time,
-                    "finish_reason": "collision",
                 }
             )
             return False
         elif num_colliding_vehicles == 1: # collision happens between a vehicle and a vru.
-            colliding_vehicles = self.simulator.get_colliding_vehicles()
             veh_1_id = colliding_vehicles[0]
-            collision_objects = traci.simulation.getCollisions()
             if veh_1_id == collision_objects[0].collider:
                 vru_1_id = collision_objects[0].victim
             elif veh_1_id == collision_objects[0].victim:
@@ -499,12 +499,13 @@ class NADEWithAV(NADE):
                 vru_1_id = None
             self.record.update(
                 {
+                    "finish_reason": "collision",
+                    "crash_liability": veh_1_id,
                     "veh_1_id": veh_1_id,
                     "veh_1_obs": self.vehicle_list[veh_1_id].observation,
                     "vru_1_id": vru_1_id,
                     "warmup_time": self.warmup_time,
                     "run_time": self.run_time,
-                    "finish_reason": "collision",
                 }
             )
             return False
@@ -512,11 +513,11 @@ class NADEWithAV(NADE):
             logger.info(f"{CAV_ID} left the simulation, stop the simulation.")
             self.record.update(
                 {
+                    "finish_reason": "CAV_left",
                     "veh_1_id": None,
                     "veh_2_id": None,
                     "warmup_time": self.warmup_time,
                     "run_time": self.run_time,
-                    "finish_reason": "CAV_left",
                 }
             )
             return False
@@ -524,11 +525,11 @@ class NADEWithAV(NADE):
             logger.info("Simulation timeout, stop the simulation.")
             self.record.update(
                 {
+                    "finish_reason": "timeout",
                     "veh_1_id": None,
                     "veh_2_id": None,
                     "warmup_time": self.warmup_time,
                     "run_time": self.run_time,
-                    "finish_reason": "timeout",
                 }
             )
             return False
