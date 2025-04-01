@@ -13,7 +13,7 @@ def avoidable_maneuver_challenge_hook(veh_id):
     Args:
         veh_id (str): ID of the vehicle.
     """
-    traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=0.1)
+    traci.vehicle.highlight(veh_id, (255, 0, 0, 120), duration=traci.simulation.getDeltaT())
 
 def unavoidable_maneuver_challenge_hook(veh_id):
     """Highlight the victim vehicle that cannot avoid the collision with the adversarial agent.
@@ -21,7 +21,7 @@ def unavoidable_maneuver_challenge_hook(veh_id):
     Args:
         veh_id (str): ID of the vehicle.
     """
-    traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=0.1)
+    traci.vehicle.highlight(veh_id, (128, 128, 128, 255), duration=traci.simulation.getDeltaT())
 
 def adversarial_hook(veh_id):
     """Highlight the adversarial agent.
