@@ -116,7 +116,7 @@ class NDE(EnvTemplateComplete):
         """
         # Move half step forward, update all vehicles and vrus (some of them may leave or enter the simulation)
         for veh_id in traci.vehicle.getIDList():
-            if veh_id in ctx["static_adversarial_object_id_list"]:
+            if "static_adversarial_object_id_list"in ctx and veh_id in ctx["static_adversarial_object_id_list"]:
                 traci.vehicle.setSpeed(veh_id, 0)
             else:
                 traci.vehicle.setSpeed(veh_id, -1)

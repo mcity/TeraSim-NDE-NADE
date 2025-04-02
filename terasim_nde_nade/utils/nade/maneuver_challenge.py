@@ -64,12 +64,12 @@ def get_maneuver_challenge(
         record_in_ctx (bool, optional): Flag to indicate if the information should be recorded in the context. Defaults to False.
         highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to True.
         buffer (int, optional): Buffer for the collision check. Defaults to 0.
-        excluded_agent_set (set, optional): Set of excluded agent IDs. Defaults to set().
+        centered_agent_set (set, optional): Set of centered agent IDs. Defaults to set().
 
     Returns:
         dict: Maneuver challenge information.
     """
-    if adversarial_agent_id not in centered_agent_set:
+    if centered_agent_set != set() and adversarial_agent_id not in centered_agent_set:
         filtered_normal_agent_future = {
             agent_id: all_normal_agent_future[agent_id]
             for agent_id in all_normal_agent_future

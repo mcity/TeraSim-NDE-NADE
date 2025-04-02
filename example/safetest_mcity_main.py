@@ -51,6 +51,7 @@ def main(cfg: DictConfig) -> None:
         warmup_time_lb=900,
         warmup_time_ub=1200,
         run_time=30,
+        configuration=cfg,
     )
 
     dir_path = Path(__file__).parent
