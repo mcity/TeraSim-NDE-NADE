@@ -23,18 +23,19 @@ class MergeAdversity(AbstractAdversity):
         """
         self._adversarial_command_dict = addict.Dict()
         vehicle_location = get_location(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], highway_speed_threshold=30
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], highway_speed_threshold=20
         )
         is_lane_changing_flag = is_lane_changing(obs_dict["ego"]["veh_id"], obs_dict)
-        exist_merging_vehicle_flag = exist_merging_vehicle(obs_dict)
+        exist_merging_vehicle_flag, merging_lane_id = exist_merging_vehicle(obs_dict)
         # specific location and not doing lane change and exist merging vehicle
         if vehicle_location == self._location and not is_lane_changing_flag and exist_merging_vehicle_flag:
             adversarial_command_dict = {}
+            merging_lane_index = int(merging_lane_id.split("_")[-1])
             # lane index == 1 means the vehicle is in the second leftmost lane, then, adversarial behavior is just speeding
-            if obs_dict["ego"]["lane_index"] == 1:
+            if obs_dict["ego"]["lane_index"] == merging_lane_index + 1:
                 adversarial_command_dict = derive_merge_adversarial_command_speeding(obs_dict)
             # lane index == 2 means the vehicle is in the third leftmost lane, then, adversarial behavior is lane change
-            elif obs_dict["ego"]["lane_index"] == 2:
+            elif obs_dict["ego"]["lane_index"] == merging_lane_index + 2:
                 adversarial_command_dict = derive_merge_adversarial_command_lanechange(obs_dict)
             for key, command in adversarial_command_dict.items():
                 adversarial_mode = command.info.get("adversarial_mode", None)

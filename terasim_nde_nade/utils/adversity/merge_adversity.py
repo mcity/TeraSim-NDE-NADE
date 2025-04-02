@@ -162,10 +162,22 @@ def exist_merging_vehicle(obs_dict) -> bool:
         bool: Flag to indicate if there is a merging vehicle.
     """
     # Assumption: the merging vehicle is in the rightmost lane
-    if RAMP_EDGE_FEATURE in obs_dict["ego"]["lane_id"]:
-        merging_lane_id = obs_dict["ego"]["edge_id"] + "_0"
+    merging_lane_id = None
+    ego_edge_id = obs_dict["ego"]["edge_id"]
+    if RAMP_EDGE_FEATURE in ego_edge_id:
+        
+        for lane_index in range(traci.edge.getLaneNumber(ego_edge_id)):
+            lane_id = f"{ego_edge_id}_{lane_index}"
+            disallowed_types = traci.lane.getDisallowed(lane_id)
+            if "passenger" in disallowed_types or "truck" in disallowed_types:
+                continue
+            else:
+                merging_lane_id = lane_id
+                break
+        if merging_lane_id is None:
+            raise ValueError(f"All lanes of the edge {ego_edge_id} does not allow passenger/truck vehicles!")
         merging_vehicle_ids = list(traci.lane.getLastStepVehicleIDs(merging_lane_id))
         ego_id = obs_dict["ego"]["veh_id"]
         if len(merging_vehicle_ids) > 0 and ego_id not in merging_vehicle_ids:
-            return True
-    return False
+            return True, merging_lane_id
+    return False, merging_lane_id
