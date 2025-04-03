@@ -113,8 +113,9 @@ def derive_merge_adversarial_command_lanechange(
         addict.Dict: Adversarial command.
     """
     adversarial_command_dict = addict.Dict()
-
-    target_lane_id = obs_dict["ego"]["edge_id"]+"_1" # the target lane is the right lane
+    
+    ego_lane_index = obs_dict["ego"]["lane_index"]
+    target_lane_id = obs_dict["ego"]["edge_id"]+f"_{ego_lane_index-1}" # the target lane is the right lane
     right_leaders = traci.vehicle.getRightLeaders(obs_dict["ego"]["veh_id"])
     right_followers = traci.vehicle.getRightFollowers(obs_dict["ego"]["veh_id"])
     
