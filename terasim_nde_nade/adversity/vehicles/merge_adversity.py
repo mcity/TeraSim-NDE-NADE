@@ -23,7 +23,7 @@ class MergeAdversity(AbstractAdversity):
         """
         self._adversarial_command_dict = addict.Dict()
         vehicle_location = get_location(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], highway_speed_threshold=20
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], highway_speed_threshold=20, obs_dict=obs_dict
         )
         is_lane_changing_flag = is_lane_changing(obs_dict["ego"]["veh_id"], obs_dict)
         exist_merging_vehicle_flag, merging_lane_id = exist_merging_vehicle(obs_dict)

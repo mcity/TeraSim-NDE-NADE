@@ -36,22 +36,8 @@ class ConflictGenerationModel(BaseModel):
 
         # change the IDM and MOBIL parameters based on the location
         vehicle_location = get_location(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], obs_dict=obs_dict
         )
-
-        if (
-            "EG_1_3_1.136" in obs_dict["ego"]["lane_id"]
-            and obs_dict["ego"]["position"][1] > 305
-        ):
-            return safe_nde_control_command, {
-                "ndd_command_distribution": {
-                    "normal": NDECommand(
-                        command_type=CommandType.DEFAULT,
-                        prob=1,
-                        info={"vehicle_location": vehicle_location},
-                    )
-                }
-            }
 
         command, command_dict = self.adversity_manager.derive_command(obs_dict)
 

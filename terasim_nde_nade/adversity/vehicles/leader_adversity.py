@@ -19,7 +19,7 @@ class LeaderAdversity(AbstractAdversity):
         """
         self._adversarial_command_dict = addict.Dict()
         vehicle_location = get_location(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], obs_dict=obs_dict
         )
         if vehicle_location == self._location:
             adversarial_command_dict = derive_leader_adversarial_command(obs_dict)

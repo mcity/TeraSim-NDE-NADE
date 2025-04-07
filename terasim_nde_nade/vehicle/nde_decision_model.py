@@ -26,12 +26,8 @@ class NDEDecisionModel(IDMModel):
             return
         if "highway" in vehicle_location:  # highway/freeway scenario
             traci.vehicle.setType(veh_id, "NDE_HIGHWAY")
-        elif (
-            "intersection" in vehicle_location or "roundabout" in vehicle_location
-        ):  # urban scenario
+        else:  # urban scenario
             traci.vehicle.setType(veh_id, "NDE_URBAN")
-        else:
-            raise ValueError(f"location {vehicle_location} not supported")
 
     @staticmethod
     def reroute_vehicle_if_necessary(veh_id: str, current_lane_id: str) -> bool:
@@ -72,7 +68,7 @@ class NDEDecisionModel(IDMModel):
         """
         # change the IDM and MOBIL parameters based on the location
         vehicle_location = get_location(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"]
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], sumo_net=self._agent.simulator.sumo_net, highlight_flag=True, obs_dict=obs_dict
         )
         # for highway and urban scenarios, change the vehicle type
         if self.dynamically_change_vtype:

@@ -2,7 +2,7 @@ from itertools import chain
 from typing import Any, Dict, Optional, Tuple
 
 from terasim.overlay import traci
-
+import sumolib
 from .constants import (
     highway_cutin_prob,
     highway_rearend_prob,
@@ -17,10 +17,11 @@ from .constants import (
     roundabout_rearend_prob,
 )
 from ..agents.vehicle import get_lane_angle
-
+import numpy as np
 # Cache for traffic light controlled lanes
 tls_controlled_lane_set = None
-
+# Cache all roundabout edges and nodes
+roundabout_node_edge_list = None
 
 def cache_tls_controlled_lane_set():
     """Cache the set of lanes controlled by traffic lights."""
@@ -56,8 +57,10 @@ def get_location(
     veh_id: str,
     lane_id: str = None,
     distance_to_tls_threshold: float = 25,
-    highway_speed_threshold: float = 7.5,
+    highway_speed_threshold: float = 25,
     highlight_flag: bool = False,
+    sumo_net: sumolib.net.Net = None,
+    obs_dict: Dict[str, Any] = None,
 ) -> str:
     """Determine the location type (highway, intersection, or roundabout) for a vehicle.
     
@@ -67,18 +70,44 @@ def get_location(
         distance_to_tls_threshold (float, optional): Distance threshold to a traffic light. Defaults to 25.
         highway_speed_threshold (float, optional): Speed threshold for a highway. Defaults to 7.5.
         highlight_flag (bool, optional): Flag to indicate if the vehicle should be highlighted. Defaults to False.
+        sumo_net (sumolib.net.Net, optional): SUMO network. Defaults to None.
+        obs_dict (Dict[str, Any], optional): Observation dictionary. Defaults to None.
 
     Returns:
         str: Location type.    
     """
+    if sumo_net is not None:
+        # Cache the sumo net globally
+        global sumo_net_cache
+        if not hasattr(get_location, 'sumo_net_cache'):
+            get_location.sumo_net_cache = sumo_net
+        elif sumo_net is not None:
+            get_location.sumo_net_cache = sumo_net
     global tls_controlled_lane_set
     if tls_controlled_lane_set is None:
         tls_controlled_lane_set = set()
         cache_tls_controlled_lane_set()
 
     lane_id = lane_id if lane_id else traci.vehicle.getLaneID(veh_id)
-
-    if traci.lane.getMaxSpeed(lane_id) > highway_speed_threshold:
+    edge_id = traci.lane.getEdgeID(lane_id)
+    # vehicle is also on highway if it is on the junction and the two edges connected to the junction are both highways
+    if edge_id.startswith(":"):
+        # find the two edges connected to the junction
+        junction_edge = get_location.sumo_net_cache.getEdge(edge_id)
+        incoming_edge_set = junction_edge.getIncoming()
+        outgoing_edge_set = junction_edge.getOutgoing()
+        # fetch all edges from the incoming and outgoing edge sets
+        edge_list = list(incoming_edge_set) + list(outgoing_edge_set)
+        edge_id_list = [edge.getID() for edge in edge_list]
+    else:
+        edge_id_list = [edge_id]
+    # traci get edge type
+    # edge_type = get_location.sumo_net_cache.getEdge(edge_id).getType()
+    edge_type_list = [
+        get_location.sumo_net_cache.getEdge(edge_id_tmp).getType()
+        for edge_id_tmp in edge_id_list
+    ]
+    if any("motorway" in edge_type for edge_type in edge_type_list):
         if highlight_flag:
             traci.vehicle.setColor(veh_id, (255, 0, 0, 255))  # red
         return "highway"
@@ -89,10 +118,63 @@ def get_location(
         if highlight_flag:
             traci.vehicle.setColor(veh_id, (0, 255, 0, 255))  # green
         return "intersection"
-    else:
+    elif check_location_within_roundabout(veh_id, get_location.sumo_net_cache, distance_to_tls_threshold, obs_dict):
         if highlight_flag:
             traci.vehicle.setColor(veh_id, (0, 0, 255, 255))  # blue
         return "roundabout"
+    else:
+        if highlight_flag:
+            # reset color to default yellow
+            traci.vehicle.setColor(veh_id, (255, 255, 0, 255))
+        return "unknown"
+    
+def check_location_within_roundabout(veh_id: str, sumo_net: sumolib.net.Net, distance_threshold: float = 25, obs_dict: Dict[str, Any] = None) -> bool:
+    """Check if a vehicle is within a roundabout within a certain distance.
+    
+    Args:
+        veh_id (str): Vehicle ID.
+        sumo_net (sumolib.net.Net): SUMO network.
+        distance_threshold (float, optional): Distance threshold. Defaults to 25.
+        obs_dict (Dict[str, Any], optional): Observation dictionary. Defaults to None.
+
+    Returns:
+        bool: Flag to indicate if the vehicle is within a roundabout within a certain distance.
+    """
+
+    current_edge_id = traci.vehicle.getRoadID(veh_id)
+    
+    # Get upcoming lanes from observation dictionary
+    upcoming_lanes = obs_dict["ego"]["upcoming_lanes"]
+    
+    global roundabout_node_edge_list
+    if roundabout_node_edge_list is None:
+        cache_roundabout_edge_node_list(sumo_net)
+    upcoming_edge_id_list = [traci.lane.getEdgeID(lane) for lane in upcoming_lanes]
+
+    # if upcoming edge id is part of the roundabout edge/node list and the distance to this part is less than the threshold, return True
+    for edge_id in upcoming_edge_id_list:
+        if edge_id in roundabout_node_edge_list:
+            # Check distance to this edge
+            edge = sumo_net.getEdge(edge_id)
+            edge_pos = edge.getShape()[0]  # Get start position of edge
+            veh_pos = traci.vehicle.getPosition(veh_id)
+            dist = np.sqrt((edge_pos[0] - veh_pos[0])**2 + (edge_pos[1] - veh_pos[1])**2)
+            if dist < distance_threshold:
+                return True
+    return False
+
+def cache_roundabout_edge_node_list(sumo_net: sumolib.net.Net):
+    """Cache the roundabout edge and node list."""
+    global roundabout_node_edge_list
+    roundabouts = sumo_net.getRoundabouts()
+    roundabout_edge_id_list = []
+    roundabout_node_id_list = []
+    for roundabout in roundabouts:
+        roundabout_edge_id_list.extend(roundabout.getEdges())
+        roundabout_node_id_list.extend(roundabout.getNodes())
+    roundabout_node_edge_list = roundabout_node_id_list + roundabout_edge_id_list
+    return roundabout_node_edge_list
+    
 
 
 def is_head_on(ego_obs: Dict[str, Any], leader_info: Optional[Tuple]) -> bool:
