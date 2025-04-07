@@ -528,8 +528,10 @@ class NADE(BaseEnv):
         """
         if not env_maneuver_challenge[agent_id].get("adversarial"):
             raise ValueError("The vehicle is not in the adversarial mode.")
-        return 0.1
-        # return 1e-9
+        
+        if hasattr(self.configuration, "adversity_sampling_probability") and self.configuration.adversity_sampling_probability > 0:
+            return self.configuration.adversity_sampling_probability
+        
         IS_magnitude = IS_MAGNITUDE_DEFAULT
         try:
             predicted_collision_type = nde_control_commands[
