@@ -1,9 +1,9 @@
 import argparse
-from pathlib import Path
-
 import hydra
 from loguru import logger
 from omegaconf import DictConfig
+from pathlib import Path
+
 from terasim.logger.infoextractor import InfoExtractor
 from terasim.simulator import Simulator
 
