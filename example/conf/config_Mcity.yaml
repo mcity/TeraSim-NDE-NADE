@@ -1,7 +1,7 @@
 MOBIL_lc_flag: True
 stochastic_acc_flag: False
 sumo_net_file_path: "maps/Mcity_safetest/mcity.net.xml"
-sumo_cfg_file_path: "map/Mcity_safetest/mcity.sumocfg"
+sumo_cfg_file_path: "maps/Mcity_safetest/mcity.sumocfg"
 drive_rule: "righthand"
 
 adversity_sampling_probability: 0.1
