@@ -47,20 +47,50 @@ def interpolate_future_trajectory(np.ndarray[double, ndim=2] trajectory_list_arr
     """
     cdef np.ndarray[double, ndim=1] time_values = trajectory_list_array[:, -1]
     cdef np.ndarray[double, ndim=2] position_values = trajectory_list_array[:, :-1]
-
+    
+    # Handle angle interpolation (column index 2)
+    # Get the angles column
+    cdef np.ndarray[double, ndim=1] angles = position_values[:, 2].copy()
+    
+    # Calculate the differences between consecutive angles
+    cdef np.ndarray[double, ndim=1] angle_diffs = np.diff(angles)
+    
+    # Calculate the wrapped differences
+    cdef np.ndarray[double, ndim=1] wrapped_diffs = angle_diffs % 360
+    wrapped_diffs[wrapped_diffs > 180] -= 360
+    
+    # Choose the shortest path for each difference
+    cdef np.ndarray[double, ndim=1] shortest_diffs = np.where(
+        np.abs(wrapped_diffs) < np.abs(angle_diffs),
+        wrapped_diffs,
+        angle_diffs
+    )
+    
+    # Reconstruct the angles using the shortest differences
+    cdef np.ndarray[double, ndim=1] adjusted_angles = np.zeros_like(angles)
+    adjusted_angles[0] = angles[0]
+    for i in range(1, len(angles)):
+        adjusted_angles[i] = adjusted_angles[i-1] + shortest_diffs[i-1]
+    
+    # Update the position values with the adjusted angles
+    position_values[:, 2] = adjusted_angles
+    
     # Create interpolation function
     interpolation_function = interp1d(time_values, position_values, axis=0, kind='linear')
-
+    
     # Create new time values
     cdef double start_time = time_values[0]
     cdef double end_time = time_values[-1]
     cdef int num_points = int((end_time - start_time) / interpolate_resolution) + 1
-
+    
     # Generate new time values with consistent intervals
     cdef np.ndarray[double, ndim=1] new_time_values = np.linspace(start_time, start_time + (num_points - 1) * interpolate_resolution, num_points)
-
+    
     # Interpolate position values
     cdef np.ndarray[double, ndim=2] new_position_values = interpolation_function(new_time_values)
-
+    
+    # Normalize angles to [0, 360) range
+    new_position_values[:, 2] = new_position_values[:, 2] % 360
+    
     # Combine time and position values
     return np.hstack((new_position_values, new_time_values[:, None])) 
