@@ -228,7 +228,7 @@ def get_collision_type_and_prob(
         Tuple[float, str]: Collision probability and type.
     """
     if location is None:
-        location = get_location(obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"])
+        location = get_location(obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], obs_dict=obs_dict)
 
     rear_end = adversarial_command.info.get("is_car_following_flag", False)
     adversarial_mode = adversarial_command.info.get("adversarial_mode", None)
