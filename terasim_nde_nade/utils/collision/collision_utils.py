@@ -107,6 +107,24 @@ def get_location(
         get_location.sumo_net_cache.getEdge(edge_id_tmp).getType()
         for edge_id_tmp in edge_id_list
     ]
+    # Check if the sumo net has defined edge types
+    if not edge_type_list:
+        raise ValueError(
+            f"Edge type list is empty for vehicle {veh_id} on lane {lane_id} with edge ID {edge_id}"
+        )
+    elif all(
+        edge_type == "" for edge_type in edge_type_list
+    ):
+        # If all edge types are empty, decide based on edge maximum speed
+        edge_max_speed_list = [
+            get_location.sumo_net_cache.getEdge(edge_id_tmp).getSpeed()
+            for edge_id_tmp in edge_id_list
+        ]
+        if max(edge_max_speed_list) > highway_speed_threshold:
+            if highlight_flag:
+                traci.vehicle.setColor(veh_id, (255, 0, 0, 255))  # red
+            return "highway"
+        
     if any("motorway" in edge_type for edge_type in edge_type_list):
         if highlight_flag:
             traci.vehicle.setColor(veh_id, (255, 0, 0, 255))  # red

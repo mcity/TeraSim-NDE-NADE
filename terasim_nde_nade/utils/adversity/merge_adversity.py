@@ -45,7 +45,7 @@ def derive_merge_adversarial_command_speeding(
         
         # if the vehicle is car following, update the safe acceleration to be the car following acceleration
         is_car_following_flag = is_car_following(
-            obs_dict["ego"]["veh_id"], leader_info[0]
+            obs_dict["ego"]["veh_id"], leader_info[0], angle_difference_threshold=0.0
         )
         if is_car_following_flag:
             safe_acceleration = get_cf_acceleration(obs_dict, leader_info)
@@ -153,7 +153,7 @@ def derive_merge_adversarial_command_lanechange(
     return adversarial_command_dict
 
 
-def exist_merging_vehicle(obs_dict) -> bool:
+def exist_merging_vehicle(obs_dict, sumo_net=None) -> bool:
     """Determine if there is a merging vehicle in the observation.
 
     Args:
@@ -181,4 +181,20 @@ def exist_merging_vehicle(obs_dict) -> bool:
         ego_id = obs_dict["ego"]["veh_id"]
         if len(merging_vehicle_ids) > 0 and ego_id not in merging_vehicle_ids:
             return True, merging_lane_id
+        # consider the outgoing lane of the current edge
+        if sumo_net is not None:
+            outgoing_node_id = sumo_net.getEdge(ego_edge_id).getToNode().getID()
+            if RAMP_EDGE_FEATURE in outgoing_node_id:
+                outgoing_merging_lane_id = None
+                for lane_id in sumo_net.getEdge(ego_edge_id).getToNode().getInternal():
+                    disallowed_types = traci.lane.getDisallowed(lane_id)
+                    if "passenger" in disallowed_types or "truck" in disallowed_types:
+                        continue
+                    else:
+                        outgoing_merging_lane_id = lane_id
+                        break
+                if outgoing_merging_lane_id is not None:
+                    merging_vehicle_ids_outpoing = list(traci.lane.getLastStepVehicleIDs(outgoing_merging_lane_id))
+                    if len(merging_vehicle_ids_outpoing) > 0 and ego_id not in merging_vehicle_ids_outpoing:
+                        return True, merging_lane_id
     return False, merging_lane_id

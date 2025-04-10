@@ -29,7 +29,6 @@ class NADEWithAV(NADE):
         self.cav_cfg = cav_cfg
         self.cache_radius = 100 if "cache_radius" not in cav_cfg else cav_cfg.cache_radius
         self.control_radius = 50 if "control_radius" not in cav_cfg else cav_cfg.control_radius
-        print(self.cache_radius,self.control_radius)
         self.excluded_agent_set = set([CAV_ID])
         self.insert_bv = False
 
@@ -79,6 +78,9 @@ class NADEWithAV(NADE):
             [traci.constants.VAR_DISTANCE],
         )
 
+        # traci.vehicle.setLaneChangeMode(CAV_ID, 0)
+        # traci.vehicle.setSpeedMode(CAV_ID, 62)
+
     def add_cav_safe(self):
         """Add a CAV to the simulation safely.
         """
@@ -99,19 +101,26 @@ class NADEWithAV(NADE):
             cav_type = "DEFAULT_VEHTYPE"
         min_safe_distance = 10 + traci.vehicletype.getLength(cav_type)  # Minimum safe distance from other vehicles
 
+        possible_lane_indexes = list(range(0, lanes - 1))
         for attempt in range(max_attempts):
-            lane = random.randint(0, lanes - 1)
+            if not len(possible_lane_indexes):
+                break
+            lane = random.choice(possible_lane_indexes)
             lane_id = f"{edge_id}_{lane}"
             lane_length = traci.lane.getLength(lane_id)
-            position = random.uniform(0, lane_length)
+            if lane_length < min_safe_distance:
+                break
+            position = random.uniform(0, lane_length-min_safe_distance)
 
             if self.is_position_safe(lane_id, position, min_safe_distance):
                 self.add_cav_unsafe(edge_id, lane_id, position)
                 logger.info(f"CAV added safely at lane {lane_id}, position {position}")
                 if self.simulator.gui_flag:
                     traci.gui.trackVehicle("View #0", CAV_ID)
-                    traci.gui.setZoom("View #0", 10000)
+                    # traci.gui.setZoom("View #0", 10000)
                 return
+            else:
+                possible_lane_indexes.remove(lane)
 
         logger.warning("Unable to find a safe position for CAV, using fallback method")
         self.add_cav_fallback(edge_id)
@@ -128,8 +137,8 @@ class NADEWithAV(NADE):
             bool: True if the position is safe, False otherwise.
         """
         # check if this lane allows vehicles
-        allowed = traci.lane.getAllowed(lane_id)
-        if "passenger" not in allowed:
+        disallowed = traci.lane.getDisallowed(lane_id)
+        if "passenger" in disallowed or "truck" in disallowed:
             return False
 
         # Check vehicles on the same lane
@@ -159,6 +168,9 @@ class NADEWithAV(NADE):
         logger.warning(
             f"CAV added using fallback method at lane {lane_id}, position {position}"
         )
+        if self.simulator.gui_flag:
+            traci.gui.trackVehicle("View #0", CAV_ID)
+            # traci.gui.setZoom("View #0", 10000)
 
     def clear_area_around_position(self, lane_id, position, clear_distance):
         """Clear the area around a position on a lane.
@@ -178,27 +190,33 @@ class NADEWithAV(NADE):
     def preparation(self):
         """Prepare for the NADE step."""
         super().preparation()
-        # if not self.insert_bv and traci.vehicle.getRoadID("CAV") == "379459612#1-AddedOnRampEdge":
+        # if not self.insert_bv and traci.vehicle.getRoadID("CAV") == "152261_Ramp" and traci.vehicle.getLanePosition("CAV") > 220:
         #     traci.vehicle.add(
         #         "BV",
         #         "test_merge",
         #         typeID="veh_passenger",
-        #         departSpeed="max",
-        #         departLane="2",
+        #         departSpeed=0,
+        #         departLane="3",
+        #         departPos="230"
         #     )
         #     self.insert_bv = True
+        #     traci.vehicle.setLaneChangeMode("BV", 0)
+        #     # traci.vehicle.setPreviousSpeed("BV", traci.vehicle.getSpeed("CAV")-3)
+        #     traci.vehicle.setSpeedMode("BV", 0)
 
-        # if not self.insert_bv and traci.vehicle.getRoadID("CAV") == "424040132#2" and traci.vehicle.getLanePosition("CAV") > 200:
+        # if not self.insert_bv and traci.vehicle.getRoadID("CAV") == "152261_Ramp" and traci.vehicle.getLanePosition("CAV") > 230:
         #     traci.vehicle.add(
         #         "BV",
         #         "test_merge2",
         #         typeID="veh_passenger",
-        #         departSpeed=traci.vehicle.getSpeed("CAV"),
-        #         departLane="0",
+        #         departSpeed=10,
+        #         departLane="2",
         #         arrivalLane="1",
-        #         departPos="1150",
+        #         departPos="190",
         #     )
         #     self.insert_bv = True
+        #     traci.vehicle.setLaneChangeMode("BV", 0)
+        #     traci.vehicle.setSpeedMode("BV", 0)
 
     @profile
     def NDE_decision(self, ctx):
