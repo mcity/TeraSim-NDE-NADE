@@ -68,7 +68,7 @@ class NDEDecisionModel(IDMModel):
         """
         # change the IDM and MOBIL parameters based on the location
         vehicle_location = get_location(
-            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], sumo_net=self._agent.simulator.sumo_net, highlight_flag=True, obs_dict=obs_dict
+            obs_dict["ego"]["veh_id"], obs_dict["ego"]["lane_id"], sumo_net=self._agent.simulator.sumo_net, highlight_flag=False, obs_dict=obs_dict
         )
         # for highway and urban scenarios, change the vehicle type
         if self.dynamically_change_vtype:
