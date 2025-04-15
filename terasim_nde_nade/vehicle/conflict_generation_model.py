@@ -18,7 +18,9 @@ class ConflictGenerationModel(BaseModel):
             dynamically_change_vtype (bool): Flag to indicate if the vehicle type should be changed dynamically.
         """
         super().__init__(reroute, dynamically_change_vtype, *args, **kwargs)
-        self.adversity_manager = AdversityManager(cfg.adversity_cfg.vehicle)
+        self.adversity_manager = AdversityManager(
+            cfg.adversity_cfg.vehicle if hasattr(cfg.adversity_cfg, "vehicle") else None
+        )
 
     def derive_control_command_from_observation(self, obs_dict):
         """Derive the control command based on the observation.

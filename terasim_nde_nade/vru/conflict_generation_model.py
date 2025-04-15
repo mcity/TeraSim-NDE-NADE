@@ -17,7 +17,7 @@ class ConflictGenerationModel(BaseModel):
         """
         super().__init__(reroute, dynamically_change_vtype, *args, **kwargs)
         self.adversity_manager = AdversityManager(
-            cfg.adversity_cfg.vulnerable_road_user
+            cfg.adversity_cfg.vulnerable_road_user if hasattr(cfg.adversity_cfg, "vulnerable_road_user") else None
         )
 
     def derive_control_command_from_observation(self, obs_dict):
