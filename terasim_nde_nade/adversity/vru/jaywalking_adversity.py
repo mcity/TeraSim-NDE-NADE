@@ -20,12 +20,15 @@ def is_pedestrian_moving_forward(p_id, sumonet) -> bool:
     edge_shape = sumonet.getEdge(edge_id).getShape()
     edge_start = edge_shape[0]
     edge_end = edge_shape[-1]
-    edge_angle = (
-        -math.degrees(
-            math.atan((edge_end[0] - edge_start[0]) / (edge_end[1] - edge_start[1]))
-        )
-        + 90
-    ) % 360
+    if edge_end[1] - edge_start[1] == 0:
+        edge_angle = 90 if edge_end[0] > edge_start[0] else 270
+    else:
+        edge_angle = (
+            -math.degrees(
+                math.atan((edge_end[0] - edge_start[0]) / (edge_end[1] - edge_start[1]))
+            )
+            + 90
+        ) % 360
     person_angle = traci.person.getAngle(p_id)
     if (edge_angle - person_angle) % 360 < 180:
         return True
