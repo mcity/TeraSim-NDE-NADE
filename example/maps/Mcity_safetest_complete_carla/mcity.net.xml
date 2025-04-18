@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<!-- generated on 2025-04-16 16:17:55 by Eclipse SUMO netedit Version 1.19.0
+<!-- generated on 2025-04-17 16:11:26 by Eclipse SUMO netedit Version 1.19.0
 <configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/neteditConfiguration.xsd">
 
     <input>
@@ -382,7 +382,7 @@
         <lane id=":NODE_18_1_0" index="0" allow="bicycle" speed="5.50" length="24.64" width="1.00" shape="46.54,-12.04,271.71 46.40,-36.67,271.65"/>
     </edge>
     <edge id=":NODE_18_2" function="internal">
-        <lane id=":NODE_18_2_0" index="0" disallow="pedestrian bicycle" speed="5.50" length="6.62" width="3.46" shape="48.97,-12.03,271.71 48.40,-16.05,271.68 47.10,-18.25,271.66"/>
+        <lane id=":NODE_18_2_0" index="0" disallow="pedestrian bicycle" speed="5.50" length="11.80" width="3.46" shape="48.97,-12.03,271.71 48.40,-16.05,271.68 46.70,-18.92,271.65 43.86,-20.64,271.63 42.79,-20.79,271.62"/>
     </edge>
     <edge id=":NODE_18_3" function="internal">
         <lane id=":NODE_18_3_0" index="0" disallow="pedestrian bicycle tram rail_urban rail rail_electric rail_fast ship" speed="5.50" length="24.67" width="3.10" shape="48.97,-12.03,271.71 47.45,-36.62,271.65"/>
@@ -395,7 +395,7 @@
         <lane id=":NODE_18_15_0" index="0" allow="bicycle" speed="5.50" length="2.95" width="1.00" shape="42.79,-19.49,271.63 39.88,-19.98,271.60"/>
     </edge>
     <edge id=":NODE_18_16" function="internal">
-        <lane id=":NODE_18_16_0" index="0" disallow="pedestrian bicycle" speed="5.50" length="8.12" width="3.46" shape="47.10,-18.25,271.66 46.70,-18.92,271.65 43.86,-20.64,271.63 39.88,-21.21,271.60"/>
+        <lane id=":NODE_18_16_0" index="0" disallow="pedestrian bicycle" speed="5.50" length="2.94" width="3.46" shape="42.79,-20.79,271.62 39.88,-21.21,271.60"/>
     </edge>
     <edge id=":NODE_18_17" function="internal">
         <lane id=":NODE_18_17_0" index="0" disallow="pedestrian bicycle tram rail_urban rail rail_electric rail_fast ship" speed="6.00" length="13.79" width="3.75" shape="53.91,-18.80,271.70 55.76,-22.45,271.69 59.43,-25.05,271.69 64.56,-25.91,271.68"/>
@@ -1201,22 +1201,18 @@
         <param key="linkSignalID:8" value="64"/>
     </tlLogic>
     <tlLogic id="NODE_18" type="static" programID="0" offset="0">
-        <phase duration="32" state="gggGGgrrrgGgrrrrGrG"/>
-        <phase duration="5"  state="gggGGgrrrgGgrrrrrrr"/>
-        <phase duration="3"  state="yyyyygrrryygrrrrrrr"/>
-        <phase duration="6"  state="rrrrrGrrrrrGrrrrrrr"/>
-        <phase duration="3"  state="rrrrryrrrrryrrrrrrr"/>
-        <phase duration="1"  state="rrrrrrrrrrrrrrrrrrr"/>
-        <phase duration="31" state="rrrrrrgGgrrrgGgGrGr"/>
-        <phase duration="5"  state="rrrrrrgGgrrrgGgrrrr"/>
-        <phase duration="3"  state="rrrrrryyyrrryyyrrrr"/>
-        <phase duration="1"  state="rrrrrrrrrrrrrrrrrrr"/>
-        <param key="linkSignalID:0" value="70"/>
+        <phase duration="15" state="gGgrrGgrrrGrG"/>
+        <phase duration="3"  state="ryyrryyrrrrrr"/>
+        <phase duration="1"  state="rrrrrrrrrrrrr"/>
+        <phase duration="15" state="rrrGgrrGgGrGr"/>
+        <phase duration="3"  state="rrryyrryyrrrr"/>
+        <phase duration="1"  state="rrrrrrrrrrrrr"/>
         <param key="linkSignalID:1" value="69"/>
-        <param key="linkSignalID:2" value="75"/>
-        <param key="linkSignalID:4" value="73"/>
-        <param key="linkSignalID:5" value="74"/>
-        <param key="linkSignalID:6" value="71"/>
+        <param key="linkSignalID:2" value="70"/>
+        <param key="linkSignalID:3" value="75"/>
+        <param key="linkSignalID:5" value="73"/>
+        <param key="linkSignalID:6" value="74"/>
+        <param key="linkSignalID:7" value="71"/>
     </tlLogic>
     <tlLogic id="NODE_23" type="static" programID="0" offset="0">
         <phase duration="15" state="rGGg"/>
@@ -1563,7 +1559,7 @@
     <junction id=":NODE_17_18_0" type="internal" x="43.19" y="43.06" z="272.12" incLanes=":NODE_17_9_0" intLanes=":NODE_17_0_0 :NODE_17_1_0 :NODE_17_4_0 :NODE_17_4_1 :NODE_17_6_0 :NODE_17_13_0 :NODE_17_14_0 :NODE_17_c1_0"/>
     <junction id=":NODE_17_19_0" type="internal" x="43.20" y="39.75" z="272.12" incLanes=":NODE_17_9_1" intLanes=":NODE_17_0_0 :NODE_17_1_0 :NODE_17_4_0 :NODE_17_4_1 :NODE_17_6_0 :NODE_17_13_0 :NODE_17_14_0 :NODE_17_c1_0"/>
     <junction id=":NODE_18_15_0" type="internal" x="42.79" y="-19.49" z="271.63" incLanes=":NODE_18_0_0" intLanes=":NODE_18_2_0 :NODE_18_7_0 :NODE_18_11_0 :NODE_18_c0_0 :NODE_18_c3_0"/>
-    <junction id=":NODE_18_16_0" type="internal" x="47.10" y="-18.25" z="271.66" incLanes=":NODE_18_2_0 EG_17_1_1.17_1" intLanes=":NODE_18_0_0 :NODE_18_1_0 :NODE_18_7_0 :NODE_18_11_0 :NODE_18_c0_0 :NODE_18_c3_0"/>
+    <junction id=":NODE_18_16_0" type="internal" x="42.79" y="-20.79" z="271.62" incLanes=":NODE_18_2_0" intLanes=":NODE_18_0_0 :NODE_18_1_0 :NODE_18_7_0 :NODE_18_11_0 :NODE_18_c0_0 :NODE_18_c3_0"/>
     <junction id=":NODE_18_17_0" type="internal" x="53.91" y="-18.80" z="271.70" incLanes=":NODE_18_5_0 EG_9_1_23_0" intLanes=":NODE_18_7_0 :NODE_18_8_0 :NODE_18_9_0 :NODE_18_10_0 :NODE_18_13_0 :NODE_18_14_0 :NODE_18_c0_0 :NODE_18_c1_0"/>
     <junction id=":NODE_18_18_0" type="internal" x="57.64" y="-17.17" z="271.70" incLanes=":NODE_18_6_0" intLanes=":NODE_18_10_0 :NODE_18_14_0 :NODE_18_c0_0 :NODE_18_c1_0"/>
     <junction id=":NODE_18_19_0" type="internal" x="58.63" y="-22.84" z="271.67" incLanes=":NODE_18_8_0 EG_28_2_1_1" intLanes=":NODE_18_1_0 :NODE_18_3_0 :NODE_18_3_1 :NODE_18_5_0 :NODE_18_10_0 :NODE_18_11_0 :NODE_18_12_0 :NODE_18_13_0 :NODE_18_c1_0 :NODE_18_c2_0"/>
@@ -1593,9 +1589,9 @@
     <connection from="EG_13_1_1" to="EG_6_4_1" fromLane="2" toLane="1" via=":NODE_11_12_0" tl="NODE_11" linkIndex="7" dir="s" state="o"/>
     <connection from="EG_13_1_1" to="EG_6_3_1" fromLane="2" toLane="0" via=":NODE_11_13_0" tl="NODE_11" linkIndex="7" dir="s" state="o"/>
     <connection from="EG_13_1_1" to="EG_7_1_1" fromLane="2" toLane="1" via=":NODE_11_14_0" tl="NODE_11" linkIndex="8" dir="l" state="o"/>
-    <connection from="EG_14_1_1" to="EG_17_23_1" fromLane="1" toLane="1" via=":NODE_18_6_0" tl="NODE_18" linkIndex="6" dir="r" state="o"/>
-    <connection from="EG_14_1_1" to="EG_28_1_1" fromLane="1" toLane="1" via=":NODE_18_7_0" tl="NODE_18" linkIndex="7" dir="s" state="o"/>
-    <connection from="EG_14_1_1" to="EG_19_1_1" fromLane="1" toLane="1" via=":NODE_18_8_0" tl="NODE_18" linkIndex="8" dir="l" state="o"/>
+    <connection from="EG_14_1_1" to="EG_17_23_1" fromLane="1" toLane="1" via=":NODE_18_6_0" tl="NODE_18" linkIndex="3" dir="r" state="o"/>
+    <connection from="EG_14_1_1" to="EG_28_1_1" fromLane="1" toLane="1" via=":NODE_18_7_0" tl="NODE_18" linkIndex="3" dir="s" state="o"/>
+    <connection from="EG_14_1_1" to="EG_19_1_1" fromLane="1" toLane="1" via=":NODE_18_8_0" tl="NODE_18" linkIndex="4" dir="l" state="o"/>
     <connection from="EG_14_2_1" to="EG_14_2_1.5" fromLane="0" toLane="0" via=":J0_0_0" dir="s" state="M"/>
     <connection from="EG_14_2_1" to="EG_14_2_1.5" fromLane="3" toLane="2" shape="68.28,-25.90,271.67 69.16,-26.77,271.67 70.04,-27.63,271.67 70.92,-28.50,271.67 71.81,-29.37,271.67" via=":J0_0_1" dir="s" state="M"/>
     <connection from="EG_14_2_1" to="EG_14_2_1.5" fromLane="3" toLane="3" via=":J0_0_2" dir="s" state="M"/>
@@ -1622,11 +1618,11 @@
     <connection from="EG_17_1_1" to="EG_17_1_1.17" fromLane="2" toLane="2" via=":J4_0_2" dir="s" state="M"/>
     <connection from="EG_17_1_1" to="EG_17_1_1.17" fromLane="2" toLane="3" via=":J4_0_3" dir="s" state="M"/>
     <connection from="EG_17_1_1.17" to="EG_28_1_1" fromLane="1" toLane="1" via=":NODE_18_0_0" tl="NODE_18" linkIndex="0" dir="r" state="o"/>
-    <connection from="EG_17_1_1.17" to="EG_19_1_1" fromLane="1" toLane="0" via=":NODE_18_1_0" tl="NODE_18" linkIndex="1" dir="s" state="o"/>
-    <connection from="EG_17_1_1.17" to="EG_28_1_1" fromLane="2" toLane="1" via=":NODE_18_2_0" tl="NODE_18" linkIndex="2" dir="r" state="o"/>
-    <connection from="EG_17_1_1.17" to="EG_19_1_1" fromLane="2" toLane="0" via=":NODE_18_3_0" tl="NODE_18" linkIndex="3" dir="s" state="o"/>
-    <connection from="EG_17_1_1.17" to="EG_19_1_1" fromLane="2" toLane="1" pass="1" via=":NODE_18_3_1" tl="NODE_18" linkIndex="4" dir="s" state="o"/>
-    <connection from="EG_17_1_1.17" to="EG_14_2_1" fromLane="3" toLane="3" via=":NODE_18_5_0" tl="NODE_18" linkIndex="5" dir="l" state="o"/>
+    <connection from="EG_17_1_1.17" to="EG_19_1_1" fromLane="1" toLane="0" via=":NODE_18_1_0" tl="NODE_18" linkIndex="0" dir="s" state="o"/>
+    <connection from="EG_17_1_1.17" to="EG_28_1_1" fromLane="2" toLane="1" via=":NODE_18_2_0" tl="NODE_18" linkIndex="1" dir="r" state="o"/>
+    <connection from="EG_17_1_1.17" to="EG_19_1_1" fromLane="2" toLane="0" via=":NODE_18_3_0" tl="NODE_18" linkIndex="1" dir="s" state="o"/>
+    <connection from="EG_17_1_1.17" to="EG_19_1_1" fromLane="2" toLane="1" pass="1" via=":NODE_18_3_1" tl="NODE_18" linkIndex="1" dir="s" state="o"/>
+    <connection from="EG_17_1_1.17" to="EG_14_2_1" fromLane="3" toLane="3" via=":NODE_18_5_0" tl="NODE_18" linkIndex="2" dir="l" state="o"/>
     <connection from="EG_17_23_1" to="EG_17_23_1.16" fromLane="1" toLane="1" via=":J3_0_0" dir="s" state="M"/>
     <connection from="EG_17_23_1" to="EG_17_23_1.16" fromLane="1" toLane="2" via=":J3_0_1" dir="s" state="M"/>
     <connection from="EG_17_23_1.16" to="EG_13_1_1" fromLane="1" toLane="2" pass="1" via=":NODE_17_7_0" tl="NODE_17" linkIndex="4" dir="r" state="o"/>
@@ -1688,9 +1684,9 @@
     <connection from="EG_27_3_1" to="EG_16_1_1" fromLane="0" toLane="1" via=":NODE_17_14_0" tl="NODE_17" linkIndex="8" dir="L" state="o"/>
     <connection from="EG_28_1_1" to="EG_24_2_1" fromLane="1" toLane="0" via=":NODE_24_2_0" tl="NODE_24" linkIndex="2" dir="r" state="o"/>
     <connection from="EG_28_1_1" to="EG_25_1_1" fromLane="1" toLane="0" via=":NODE_24_3_0" tl="NODE_24" linkIndex="2" dir="l" state="o"/>
-    <connection from="EG_28_2_1" to="EG_19_1_1" fromLane="1" toLane="0" via=":NODE_18_12_0" tl="NODE_18" linkIndex="12" dir="r" state="o"/>
-    <connection from="EG_28_2_1" to="EG_14_2_1" fromLane="1" toLane="3" via=":NODE_18_13_0" tl="NODE_18" linkIndex="13" dir="s" state="o"/>
-    <connection from="EG_28_2_1" to="EG_17_23_1" fromLane="1" toLane="1" via=":NODE_18_14_0" tl="NODE_18" linkIndex="14" dir="l" state="o"/>
+    <connection from="EG_28_2_1" to="EG_19_1_1" fromLane="1" toLane="0" via=":NODE_18_12_0" tl="NODE_18" linkIndex="7" dir="r" state="o"/>
+    <connection from="EG_28_2_1" to="EG_14_2_1" fromLane="1" toLane="3" via=":NODE_18_13_0" tl="NODE_18" linkIndex="7" dir="s" state="o"/>
+    <connection from="EG_28_2_1" to="EG_17_23_1" fromLane="1" toLane="1" via=":NODE_18_14_0" tl="NODE_18" linkIndex="8" dir="l" state="o"/>
     <connection from="EG_29_1_1" to="EG_2_1_1" fromLane="0" toLane="0" keepClear="0" via=":NODE_2_0_0" dir="s" state="m"/>
     <connection from="EG_29_1_1" to="EG_35_1_14" fromLane="0" toLane="0" keepClear="0" via=":NODE_2_1_0" dir="L" state="m"/>
     <connection from="EG_29_2_1" to="EG_22_1_1" fromLane="0" toLane="0" via=":NODE_26_2_0" dir="r" state="M"/>
@@ -1761,9 +1757,9 @@
     <connection from="EG_9_1_1" to="EG_9_1_1.28" fromLane="0" toLane="0" via=":J5_0_0" dir="s" state="m"/>
     <connection from="EG_9_1_1.28" to="EG_9_1_23" fromLane="0" toLane="0" via=":NODE_22_0_0" dir="r" state="m"/>
     <connection from="EG_9_1_1.28" to="EG_21_1_1" fromLane="0" toLane="0" via=":NODE_22_1_0" dir="s" state="m" visibility="9.00"/>
-    <connection from="EG_9_1_23" to="EG_14_2_1" fromLane="0" toLane="3" pass="1" via=":NODE_18_9_0" tl="NODE_18" linkIndex="9" dir="r" state="o"/>
-    <connection from="EG_9_1_23" to="EG_17_23_1" fromLane="0" toLane="1" pass="1" via=":NODE_18_10_0" tl="NODE_18" linkIndex="10" dir="s" state="o"/>
-    <connection from="EG_9_1_23" to="EG_28_1_1" fromLane="1" toLane="1" via=":NODE_18_11_0" tl="NODE_18" linkIndex="11" dir="l" state="o"/>
+    <connection from="EG_9_1_23" to="EG_14_2_1" fromLane="0" toLane="3" pass="1" via=":NODE_18_9_0" tl="NODE_18" linkIndex="5" dir="r" state="o"/>
+    <connection from="EG_9_1_23" to="EG_17_23_1" fromLane="0" toLane="1" pass="1" via=":NODE_18_10_0" tl="NODE_18" linkIndex="5" dir="s" state="o"/>
+    <connection from="EG_9_1_23" to="EG_28_1_1" fromLane="1" toLane="1" via=":NODE_18_11_0" tl="NODE_18" linkIndex="6" dir="l" state="o"/>
     <connection from="gneE0" to="EG_4_1_1" fromLane="0" toLane="0" keepClear="0" shape="162.76,227.93,277.97 161.06,228.50,277.98 159.22,228.82,278.01" via=":nd_4_1_1_0_0" dir="s" state="M"/>
     <connection from="gneE1" to="EG_29_2_1" fromLane="0" toLane="0" keepClear="0" shape="84.60,-148.79,267.13 83.06,-149.65,267.02 81.17,-150.59,266.95" via=":nd_29_2_1_0_0" dir="s" state="M"/>
     <connection from="gneE6" to="EG_27_3_1" fromLane="0" toLane="0" via=":nd_27_3_1_0_0" dir="s" state="M"/>
@@ -2042,15 +2038,15 @@
     <connection from=":NODE_18_c1" to=":NODE_18_w1" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from=":NODE_18_c2" to=":NODE_18_w2" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from=":NODE_18_c3" to=":NODE_18_w3" fromLane="0" toLane="0" dir="s" state="M"/>
-    <connection from=":NODE_18_w0" to=":NODE_18_c3" fromLane="0" toLane="0" tl="NODE_18" linkIndex="18" dir="s" state="M"/>
+    <connection from=":NODE_18_w0" to=":NODE_18_c3" fromLane="0" toLane="0" tl="NODE_18" linkIndex="12" dir="s" state="M"/>
     <connection from=":NODE_18_w0" to="EG_28_1_1" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from="EG_17_1_1.17" to=":NODE_18_w0" fromLane="0" toLane="0" dir="s" state="M"/>
-    <connection from=":NODE_18_w1" to=":NODE_18_c0" fromLane="0" toLane="0" tl="NODE_18" linkIndex="15" dir="s" state="M"/>
+    <connection from=":NODE_18_w1" to=":NODE_18_c0" fromLane="0" toLane="0" tl="NODE_18" linkIndex="9" dir="s" state="M"/>
     <connection from=":NODE_18_w1" to="EG_17_23_1" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from="EG_14_1_1" to=":NODE_18_w1" fromLane="0" toLane="0" dir="s" state="M"/>
-    <connection from=":NODE_18_w2" to=":NODE_18_c1" fromLane="0" toLane="0" tl="NODE_18" linkIndex="16" dir="s" state="M"/>
+    <connection from=":NODE_18_w2" to=":NODE_18_c1" fromLane="0" toLane="0" tl="NODE_18" linkIndex="10" dir="s" state="M"/>
     <connection from=":NODE_18_w2" to="EG_14_2_1" fromLane="0" toLane="0" dir="s" state="M"/>
-    <connection from=":NODE_18_w3" to=":NODE_18_c2" fromLane="0" toLane="0" tl="NODE_18" linkIndex="17" dir="s" state="M"/>
+    <connection from=":NODE_18_w3" to=":NODE_18_c2" fromLane="0" toLane="0" tl="NODE_18" linkIndex="11" dir="s" state="M"/>
     <connection from="EG_28_2_1" to=":NODE_18_w3" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from=":NODE_19_c0" to=":NODE_19_w0" fromLane="0" toLane="0" dir="s" state="M"/>
     <connection from="E2" to=":NODE_19_w0" fromLane="0" toLane="0" dir="s" state="M"/>

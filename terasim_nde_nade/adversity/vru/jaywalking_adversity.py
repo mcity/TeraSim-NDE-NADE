@@ -1,5 +1,6 @@
 import addict
 import math
+import numpy as np
 
 from terasim.overlay import traci
 
@@ -36,6 +37,20 @@ def is_pedestrian_moving_forward(p_id, sumonet) -> bool:
         return False
 
 
+def is_pedestrian_crossing(p_id, sumonet) -> bool:
+    """Check if the pedestrian is crossing.
+
+    Args:
+        p_id (str): Pedestrian ID.
+        sumonet (SumoNet): SumoNet object.
+
+    Returns:
+        bool: Flag to indicate if the pedestrian is crossing.
+    """
+    edge_id = traci.person.getRoadID(p_id)
+    return sumonet.getEdge(edge_id).getFunction() == "crossing"
+
+
 class JaywalkingAdversity(AbstractAdversity):
     def __init__(self, location, ego_type, probability, predicted_collision_type):
         """Initialize the JaywalkingAdversity module.
@@ -48,6 +63,7 @@ class JaywalkingAdversity(AbstractAdversity):
         """
         super().__init__(location, ego_type, probability, predicted_collision_type)
         self.sumo_net = None
+        self.closest_vehicle_lane_id = None
 
     def trigger(self, obs_dict) -> bool:
         """Determine when to trigger the JaywalkingAdversity module.
@@ -67,35 +83,29 @@ class JaywalkingAdversity(AbstractAdversity):
         lane_length = traci.lane.getLength(lane_id)
         if lane_position < 3 or lane_position > lane_length - 3:
             return False
+        
+        if is_pedestrian_crossing(ego_id, self.sumo_net):
+            return False
 
-        num_lanes: int = traci.edge.getLaneNumber(edge_id)
-        has_sidewalk: bool = False
-        has_road: bool = False
-        have_separation: bool = False
-
-        for i in range(num_lanes):
-            lane_id = f"{edge_id}_{i}"
-            allowed: list[str] = traci.lane.getAllowed(lane_id)
-            disallowed: list[str] = traci.lane.getDisallowed(lane_id)
-            if i == 0 and "pedestrian" in allowed:
-                has_sidewalk = True
-            if (
-                "passenger" in allowed
-                or "private" in allowed
-                or "pedestrian" in disallowed
-            ):
-                has_road = True
-            if i > 0 and i < num_lanes - 1 and "all" in disallowed:
-                return False
-
-        flag_is_moving_forward = is_pedestrian_moving_forward(ego_id, self.sumo_net)
-
-        return (
-            has_sidewalk
-            and has_road
-            and (not have_separation)
-            and flag_is_moving_forward
+        # find the most closest major lane which allows vehicles 
+        lane_id = None
+        ego_pose = obs_dict["ego"]["position"]
+        neighbor_lanes = self.sumo_net.getNeighboringLanes(
+            ego_pose[0],
+            ego_pose[1],
+            r=10,
         )
+        sorted_lanes = sorted(
+            neighbor_lanes,
+            key=lambda lane: lane[1]
+        )
+        for lane_info in sorted_lanes:
+            lane = lane_info[0]
+            if lane.allows("passenger") or lane.allows("truck"):
+                self.closest_vehicle_lane_id = lane.getID()
+                return True
+        
+        return False
 
     def derive_command(self, obs_dict) -> addict.Dict:
         """Derive the adversarial command based on the observation.
@@ -108,29 +118,64 @@ class JaywalkingAdversity(AbstractAdversity):
         """
         if self._probability > 0 and self.trigger(obs_dict):
             ego_id = obs_dict["ego"]["vru_id"]
-            current_angle = traci.person.getAngle(ego_id)
-            future_angle = (current_angle - 90) % 360  # 左转
-            edge_id = traci.person.getRoadID(ego_id)
-            total_width: float = sum(
-                [lane.getWidth() for lane in self.sumo_net.getEdge(edge_id).getLanes()]
+            
+            ego_pose = obs_dict["ego"]["position"]
+            target_pose = None
+            # determine the ending pose, choosing from the closest lane
+            closest_vehicle_lane_shape = traci.lane.getShape(self.closest_vehicle_lane_id)
+            for i in range(len(closest_vehicle_lane_shape) - 1):
+                ego_pose_array = np.array(ego_pose)
+                s_pose = np.array(closest_vehicle_lane_shape[i])
+                e_pose = np.array(closest_vehicle_lane_shape[i + 1])
+                s2e = e_pose - s_pose
+                s2ego = ego_pose_array - s_pose
+                projection_length = np.dot(s2ego, s2e) / np.dot(s2e, s2e)
+                projection = s_pose + projection_length * s2e
+
+                if 0 <= projection_length <= 1:
+                    # find the closest point on the lane
+                    target_pose = projection
+                    break
+            
+            if target_pose is None:
+                ego2start = np.linalg.norm(
+                    np.array(ego_pose) - np.array(closest_vehicle_lane_shape[0])
+                )
+                ego2end = np.linalg.norm(
+                    np.array(ego_pose) - np.array(closest_vehicle_lane_shape[-1])
+                )
+                if ego2start < ego2end:
+                    target_pose = closest_vehicle_lane_shape[0]
+                else:
+                    target_pose = closest_vehicle_lane_shape[-1]
+            future_angle = math.degrees(
+                math.atan2(
+                    target_pose[0] - ego_pose[0],
+                    target_pose[1] - ego_pose[1],
+                )
             )
+            # calculate distance to the target pose
+            total_length = np.linalg.norm(
+                np.array(ego_pose) - np.array(target_pose)
+            )
+            # calculate the speed of the ego vehicle
             current_speed = traci.person.getSpeed(ego_id)
             if (
                 current_speed < 1.0
             ):  # if stop now, then the vru will accelerate to the max speed to cross the road
-                speed = traci.person.getMaxSpeed(ego_id)
+                speed = traci.person.getMaxSpeed(ego_id) * 2
             else:
-                speed = current_speed
-
-            duration = round(total_width / speed, 1)
+                speed = current_speed * 2
+            
+            total_length = max(total_length, speed * 2.5)
+            duration = round(total_length / speed, 1)
 
             trajectory = []
-            current_pos = traci.person.getPosition(ego_id)
             distance = speed * (traci.simulation.getDeltaT())
             radians = math.radians(future_angle)
             new_pos = (
-                current_pos[0] + distance * math.sin(radians),
-                current_pos[1] + distance * math.cos(radians),
+                ego_pose[0] + distance * math.sin(radians),
+                ego_pose[1] + distance * math.cos(radians),
             )
             current_time = traci.simulation.getTime()
             dt = traci.simulation.getDeltaT()
