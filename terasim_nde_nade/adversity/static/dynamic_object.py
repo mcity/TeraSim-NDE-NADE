@@ -18,6 +18,8 @@ class DynamicObjectAdversity(StalledObjectAdversity):
         traci.vehicletype.setParameter(self._object_type, "lcCooperative", "0.0")
         traci.vehicletype.setParameter(self._object_type, "lcSpeedGain", "100.0")
         traci.vehicletype.setParameter(self._object_type, "lcKeepRight", "0.0")
+        traci.vehicle.setParameter(vehicle_id, "device.bluelight.reactiondist", str(90))
+        traci.vehicle.setMaxSpeed(vehicle_id,33)
 
 
 
@@ -28,7 +30,7 @@ class DynamicObjectAdversity(StalledObjectAdversity):
         if self.stalled_object_id not in traci.vehicle.getIDList():
             traci.vehicle.add(self.stalled_object_id, routeID="dynamic_route", typeID=self._object_type)
         else:
-            traci.vehicle.setRouteID(self.stalled_object_id, "dynamic_route")
+            traci.vehicle.setRouteID(self.stalled_object_id, "cav_route") # "cav_route" "dynamic_route"
         traci.vehicle.setSpeed(self.stalled_object_id, 10) 
 
 

@@ -225,11 +225,12 @@ class NADEWithAV(NADE):
             tmp_terasim_controlled_vehicle_ids = list(cav_context_subscription_results.keys())
             # also exclude the static adversarial vehicles
             static_adversarial_object_id_list = []
-            if self.static_adversity is not None and self.static_adversity.adversity is not None:
-                for object_id in self.static_adversity.adversity._static_adversarial_object_id_list:
-                    static_adversarial_object_id_list.append(object_id)
-                    if object_id in tmp_terasim_controlled_vehicle_ids:
-                        tmp_terasim_controlled_vehicle_ids.remove(object_id)
+            if self.static_adversity is not None and self.static_adversity.adversities is not None:
+                for adversity in self.static_adversity.adversities:
+                    for object_id in adversity._static_adversarial_object_id_list:
+                        static_adversarial_object_id_list.append(object_id)
+                        if object_id in tmp_terasim_controlled_vehicle_ids:
+                            tmp_terasim_controlled_vehicle_ids.remove(object_id)
             self.simulator.ctx = {
                 "terasim_controlled_vehicle_ids": tmp_terasim_controlled_vehicle_ids,
                 "static_adversarial_object_id_list": static_adversarial_object_id_list,
@@ -491,7 +492,8 @@ class NADEWithAV(NADE):
         colliding_vehicles = self.simulator.get_colliding_vehicles()
         self._vehicle_in_env_distance("after")
         collision_objects = traci.simulation.getCollisions()
-        if num_colliding_vehicles >= 2:
+        collision_object_ids = traci.simulation.getCollidingVehiclesIDList()
+        if num_colliding_vehicles >= 2 and "CAV" in collision_object_ids:
             veh_1_id = colliding_vehicles[0]
             veh_2_id = colliding_vehicles[1]
             self.record.update(
@@ -507,7 +509,7 @@ class NADEWithAV(NADE):
                 }
             )
             return False
-        elif num_colliding_vehicles == 1: # collision happens between a vehicle and a vru.
+        elif num_colliding_vehicles == 1 and "CAV" in collision_object_ids: # collision happens between a vehicle and a vru.
             veh_1_id = colliding_vehicles[0]
             if veh_1_id == collision_objects[0].collider:
                 vru_1_id = collision_objects[0].victim

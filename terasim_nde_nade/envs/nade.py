@@ -106,7 +106,7 @@ class NADE(BaseEnv):
             dict: Environment observation.
             bool: Flag to indicate if the simulation should continue.
         """  
-        
+
         _, env_command_information = super().make_decisions(ctx)
         env_observation = self.get_env_observation(ctx) # get the observation of the environment
         (
@@ -115,6 +115,50 @@ class NADE(BaseEnv):
             should_continue_simulation_flag,
         ) = self.executeMove(ctx, env_command_information, env_observation) # move the simulation half step forward and update useful information
         return env_command_information, env_observation, should_continue_simulation_flag
+    
+    def respond_to_emergency_vehicle(self):
+        """
+        Respond to the emergency vehicle.
+        """
+        # get all vehicles that has the vclass emergency
+        emergency_vehicle_list = traci.vehicle.getIDList()
+        for vehicle_id in emergency_vehicle_list:
+            if traci.vehicle.getVehicleClass(vehicle_id) == "emergency":
+                # get the lane id of the vehicle
+                edge_id = traci.vehicle.getRoadID(vehicle_id)
+                # get the lane position of the vehicle
+                emergency_lane_position = traci.vehicle.getLanePosition(vehicle_id)
+                emergency_lane_index = traci.vehicle.getLaneIndex(vehicle_id)
+                # get all vehicles that are on the same edge
+                same_edge_vehicle_list = traci.edge.getLastStepVehicleIDs(edge_id)
+                for same_edge_vehicle_id in same_edge_vehicle_list:
+                    same_edge_vehicle_lane_position = traci.vehicle.getLanePosition(same_edge_vehicle_id)
+                    same_edge_vehicle_lane_index = traci.vehicle.getLaneIndex(same_edge_vehicle_id)
+                    if emergency_lane_position < same_edge_vehicle_lane_position: # the vehicle is in front of the emergency vehicle
+                        # Set lane change parameters to be very cooperative for emergency vehicle
+                        traci.vehicle.setLateralAlignment(same_edge_vehicle_id, "center")
+                        # traci.vehicle.setLaneChangeMode(same_edge_vehicle_id, 0b000000000000) # Disable all autonomous changes
+                        traci.vehicle.setParameter(same_edge_vehicle_id, "lcSpeedGain", "0") # No speed gain from lane changes  
+                        traci.vehicle.setParameter(same_edge_vehicle_id, "lcCooperative", "1.0") # Maximum cooperation
+                        traci.vehicle.setParameter(same_edge_vehicle_id, "lcKeepRight", "0") # Disable keep right
+                        if same_edge_vehicle_lane_index == emergency_lane_index:
+                            can_change_left = traci.vehicle.couldChangeLane(same_edge_vehicle_id, 1) 
+                            can_change_right = traci.vehicle.couldChangeLane(same_edge_vehicle_id, -1)
+                            if can_change_right:
+                                traci.vehicle.changeLaneRelative(same_edge_vehicle_id, -1, 1)
+                            elif can_change_left:
+                                traci.vehicle.changeLaneRelative(same_edge_vehicle_id, 1, 1)
+                            else:
+                                # make the vehicle change sublane to the center at next time step
+                                offset = traci.vehicle.getLateralLanePosition(same_edge_vehicle_id)
+                                traci.vehicle.changeSublane(same_edge_vehicle_id, -offset)
+                        elif same_edge_vehicle_lane_index > emergency_lane_index: # the vehicle is in the left lane of the emergency vehicle
+                            traci.vehicle.changeLaneRelative(same_edge_vehicle_id, 1, 1) # change to the left lane
+                        else: # the vehicle is in the right lane of the emergency vehicle
+                            traci.vehicle.changeLaneRelative(same_edge_vehicle_id, -1, 1) # change to the right lane
+            else:
+                traci.vehicle.setLateralAlignment(vehicle_id, "center")
+        return True
     
     @profile
     def NADE_decision_and_control(self, env_command_information, env_observation):
@@ -175,7 +219,7 @@ class NADE(BaseEnv):
         
         # NADE Step 2. Make NADE decision, includes the modification of NDD distribution according to avoidability, and excute the control commands
         self.NADE_decision_and_control(env_command_information, env_observation)
-
+        self.respond_to_emergency_vehicle()
         return should_continue_simulation_flag
 
     def on_stop(self, ctx) -> bool:

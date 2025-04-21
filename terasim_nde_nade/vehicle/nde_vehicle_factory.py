@@ -5,7 +5,8 @@ from .conflict_generation_model import ConflictGenerationModel
 from .nde_controller import NDEController
 from .nde_decision_model import NDEDecisionModel
 from .nde_ego_sensor import NDEEgoSensor
-
+from terasim.overlay import traci
+from .emergency_vehicle_model import EmergencyVehicleModel
 
 class NDEVehicleFactory(VehicleFactory):
     def __init__(self, cfg=None):
@@ -32,6 +33,8 @@ class NDEVehicleFactory(VehicleFactory):
                 reroute=False,
                 dynamically_change_vtype=False,
             )
+        elif traci.vehicle.getVehicleClass(veh_id) == "emergency":
+            decision_model = EmergencyVehicleModel()
         else:
             decision_model = ConflictGenerationModel(
                 MOBIL_lc_flag=True,

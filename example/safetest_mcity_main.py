@@ -50,7 +50,7 @@ def main(cfg: DictConfig) -> None:
         log_dir=base_dir,
         warmup_time_lb=599,
         warmup_time_ub=600 ,
-        run_time=200,
+        run_time=1200,
         configuration=cfg,
     )
 
@@ -68,7 +68,9 @@ def main(cfg: DictConfig) -> None:
         gui_flag=True,
         output_path=base_dir,
         sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
-    )
+        additional_sumo_args=["--device.bluelight.explicit","true"],
+        additional_sumo_args=["--device.bluelight.explicit","true"],
+    ) 
     sim.bind_env(env)
 
     terasim_logger = logger.bind(name="terasim_nde_nade")

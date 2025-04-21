@@ -116,10 +116,7 @@ class NDE(EnvTemplateComplete):
         """
         # Move half step forward, update all vehicles and vrus (some of them may leave or enter the simulation)
         for veh_id in traci.vehicle.getIDList():
-            if "static_adversarial_object_id_list"in ctx and veh_id in ctx["static_adversarial_object_id_list"]:
-                traci.vehicle.setSpeed(veh_id, 0)
-            else:
-                traci.vehicle.setSpeed(veh_id, -1)
+            traci.vehicle.setSpeed(veh_id, -1)
         traci.simulation.executeMove()
         self._maintain_all_vehicles(ctx)
         self._maintain_all_vulnerable_road_users(ctx)

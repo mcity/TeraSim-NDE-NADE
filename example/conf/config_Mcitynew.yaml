@@ -160,7 +160,7 @@ adversity_cfg:
       _convert_: 'all'
       lane_id: "EG_35_1_14_0" # "379459612#1_0"
       lane_position: 0
-      start_time: 601
+      start_time: 580
       end_time: 2000
       object_type: "police" 
 

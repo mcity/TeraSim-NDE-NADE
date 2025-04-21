@@ -8,6 +8,7 @@
         <gui-settings-file value="gui-settings.xml"/>
         <additional-files value="mcity.add.xml"/>
         <step-length value = "0.1"/>
+        <scale value="0.5"/>
     </input>
 
     <time>
