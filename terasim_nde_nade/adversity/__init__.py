@@ -2,6 +2,7 @@ from .static import (
     CollisionAdversity,
     ConstructionAdversity,
     StalledObjectAdversity,
+    DynamicObjectAdversity,
 )
 from .vehicles import (
     HeadonAdversity,
@@ -20,6 +21,7 @@ __all__ = [
     "CollisionAdversity",
     "ConstructionAdversity",
     "StalledObjectAdversity",
+    "DynamicObjectAdversity",
     "HeadonAdversity",
     "LanechangeAbortAdversity",
     "LanechangeAdversity",
