@@ -2,7 +2,7 @@ import abc
 from abc import abstractmethod
 import addict
 from typing import Any, Dict
-
+import uuid
 
 class AbstractAdversity(abc.ABC):
     def __new__(cls, *args: Any, **kwargs: Any):
@@ -66,6 +66,8 @@ class AbstractStaticAdversity(abc.ABC):
         self,
         lane_id,
         lane_position=-1,
+        start_time=0,
+        end_time=-1,
         object_type="",
         other_settings=None
     ):
@@ -77,11 +79,26 @@ class AbstractStaticAdversity(abc.ABC):
             object_type (str): Type of the object. Default is an empty string.
             other_settings (dict): Other settings for the adversarial event. Default is None.
         """
+        self._adversity_id = uuid.uuid4()
         self._lane_id = lane_id
         self._lane_position = lane_position
         self._object_type = object_type
         self._static_adversarial_object_id_list = []
         self._other_settings = other_settings
+        self._start_time = start_time
+        self._end_time = end_time
+
+    @property
+    def start_time(self):
+        return self._start_time
+
+    @property
+    def end_time(self):
+        return self._end_time
+    
+    @property
+    def adversity_id(self):
+        return self._adversity_id
 
     @abstractmethod
     def is_effective(self) -> bool:
@@ -93,12 +110,13 @@ class AbstractStaticAdversity(abc.ABC):
         pass
 
     @abstractmethod
-    def initialize(self):
+    def initialize(self, time: float):
         """Initialize the adversarial event.
         """
         pass
 
-    def update(self):
+    @abstractmethod
+    def update(self, time: float):
         """Update the adversarial event.
         """
         pass

@@ -49,7 +49,7 @@ class CollisionAdversity(AbstractStaticAdversity):
             return False
         return True
     
-    def initialize(self):
+    def initialize(self, time: float):
         """Initialize the adversarial event.
         """
         assert self.is_effective(), "Adversarial event is not effective."
@@ -159,21 +159,17 @@ class CollisionAdversity(AbstractStaticAdversity):
         self.object2_lane_index = object2_lane_index
         self.object2_position = object2_position
         self.object2_angle = object2_angle
-
-        self._duration=0
         self._is_active = True
 
-    def update(self):
-        if "duration" in self._other_settings:
-            self._duration += traci.simulation.getDeltaT()
-            if self._is_active and self._duration >= self._other_settings["duration"]:
-                try:
-                    traci.vehicle.remove(self.object1_id)
-                    traci.vehicle.remove(self.object2_id)
-                except:
-                    logger.warning(f"Failed to remove the vehicle {self.object1_id} or {self.object2_id}.")
-                self._is_active = False
-        if self._is_active:
+    def update(self, time: float):
+        if self._is_active and self.end_time != -1 and time >= self.end_time:
+            try:
+                traci.vehicle.remove(self.object1_id)
+                traci.vehicle.remove(self.object2_id)
+            except:
+                logger.warning(f"Failed to remove the vehicle {self.object1_id} or {self.object2_id}.")
+            self._is_active = False
+        if self._is_active: # maintain the position of the vehicles
             traci.vehicle.moveToXY(
                 self.object1_id, 
                 self.object1_edge_id, 

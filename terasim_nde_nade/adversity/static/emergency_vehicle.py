@@ -49,7 +49,7 @@ class EmergencyVehicleAdversity(AbstractStaticAdversity):
             return False
         return True
     
-    def initialize(self):
+    def initialize(self, time: float):
         """Initialize the adversarial event.
         """
         assert self.is_effective(), "Adversarial event is not effective."

@@ -40,7 +40,7 @@ for log_file, log_level in zip(log_files, log_levels):
     )
 
 
-@hydra.main(config_path="conf", config_name="config")
+@hydra.main(config_path="conf", config_name="config_Mcitynew")
 def main(cfg: DictConfig) -> None:
     env = NADE(
         vehicle_factory=NDEVehicleFactory(cfg=cfg),
@@ -55,11 +55,17 @@ def main(cfg: DictConfig) -> None:
     )
 
     dir_path = Path(__file__).parent
-    sim = Simulator(
-        sumo_net_file_path=dir_path / "maps" / "Mcity_safetest" / "mcity.net.xml",
-        sumo_config_file_path=dir_path / "maps" / "Mcity_safetest" / "mcity.sumocfg",
+    sim = Simulator( 
+        sumo_net_file_path=dir_path
+        / "maps"
+        / "Mcity_safetest_complete_carla"
+        / "mcity.net.xml",
+        sumo_config_file_path=dir_path
+        / "maps"
+        / "Mcity_safetest_complete_carla"
+        / "mcity.sumocfg",
         num_tries=10,
-        gui_flag=False,
+        gui_flag=True,
         output_path=base_dir,
         sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
     )

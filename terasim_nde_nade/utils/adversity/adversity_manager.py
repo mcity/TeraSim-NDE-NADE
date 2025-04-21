@@ -76,23 +76,22 @@ class StaticAdversityManager:
             config (dict): Configuration of the adversities.
         """
         self.config = config
-        self.adversity = None
+        self.adversities = []
         if self.config is not None:
-            adversities = build_static_adversities(self.config)
-            if len(adversities) > 0:
-                self.adversity = random.choice(adversities)
+            self.adversities = build_static_adversities(self.config)
 
-    def initialize(self):
-        """Initialize the adversarial events.
-        """
-        if self.adversity is not None:
-            self.adversity.initialize()
-        return
+        self.initialize_status = {}
+        for adversity in self.adversities:
+            self.initialize_status[adversity.adversity_id] = False
     
-    def update(self):
+    def update(self, time):
         """Update the adversarial events.
         """
-        if self.adversity is not None:
-            self.adversity.update()
+        for adversity in self.adversities:
+            if not self.initialize_status[adversity.adversity_id] and time >= adversity.start_time:
+                adversity.initialize(time=time)
+                self.initialize_status[adversity.adversity_id] = True
+            elif self.initialize_status[adversity.adversity_id]:
+                adversity.update(time=time)
         return
         

@@ -58,7 +58,7 @@ class NADE(BaseEnv):
         # initialize the static adversities
         if "adversity_cfg" in self.configuration and "static" in self.configuration.adversity_cfg:
             self.static_adversity = StaticAdversityManager(self.configuration.adversity_cfg.static)
-            self.static_adversity.initialize()
+            # self.static_adversity.initialize(time=utils.get_time())
         else:
             self.static_adversity = None
         on_start_result = super().on_start(ctx)
@@ -73,7 +73,7 @@ class NADE(BaseEnv):
             while True:
                 traci.simulationStep()
                 if self.static_adversity is not None:
-                    self.static_adversity.update()
+                    self.static_adversity.update(time=utils.get_time())
                 if traci.simulation.getTime() > warmup_time:
                     break
             if traci.vehicle.getIDCount() > 2500:
@@ -89,7 +89,7 @@ class NADE(BaseEnv):
     def preparation(self):
         """Prepare for the NADE step."""
         if self.static_adversity is not None:
-            self.static_adversity.update()
+            self.static_adversity.update(time=utils.get_time())
         self.distance_info.after.update(self.update_distance())
         self.record.final_time = utils.get_time()
         self.cache_history_tls_data()
