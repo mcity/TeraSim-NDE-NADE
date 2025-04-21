@@ -158,9 +158,9 @@ adversity_cfg:
     dynamic_object:
       _target_: terasim_nde_nade.adversity.DynamicObjectAdversity
       _convert_: 'all'
-      lane_id: "EG_1_3_1.61_0" # "379459612#1_0"
-      lane_position: 20
-      start_time: 900
+      lane_id: "EG_35_1_14_0" # "379459612#1_0"
+      lane_position: 0
+      start_time: 601
       end_time: 2000
       object_type: "police" 
 

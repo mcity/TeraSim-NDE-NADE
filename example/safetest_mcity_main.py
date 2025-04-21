@@ -48,9 +48,9 @@ def main(cfg: DictConfig) -> None:
         info_extractor=InfoExtractor,
         log_flag=True,
         log_dir=base_dir,
-        warmup_time_lb=900,
-        warmup_time_ub=1200,
-        run_time=30,
+        warmup_time_lb=599,
+        warmup_time_ub=600 ,
+        run_time=200,
         configuration=cfg,
     )
 
