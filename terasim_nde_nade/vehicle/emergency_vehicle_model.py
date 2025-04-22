@@ -25,7 +25,7 @@ class EmergencyVehicleModel(NDEDecisionModel):
             dict: Dictionary containing the normal and adversarial maneuvers.
         """
         vehicle_id = obs_dict["ego"]["veh_id"]
-        traci.vehicle.setSpeedMode(vehicle_id, 0)
+        traci.vehicle.setSpeedMode(vehicle_id, 96)
         traci.vehicle.setLaneChangeMode(vehicle_id, 0)
         traci.vehicle.setSpeedFactor(vehicle_id, 1.5)
         traci.vehicle.setParameter(vehicle_id, "device.bluelight.reactiondist", str(90))

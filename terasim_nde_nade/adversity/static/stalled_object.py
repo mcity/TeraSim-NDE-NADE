@@ -28,6 +28,10 @@ def create_emergency_police_type(subclass="emergency"):
         # traci.vehicletype.setColor(custom_type_id, (0, 0, 255, 255))
         traci.vehicletype.setSpeedFactor(custom_type_id, 1.2) 
         traci.vehicletype.setParameter(custom_type_id, "has.bluelight.device", "true")
+        traci.vehicletype.setParameter(custom_type_id, "lcStrategic", "100.0")
+        traci.vehicletype.setParameter(custom_type_id, "lcCooperative", "0.0")
+        traci.vehicletype.setParameter(custom_type_id, "lcSpeedGain", "100.0")
+        traci.vehicletype.setParameter(custom_type_id, "lcKeepRight", "0.0")
     return custom_type_id
 
 

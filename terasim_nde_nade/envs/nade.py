@@ -219,9 +219,31 @@ class NADE(BaseEnv):
         
         # NADE Step 2. Make NADE decision, includes the modification of NDD distribution according to avoidability, and excute the control commands
         self.NADE_decision_and_control(env_command_information, env_observation)
+        self.try_insert_emergency_vehicle()
         self.respond_to_emergency_vehicle()
         return should_continue_simulation_flag
 
+    def try_insert_emergency_vehicle(self):
+        """
+        Try to insert an emergency vehicle into the simulation.
+        """
+        if "CAV" in traci.vehicle.getIDList():
+            if traci.vehicle.getLaneID("CAV") == "EG_16_23_1_1" and traci.vehicle.getNextTLS("CAV")[0][3] == 'G' and traci.vehicle.getLeader("CAV") is None and "police_1" not in traci.vehicle.getIDList():
+                from terasim_nde_nade.adversity.static.stalled_object import create_emergency_police_type
+                emergency_vehicle_typeid = create_emergency_police_type("police")
+                emergency_vehicle_id = "police_1"
+                emergency_vehicle_route_name = "emergency_vehicle_route"
+                emergency_vehicle_route = ["EG_12_1_1", "EG_12_1_2", "EG_26_12_1"]
+                traci.route.add(emergency_vehicle_route_name, emergency_vehicle_route)
+                traci.vehicle.add(emergency_vehicle_id, routeID=emergency_vehicle_route_name, typeID=emergency_vehicle_typeid)
+                traci.vehicle.setRouteID(emergency_vehicle_id, emergency_vehicle_route_name)
+                traci.vehicle.setSpeed(emergency_vehicle_id, 10)
+                traci.vehicle.setParameter(emergency_vehicle_id, "device.bluelight.reactiondist", str(90))
+                traci.vehicle.setMaxSpeed(emergency_vehicle_id, 33)
+                traci.vehicle.setSpeedMode(emergency_vehicle_id, 96)
+                traci.vehicle.setLaneChangeMode(emergency_vehicle_id, 0)
+                traci.vehicle.setSpeedFactor(emergency_vehicle_id, 1.5)
+                
     def on_stop(self, ctx) -> bool:
         """Stop the NADE.
 
