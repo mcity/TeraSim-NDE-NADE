@@ -69,7 +69,6 @@ def main(cfg: DictConfig) -> None:
         output_path=base_dir,
         sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
         additional_sumo_args=["--device.bluelight.explicit","true"],
-        additional_sumo_args=["--device.bluelight.explicit","true"],
     ) 
     sim.bind_env(env)
 

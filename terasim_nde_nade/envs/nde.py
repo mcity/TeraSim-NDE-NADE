@@ -256,6 +256,7 @@ class NDE(EnvTemplateComplete):
         Returns:
             bool: Flag to indicate if the simulation should continue.
         """
+        return True
         num_colliding_vehicles = self.simulator.get_colliding_vehicle_number()
         self._vehicle_in_env_distance("after")
         if num_colliding_vehicles >= 2: # collision happens between two vehicles.

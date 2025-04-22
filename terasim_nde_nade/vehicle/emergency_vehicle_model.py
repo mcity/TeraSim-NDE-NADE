@@ -28,10 +28,6 @@ class EmergencyVehicleModel(NDEDecisionModel):
         traci.vehicle.setSpeedMode(vehicle_id, 0)
         traci.vehicle.setLaneChangeMode(vehicle_id, 0)
         traci.vehicle.setSpeedFactor(vehicle_id, 1.5)
-        traci.vehicletype.setParameter(self._object_type, "lcStrategic", "100.0")
-        traci.vehicletype.setParameter(self._object_type, "lcCooperative", "0.0")
-        traci.vehicletype.setParameter(self._object_type, "lcSpeedGain", "100.0")
-        traci.vehicletype.setParameter(self._object_type, "lcKeepRight", "0.0")
         traci.vehicle.setParameter(vehicle_id, "device.bluelight.reactiondist", str(90))
         traci.vehicle.setMaxSpeed(vehicle_id,33)
 
