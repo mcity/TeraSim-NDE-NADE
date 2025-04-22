@@ -217,7 +217,7 @@ class NDEController(AgentController):
         )
         if first_step:  # only execute lane change command once
             indexOffset = 1 if control_command.command_type == CommandType.LEFT else -1
-            traci.vehicle.changeLaneRelative(veh_id, indexOffset, utils.get_step_size())
+            traci.vehicle.changeLaneRelative(veh_id, indexOffset, control_command.duration)
 
     @staticmethod
     def execute_acceleration_command(veh_id, control_command, obs_dict):
