@@ -77,12 +77,7 @@ class JaywalkingAdversity(AbstractAdversity):
         self._adversarial_command_dict = addict.Dict()
 
         ego_id = obs_dict["ego"]["vru_id"]
-        edge_id = traci.person.getRoadID(ego_id)
         lane_id = traci.person.getLaneID(ego_id)
-        lane_position = traci.person.getLanePosition(ego_id)
-        lane_length = traci.lane.getLength(lane_id)
-        if lane_position < 3 or lane_position > lane_length - 3:
-            return False
         
         if is_pedestrian_crossing(ego_id, self.sumo_net):
             return False
@@ -163,11 +158,11 @@ class JaywalkingAdversity(AbstractAdversity):
             if (
                 current_speed < 1.0
             ):  # if stop now, then the vru will accelerate to the max speed to cross the road
-                speed = traci.person.getMaxSpeed(ego_id) * 2
+                speed = traci.person.getMaxSpeed(ego_id)
             else:
-                speed = current_speed * 2
+                speed = current_speed
             
-            total_length = max(total_length, speed * 2.5)
+            total_length = max(total_length, speed * 10)
             duration = round(total_length / speed, 1)
 
             trajectory = []
@@ -195,6 +190,7 @@ class JaywalkingAdversity(AbstractAdversity):
                 future_trajectory=trajectory,
                 duration=duration,
                 prob=self._probability,
+                time_resolution=dt,
                 keep_route_mode=6,
             )
             adversarial_command.info.update(
@@ -203,7 +199,7 @@ class JaywalkingAdversity(AbstractAdversity):
                     "angle": future_angle,
                     "mode": "adversarial",
                     "adversarial_mode": "Jaywalking",
-                    "time_resolution": 0.1,
+                    "time_resolution": dt,
                     "predicted_collision_type": self._predicted_collision_type,
                     "location": self._location,
                 }

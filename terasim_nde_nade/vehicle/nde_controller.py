@@ -289,10 +289,17 @@ def interpolate_control_command(control_command, obs_dict):
             [i*control_command.time_resolution for i in range(len(trajectory_array))]
         )
         # 1.3 interpolate the trajectory
-        interpolated_trajecotory = interpolate_future_trajectory(trajectory_array, traci.simulation.getDeltaT())
+        dt = traci.simulation.getDeltaT()
+        interpolated_trajecotory = interpolate_future_trajectory(trajectory_array, dt)
         # 1.4 update the time of the trajectory
         interpolated_trajecotory[:, -1] += traci.simulation.getTime()
         control_command.future_trajectory = interpolated_trajecotory[1:]  # TODO: Angle cannot be interpolated
+        # 1.5 update the time resolution of the trajectory
+        control_command.time_resolution = dt
+        # 1.6. clip the trajectory based on the control command duration
+        control_command.future_trajectory = control_command.future_trajectory[
+            : int(control_command.duration / control_command.time_resolution)
+        ]
         return control_command
     else:
         return control_command

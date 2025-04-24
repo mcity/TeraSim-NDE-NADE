@@ -473,7 +473,7 @@ class NADE(BaseEnv):
                     },
                 }
             )
-            if utils.get_time() - self.latest_IS_time >= 2.9:
+            if utils.get_time() - self.latest_IS_time >= 5.5:
                 self.allow_NADE_IS = True
 
         return (
