@@ -17,6 +17,12 @@ from ..agents import (
 )
 from ..base import CommandType
 
+predict_steps = 10 # * duration seconds
+vehicle_vehicle_maneuver_challenge_step = 5 # * duration seconds
+vru_to_vehicle_maneuver_challenge_step = 10 # * duration seconds
+vehicle_vru_maneuver_challenge_step = 10 # * durationseconds
+predict_time_resolution = 0.5 # seconds
+
 
 def predict_future_distance_velocity_vectorized(
     velocity: float,
@@ -422,15 +428,22 @@ def predict_future_trajectory_vehicle(
 
 
 def predict_future_trajectory_vulnerable_road_user(
-    modality, vru_info, control_command_dict, current_time
+    modality,
+    vru_info,
+    control_command_dict,
+    current_time,
+    time_horizon_step: int = 5,
+    time_resolution: float = 0.5,
 ):
-    """Predict future trajectory of vulnerable road user in 0.5s time resolution.
+    """Predict future trajectory of vulnerable road user with configurable time horizon and resolution.
 
     Args:
         modality (str): Modality of the control command.
         vru_info (dict): Dictionary of vehicle information.
         control_command_dict (dict): Dictionary of control command.
         current_time (float): Current simulation time.
+        time_horizon_step (int): Number of time steps to predict.
+        time_resolution (float): Time resolution for prediction.
 
     Returns:
         np.array: Future trajectory array.
@@ -438,7 +451,9 @@ def predict_future_trajectory_vulnerable_road_user(
     if modality == "normal":
         return None
     elif modality == "adversarial":
-        assert control_command_dict[modality].command_type == CommandType.TRAJECTORY
+        cmd = control_command_dict[modality]
+        assert cmd.command_type == CommandType.TRAJECTORY
+        # initialize with current state at time 0
         future_trajectory_array = [
             [
                 vru_info.position[0],
@@ -448,24 +463,26 @@ def predict_future_trajectory_vulnerable_road_user(
                 0,
             ]
         ]
-        index_add = 5
-        for i in range(5):
-            if (i + 1) * index_add - 1 >= len(
-                control_command_dict[modality].future_trajectory
-            ) - 1:
-                p = control_command_dict[modality].future_trajectory[-1]
+        # determine original trajectory resolution from control command
+        orig_dt = getattr(cmd, "time_resolution", 0.1)
+        # compute index step based on desired resolution
+        index_step = max(1, int(time_resolution / orig_dt)) if orig_dt else 1
+        orig_traj = cmd.future_trajectory
+        # sample points based on time_horizon_step and time_resolution
+        for i in range(time_horizon_step):
+            idx = min((i + 1) * index_step - 1, len(orig_traj) - 1)
+            if idx >= len(orig_traj) - 1:
+                p = orig_traj[-1]
                 print("reach the end")
             else:
-                p = control_command_dict[modality].future_trajectory[
-                    (i + 1) * index_add - 1
-                ]
+                p = orig_traj[idx]
             future_trajectory_array.append(
                 [
                     p[0],
                     p[1],
                     p[2],
                     p[3],
-                    (i + 1) * index_add * 0.1,
+                    (i + 1) * time_resolution,
                 ]
             )
         future_trajectory_array = np.array(future_trajectory_array)
@@ -506,8 +523,8 @@ def predict_environment_future_trajectory(env_command_information, env_observati
                 obs_dict,
                 ndd_command_distribution[modality],
                 sumo_net,
-                time_horizon_step=5,
-                time_resolution=0.5,
+                time_horizon_step=predict_steps,
+                time_resolution=predict_time_resolution,
                 interpolate_resolution=0.5,
                 current_time=current_time,
                 veh_info=veh_info,
@@ -522,7 +539,12 @@ def predict_environment_future_trajectory(env_command_information, env_observati
         vru_info = get_vulnerbale_road_user_info(vru_id, obs_dict, sumo_net)
         trajectory_dict = {
             modality: predict_future_trajectory_vulnerable_road_user(
-                modality, vru_info, ndd_command_distribution, current_time
+                modality,
+                vru_info,
+                ndd_command_distribution,
+                current_time,
+                time_horizon_step=predict_steps,
+                time_resolution=predict_time_resolution,
             )
             for modality in ndd_command_distribution
         }

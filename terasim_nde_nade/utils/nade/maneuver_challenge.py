@@ -8,6 +8,13 @@ from .tools import avoidable_maneuver_challenge_hook
 from ..collision import check_trajectory_intersection
 
 
+predict_steps = 10 # * duration seconds
+vehicle_vehicle_maneuver_challenge_step = 5 # * duration seconds
+vru_to_vehicle_maneuver_challenge_step = 10 # * duration seconds
+vehicle_vru_maneuver_challenge_step = 10 # * durationseconds
+predict_time_resolution = 0.5 # seconds
+
+
 def is_link_intersect(veh1_obs, veh2_obs):
     """Check if the next link of the two vehicles are intersected.
 
@@ -38,6 +45,11 @@ def is_link_intersect(veh1_obs, veh2_obs):
         return True
     return False
 
+def clip_trajectory_to_maneuver_challenge_step(trajectory, maneuver_challenge_step):
+    """Clip the trajectory to the maneuver challenge step.
+    """
+    return trajectory[:maneuver_challenge_step+1]
+
 def get_maneuver_challenge(
     adversarial_agent_id,
     adversarial_agent_future,
@@ -50,6 +62,7 @@ def get_maneuver_challenge(
     highlight_flag=True,
     buffer=0,
     centered_agent_set=set(),
+    maneuver_challenge_step=vehicle_vehicle_maneuver_challenge_step,
 ):
     """Get the challenge for the adversarial maneuver.
 
@@ -77,13 +90,20 @@ def get_maneuver_challenge(
         }
     else:
         filtered_normal_agent_future = all_normal_agent_future
+
+    
     # see if the one adversarial future will intersect with other normal futures
     final_collision_flag = False
     if adversarial_agent_future is not None and filtered_normal_agent_future is not None:
+        clipped_adversarial_agent_future = clip_trajectory_to_maneuver_challenge_step(adversarial_agent_future, maneuver_challenge_step)
+        clipped_filtered_normal_agent_future = Dict()
         for agent_id in filtered_normal_agent_future:
+            clipped_filtered_normal_agent_future[agent_id] = clip_trajectory_to_maneuver_challenge_step(filtered_normal_agent_future[agent_id], maneuver_challenge_step)
+
+        for agent_id in clipped_filtered_normal_agent_future:
             if agent_id == adversarial_agent_id:
                 continue
-            if filtered_normal_agent_future[agent_id] is None:
+            if clipped_filtered_normal_agent_future[agent_id] is None:
                 print(
                     f"agent_id: {agent_id}, all_normal_agent_future[agent_id]: {all_normal_agent_future[agent_id]}"
                 )
@@ -95,8 +115,8 @@ def get_maneuver_challenge(
                 continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
 
             collision_flag = check_trajectory_intersection(
-                adversarial_agent_future,
-                filtered_normal_agent_future[agent_id],
+                clipped_adversarial_agent_future,
+                clipped_filtered_normal_agent_future[agent_id],
                 env_observation[adversarial_agent_type][adversarial_agent_id]["ego"][
                     "length"
                 ],
@@ -177,6 +197,7 @@ def get_environment_maneuver_challenge(env_future_trajectory, env_observation, e
                 env_command_information[AgentType.VEHICLE][veh_id],
                 record_in_ctx=True,
                 centered_agent_set=centered_agent_set,
+                maneuver_challenge_step=vehicle_vehicle_maneuver_challenge_step,
             )
             for veh_id in env_future_trajectory[AgentType.VEHICLE]
         }
@@ -193,6 +214,7 @@ def get_environment_maneuver_challenge(env_future_trajectory, env_observation, e
                 env_command_information[AgentType.VULNERABLE_ROAD_USER][vru_id],
                 record_in_ctx=True,
                 centered_agent_set=centered_agent_set,
+                maneuver_challenge_step=vru_to_vehicle_maneuver_challenge_step,
             )
             for vru_id in env_future_trajectory[AgentType.VULNERABLE_ROAD_USER]
         }
