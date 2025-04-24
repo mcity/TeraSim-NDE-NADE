@@ -5,21 +5,21 @@ from terasim.overlay import traci
 from ...utils import AbstractStaticAdversity
 
 
-def create_emergency_police_type(subclass="emergency"):
+def create_emergency_police_type(subclass="EMERGENCY"):
     """Create a custom vehicle type for emergency vehicles.
 
     Args:
         subclass (str): The subclass of the emergency vehicle.
-        Available subclasses: "ambulance", "firebrigade", "police"
+        Available subclasses: "ambulance", "firebrigade", "POLICE"
 
     Returns:
         str: The ID of the custom vehicle type.
     """
-    custom_type_id = f"emergency_{subclass}"
-    if subclass not in ["emergency", "firebrigade", "police"]:
+    custom_type_id = f"EMERGENCY_{subclass}"
+    if subclass not in ["EMERGENCY", "FIREBRIGADE", "POLICE"]:
         raise ValueError(f"Invalid subclass: {subclass}")
     else:
-        guiShape = subclass # emergency stands for ambulance, firebrigade, and police stands for the name
+        guiShape = subclass.lower() # emergency stands for ambulance, firebrigade, and police stands for the name
 
     if custom_type_id not in traci.vehicletype.getIDList():
         traci.vehicletype.copy("DEFAULT_VEHTYPE", custom_type_id)
