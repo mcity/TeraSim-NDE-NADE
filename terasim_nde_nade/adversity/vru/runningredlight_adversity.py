@@ -81,12 +81,28 @@ class RunningRedLightAdversity(AbstractAdversity):
             speed = traci.person.getMaxSpeed(ego_id)
             distance = speed * (traci.simulation.getDeltaT())
             lane_shape = traci.lane.getShape(self.next_crossroad_id + "_0")
-            future_angle = math.degrees(
-                math.atan2(
-                    lane_shape[-1][0] - lane_shape[0][0],
-                    lane_shape[-1][1] - lane_shape[0][1],
+
+            # determine which end of the lane is the starting point
+            ego_pose = obs_dict["ego"]["position"]
+            distance_to_shape0 = (ego_pose[0]-lane_shape[0][0])**2 + (ego_pose[1]-lane_shape[0][1])**2
+            distance_to_shape1 = (ego_pose[0]-lane_shape[-1][0])**2 + (ego_pose[1]-lane_shape[-1][1])**2
+            if distance_to_shape0 < distance_to_shape1:
+                # the starting point is the first point of the lane
+                future_angle = math.degrees(
+                    math.atan2(
+                        lane_shape[-1][0] - lane_shape[0][0],
+                        lane_shape[-1][1] - lane_shape[0][1],
+                    )
                 )
-            )
+            else:
+                # the starting point is the last point of the lane
+                future_angle = math.degrees(
+                    math.atan2(
+                        lane_shape[0][0] - lane_shape[-1][0],
+                        lane_shape[0][1] - lane_shape[-1][1],
+                    )
+                )
+
             radians = math.radians(future_angle)
             current_time = traci.simulation.getTime()
             dt = traci.simulation.getDeltaT()

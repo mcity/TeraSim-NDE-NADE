@@ -124,6 +124,10 @@ def get_location(
             if highlight_flag:
                 traci.vehicle.setColor(veh_id, (255, 0, 0, 255))  # red
             return "highway"
+        else:
+            if highlight_flag:
+                traci.vehicle.setColor(veh_id, (0, 255, 0, 255))  # green
+            return "intersection"
         
     if any("motorway" in edge_type for edge_type in edge_type_list):
         if highlight_flag:
