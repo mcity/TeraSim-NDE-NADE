@@ -532,6 +532,8 @@ class NADE(BaseEnv):
             for agent_id in env_maneuver_challenge[agent_type]:
                 if agent_id in self.excluded_agent_set:
                     continue
+                if adversarial_flag:
+                    continue
                 if env_maneuver_challenge[agent_type][agent_id].get("adversarial"):
                     ndd_normal_prob = nde_control_commands[agent_type][
                         agent_id

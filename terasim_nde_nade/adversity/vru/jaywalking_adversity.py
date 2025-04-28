@@ -162,6 +162,8 @@ class JaywalkingAdversity(AbstractAdversity):
             else:
                 speed = current_speed
             
+            speed = speed * np.random.uniform(0.5, 2.0)
+            
             total_length = max(total_length, speed * 10)
             duration = round(total_length / speed, 1)
 
@@ -188,10 +190,10 @@ class JaywalkingAdversity(AbstractAdversity):
             adversarial_command = NDECommand(
                 command_type=CommandType.TRAJECTORY,
                 future_trajectory=trajectory,
-                duration=duration,
+                duration=min(duration, 5.0),
                 prob=self._probability,
                 time_resolution=dt,
-                keep_route_mode=6,
+                keep_route_mode=2,
             )
             adversarial_command.info.update(
                 {

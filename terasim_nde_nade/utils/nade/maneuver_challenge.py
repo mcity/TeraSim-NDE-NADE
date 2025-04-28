@@ -107,12 +107,14 @@ def get_maneuver_challenge(
                 print(
                     f"agent_id: {agent_id}, all_normal_agent_future[agent_id]: {all_normal_agent_future[agent_id]}"
                 )
-            link_intersection_flag = is_link_intersect(
-                env_observation[adversarial_agent_type][adversarial_agent_id],
-                env_observation[normal_agent_type][agent_id],
-            )
-            if not link_intersection_flag:
-                continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
+            if adversarial_agent_type == AgentType.VEHICLE:
+                # for vehicles, we need to check if the next link of the two vehicles are intersected, which can reduce the computational complexity
+                link_intersection_flag = is_link_intersect(
+                    env_observation[adversarial_agent_type][adversarial_agent_id],
+                    env_observation[normal_agent_type][agent_id],
+                )
+                if not link_intersection_flag:
+                    continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
 
             collision_flag = check_trajectory_intersection(
                 clipped_adversarial_agent_future,
