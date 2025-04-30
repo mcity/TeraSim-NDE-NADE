@@ -499,7 +499,8 @@ class NADEWithAV(NADE):
             self.record.update(
                 {
                     "finish_reason": "collision",
-                    "crash_liability": collision_objects[0].collider,
+                    "collider": collision_objects[0].collider,
+                    "victim": collision_objects[0].victim,
                     "veh_1_id": veh_1_id,
                     "veh_1_obs": self.vehicle_list[veh_1_id].observation if veh_1_id in self.vehicle_list else None,
                     "veh_2_id": veh_2_id,
@@ -520,7 +521,8 @@ class NADEWithAV(NADE):
             self.record.update(
                 {
                     "finish_reason": "collision",
-                    "crash_liability": veh_1_id,
+                    "collider": collision_objects[0].collider,
+                    "victim": collision_objects[0].victim,
                     "veh_1_id": veh_1_id,
                     "veh_1_obs": self.vehicle_list[veh_1_id].observation if veh_1_id in self.vehicle_list else None,
                     "vru_1_id": vru_1_id,
