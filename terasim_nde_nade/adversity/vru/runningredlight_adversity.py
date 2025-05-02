@@ -2,6 +2,7 @@ import addict
 import math
 
 from terasim.overlay import traci
+from terasim.params import AgentType
 
 from ...utils import AbstractAdversity, CommandType, NDECommand
 
@@ -125,6 +126,7 @@ class RunningRedLightAdversity(AbstractAdversity):
                     ]
                 )
             adversarial_command = NDECommand(
+                agent_type=AgentType.VULNERABLE_ROAD_USER,
                 command_type=CommandType.TRAJECTORY,
                 future_trajectory=trajectory,
                 duration=duration,

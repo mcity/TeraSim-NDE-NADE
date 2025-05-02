@@ -115,7 +115,11 @@ def get_maneuver_challenge(
                 )
                 if not link_intersection_flag:
                     continue  # if the next link of the two vehicles are not intersected, then the two vehicles will not collide
-
+            elif adversarial_agent_type == AgentType.VULNERABLE_ROAD_USER:
+                # for VRU, avoid collision with vehicles moving slowly
+                if env_observation[normal_agent_type][agent_id]["ego"]["velocity"] < 1.0:
+                    continue
+            
             collision_flag = check_trajectory_intersection(
                 clipped_adversarial_agent_future,
                 clipped_filtered_normal_agent_future[agent_id],

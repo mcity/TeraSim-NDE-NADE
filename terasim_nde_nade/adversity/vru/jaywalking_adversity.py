@@ -3,6 +3,7 @@ import math
 import numpy as np
 
 from terasim.overlay import traci
+from terasim.params import AgentType
 
 from ...utils import AbstractAdversity, CommandType, NDECommand
 
@@ -51,6 +52,23 @@ def is_pedestrian_crossing(p_id, sumonet) -> bool:
     return sumonet.getEdge(edge_id).getFunction() == "crossing"
 
 
+def is_pedestrian_going_to_cross(p_id, sumonet) -> bool:
+    """Check if the pedestrian is going to cross.
+
+    Args:
+        p_id (str): Pedestrian ID.
+        sumonet (SumoNet): SumoNet object.
+
+    Returns:
+        bool: Flag to indicate if the pedestrian is going to cross.
+    """
+    next_road_id = traci.person.getNextEdge(p_id)
+    if next_road_id:
+        return sumonet.getEdge(next_road_id).getFunction() == "crossing"
+    else:
+        return False
+
+
 class JaywalkingAdversity(AbstractAdversity):
     def __init__(self, location, ego_type, probability, predicted_collision_type):
         """Initialize the JaywalkingAdversity module.
@@ -79,9 +97,9 @@ class JaywalkingAdversity(AbstractAdversity):
         ego_id = obs_dict["ego"]["vru_id"]
         lane_id = traci.person.getLaneID(ego_id)
         
-        if is_pedestrian_crossing(ego_id, self.sumo_net):
+        if is_pedestrian_crossing(ego_id, self.sumo_net) or is_pedestrian_going_to_cross(ego_id, self.sumo_net):
             return False
-
+        
         # find the most closest major lane which allows vehicles 
         lane_id = None
         ego_pose = obs_dict["ego"]["position"]
@@ -188,12 +206,13 @@ class JaywalkingAdversity(AbstractAdversity):
                 )
 
             adversarial_command = NDECommand(
+                agent_type=AgentType.VULNERABLE_ROAD_USER,
                 command_type=CommandType.TRAJECTORY,
                 future_trajectory=trajectory,
                 duration=min(duration, 5.0),
                 prob=self._probability,
                 time_resolution=dt,
-                keep_route_mode=2,
+                keep_route_mode=6,
             )
             adversarial_command.info.update(
                 {
