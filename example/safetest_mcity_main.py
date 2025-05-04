@@ -65,7 +65,7 @@ def main(cfg: DictConfig) -> None:
         / "Mcity_safetest_complete_carla"
         / "mcity.sumocfg",
         num_tries=10,
-        gui_flag=False,
+        gui_flag=True,
         output_path=base_dir,
         sumo_output_file_types=["fcd_all", "collision", "tripinfo"],
         additional_sumo_args=["--device.bluelight.explicit","true"],

@@ -4,7 +4,7 @@ sumo_net_file_path: "maps/Mcity_safetest_complete_carla/mcity.net.xml"
 sumo_cfg_file_path: "maps/Mcity_safetest_complete_carla/mcity.sumocfg"
 drive_rule: "righthand"
 
-adversity_sampling_probability: 1e-9
+adversity_sampling_probability: 0.1
 adversity_cfg:
   vehicle:
     roundabout_cutin:
