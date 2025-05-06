@@ -90,8 +90,13 @@ class NADEWithAV(NADE):
         else:
             # add the cav_route to the SUMO simulation
             assert hasattr(self.cav_cfg, "route"), "CAV route is not defined in the config file"
-            cav_route = self.cav_cfg.route
-            traci.route.add(CAV_ROUTE_ID, cav_route)
+            # check if CAV_ROUTE_ID is in the SUMO simulation
+            if CAV_ROUTE_ID in traci.route.getIDList():
+                cav_route = traci.route.getEdges(CAV_ROUTE_ID)
+                cav_route = [edge.getID() for edge in cav_route]
+            else:
+                cav_route = self.cav_cfg.route
+                traci.route.add(CAV_ROUTE_ID, cav_route)
         edge_id = cav_route[0]
         lanes = traci.edge.getLaneNumber(edge_id)
         max_attempts = 10
