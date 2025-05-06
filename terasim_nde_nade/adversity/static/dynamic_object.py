@@ -22,9 +22,10 @@ class DynamicObjectAdversity(StalledObjectAdversity):
         traci.vehicle.setMaxSpeed(vehicle_id,33)
 
     def set_vehicle_route(self, vehicle_id):
+        route_id = f"r_dynamic_object"
         dynamic_route = self._other_settings.get("route")
-        traci.route.add("dynamic_route", dynamic_route)
-        return "dynamic_route"
+        traci.route.add(route_id, dynamic_route)
+        return route_id
     
     def add_vehicle(self, vehicle_id):
         route_id = self.set_vehicle_route(vehicle_id)

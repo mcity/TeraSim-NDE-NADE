@@ -60,7 +60,7 @@ class CollisionAdversity(AbstractStaticAdversity):
 
         edge_id = traci.lane.getEdgeID(self._lane_id)
         collision_lane_index = int(self._lane_id.split("_")[-1])
-        collision_object_route_id = f"r_stalled_object"
+        collision_object_route_id = f"r_collision_object"
         traci.route.add(collision_object_route_id, [edge_id])
         traci.vehicle.add(
             object1_id,
