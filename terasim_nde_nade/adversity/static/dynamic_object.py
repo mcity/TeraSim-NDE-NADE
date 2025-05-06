@@ -21,18 +21,17 @@ class DynamicObjectAdversity(StalledObjectAdversity):
         traci.vehicle.setParameter(vehicle_id, "device.bluelight.reactiondist", str(90))
         traci.vehicle.setMaxSpeed(vehicle_id,33)
 
-
-
-    def initialize(self, time: float):
-        super().initialize(time)
-        dynamic_route = ["EG_35_1_14", "EG_1_3_1", "EG_1_3_1.61", "EG_1_3_1.136"]
-        traci.route.add("dynamic_route", dynamic_route)
-        if self.stalled_object_id not in traci.vehicle.getIDList():
-            traci.vehicle.add(self.stalled_object_id, routeID="dynamic_route", typeID=self._object_type)
-        else:
-            traci.vehicle.setRouteID(self.stalled_object_id, "cav_route") # "cav_route" "dynamic_route"
-        traci.vehicle.setSpeed(self.stalled_object_id, 10) 
-
+    def set_vehicle_route(self, vehicle_id):
+        route_id = f"r_dynamic_object"
+        dynamic_route = self._other_settings.get("route")
+        traci.route.add(route_id, dynamic_route)
+        return route_id
+    
+    def add_vehicle(self, vehicle_id):
+        route_id = self.set_vehicle_route(vehicle_id)
+        traci.vehicle.add(vehicle_id, routeID=route_id, typeID=self._object_type)
+        traci.vehicle.setSpeed(vehicle_id, 30)
+        traci.gui.track(vehicle_id)
 
     def update(self, time: float):
         if self._is_active and self.end_time != -1 and time >= self.end_time:

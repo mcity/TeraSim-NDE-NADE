@@ -42,7 +42,7 @@ class NADEWithAV(NADE):
         super().on_start(ctx)
         self.add_cav_safe()
 
-    def add_cav_unsafe(self, edge_id="EG_35_1_14", lane_id=None, position=0, speed=0):
+    def add_cav_unsafe(self, edge_id="EG_35_1_14", lane_id=None, position=0.0, speed=0.0):
         """Add a CAV to the simulation.
 
         Args:
@@ -106,7 +106,11 @@ class NADEWithAV(NADE):
             cav_type = "DEFAULT_VEHTYPE"
         min_safe_distance = 10 + traci.vehicletype.getLength(cav_type)  # Minimum safe distance from other vehicles
 
-        possible_lane_indexes = list(range(0, lanes - 1))
+        if hasattr(self.cav_cfg, "initial_lane_index"):
+            possible_lane_indexes = [int(self.cav_cfg.initial_lane_index)]
+        else:
+            possible_lane_indexes = list(range(0, lanes - 1))
+
         for attempt in range(max_attempts):
             if not len(possible_lane_indexes):
                 break
@@ -115,10 +119,18 @@ class NADEWithAV(NADE):
             lane_length = traci.lane.getLength(lane_id)
             if lane_length < min_safe_distance:
                 break
-            position = random.uniform(0, lane_length-min_safe_distance)
+
+            if hasattr(self.cav_cfg, "initial_lane_position"):
+                position = float(self.cav_cfg.initial_lane_position)
+            else:
+                position = random.uniform(0, lane_length-min_safe_distance)
 
             if self.is_position_safe(lane_id, position, min_safe_distance):
-                self.add_cav_unsafe(edge_id, lane_id, position)
+                if hasattr(self.cav_cfg, "initial_speed"):
+                    speed = float(self.cav_cfg.initial_speed)
+                else:
+                    speed = 0.0
+                self.add_cav_unsafe(edge_id, lane_id, position, speed)
                 logger.info(f"CAV added safely at lane {lane_id}, position {position}")
                 if self.simulator.gui_flag:
                     traci.gui.trackVehicle("View #0", CAV_ID)

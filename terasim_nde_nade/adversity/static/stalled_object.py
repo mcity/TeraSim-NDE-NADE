@@ -16,10 +16,7 @@ def create_emergency_police_type(subclass="EMERGENCY"):
         str: The ID of the custom vehicle type.
     """
     custom_type_id = f"EMERGENCY_{subclass}"
-    if subclass not in ["EMERGENCY", "FIREBRIGADE", "POLICE"]:
-        raise ValueError(f"Invalid subclass: {subclass}")
-    else:
-        guiShape = subclass.lower() # emergency stands for ambulance, firebrigade, and police stands for the name
+    guiShape = subclass.lower() # emergency stands for ambulance, firebrigade, and police stands for the name
 
     if custom_type_id not in traci.vehicletype.getIDList():
         traci.vehicletype.copy("DEFAULT_VEHTYPE", custom_type_id)
@@ -62,7 +59,7 @@ class StalledObjectAdversity(AbstractStaticAdversity):
         if self._object_type == "":
             logger.warning("Object type is not provided. Using default value 'DEFAULT_VEHTYPE'.")
             self._object_type = "DEFAULT_VEHTYPE"
-        elif self._object_type in ["emergency", "firebrigade", "police"]:
+        elif self._object_type in ["EMERGENCY", "FIREBRIGADE", "POLICE"]:
             self._object_type = create_emergency_police_type(self._object_type)
         else:
             vehicle_type_list = traci.vehicletype.getIDList()
@@ -74,6 +71,25 @@ class StalledObjectAdversity(AbstractStaticAdversity):
     def set_vehicle_feature(self, vehicle_id: str):
         traci.vehicle.setSpeedMode(vehicle_id, 0)
         traci.vehicle.setLaneChangeMode(vehicle_id, 0)
+
+    def add_vehicle(self, vehicle_id: str):
+        
+        stalled_object_route_id = self.set_vehicle_route(vehicle_id)
+        traci.vehicle.add(
+            vehicle_id,
+            routeID=stalled_object_route_id,
+            typeID=self._object_type,
+        )
+        self.set_vehicle_feature(vehicle_id)
+        traci.vehicle.moveTo(vehicle_id, self._lane_id, self._lane_position)
+        traci.vehicle.setSpeed(vehicle_id, 0)
+
+    def set_vehicle_route(self, vehicle_id: str):
+        edge_id = traci.lane.getEdgeID(self._lane_id)
+        stalled_object_route_id = f"r_stalled_object"
+        if stalled_object_route_id not in traci.route.getIDList():
+            traci.route.add(stalled_object_route_id, [edge_id])
+        return stalled_object_route_id
     
     def initialize(self, time: float):
         """Initialize the adversarial event.
@@ -82,17 +98,8 @@ class StalledObjectAdversity(AbstractStaticAdversity):
         stalled_object_id = f"BV_{self._object_type}_stalled_object"
         self._static_adversarial_object_id_list.append(stalled_object_id)
         edge_id = traci.lane.getEdgeID(self._lane_id)
-        stalled_object_route_id = f"r_stalled_object"
-        if stalled_object_route_id not in traci.route.getIDList():
-            traci.route.add(stalled_object_route_id, [edge_id])
-        traci.vehicle.add(
-            stalled_object_id,
-            routeID=stalled_object_route_id,
-            typeID=self._object_type,
-        )
-        self.set_vehicle_feature(stalled_object_id)
-        traci.vehicle.moveTo(stalled_object_id, self._lane_id, self._lane_position)
-        traci.vehicle.setSpeed(stalled_object_id, 0)
+        
+        self.add_vehicle(stalled_object_id)
 
         self._duration=0
         self._is_active = True

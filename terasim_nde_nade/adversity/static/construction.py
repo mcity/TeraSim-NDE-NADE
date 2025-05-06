@@ -27,3 +27,8 @@ class ConstructionAdversity(AbstractStaticAdversity):
         """
         assert self.is_effective(), "Adversarial event is not effective."
         traci.lane.setDisallowed(self._lane_id, ["all"])
+
+    def update(self, time: float):
+        """Update the adversarial event.
+        """
+        pass
