@@ -174,14 +174,20 @@ class NADEWithAV(NADE):
         """
         lane = random.randint(0, traci.edge.getLaneNumber(edge_id) - 1)
         lane_id = f"{edge_id}_{lane}"
-        position = traci.lane.getLength(lane_id) / 2
+        if hasattr(self.cav_cfg, "initial_lane_position"):
+            position = float(self.cav_cfg.initial_lane_position)
+        else:
+            position = traci.lane.getLength(lane_id) / 2
 
         # Clear area around the chosen position
         self.clear_area_around_position(
             lane_id, position, 10
         )  # Clear 10m around the position
-
-        self.add_cav_unsafe(edge_id, lane_id, position)
+        if hasattr(self.cav_cfg, "initial_speed"):
+            speed = float(self.cav_cfg.initial_speed)
+        else:
+            speed = 0.0
+        self.add_cav_unsafe(edge_id, lane_id, position, speed)
         logger.warning(
             f"CAV added using fallback method at lane {lane_id}, position {position}"
         )
@@ -511,13 +517,19 @@ class NADEWithAV(NADE):
         collision_objects = traci.simulation.getCollisions()
         collision_object_ids = traci.simulation.getCollidingVehiclesIDList()
         if num_colliding_vehicles >= 2 and "CAV" in collision_object_ids:
-            veh_1_id = colliding_vehicles[0]
-            veh_2_id = colliding_vehicles[1]
+            collison_object = None
+            for obj in collision_objects:
+                if obj.collider == CAV_ID or obj.victim == CAV_ID:
+                    collison_object = obj
+                    break
+            assert collison_object is not None
+            veh_1_id = collison_object.collider
+            veh_2_id = collison_object.victim
             self.record.update(
                 {
                     "finish_reason": "collision",
-                    "collider": collision_objects[0].collider,
-                    "victim": collision_objects[0].victim,
+                    "collider": collison_object.collider,
+                    "victim": collison_object.victim,
                     "veh_1_id": veh_1_id,
                     "veh_1_obs": self.vehicle_list[veh_1_id].observation if veh_1_id in self.vehicle_list else None,
                     "veh_2_id": veh_2_id,

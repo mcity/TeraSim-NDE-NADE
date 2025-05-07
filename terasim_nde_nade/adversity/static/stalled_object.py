@@ -73,7 +73,6 @@ class StalledObjectAdversity(AbstractStaticAdversity):
         traci.vehicle.setLaneChangeMode(vehicle_id, 0)
 
     def add_vehicle(self, vehicle_id: str):
-        
         stalled_object_route_id = self.set_vehicle_route(vehicle_id)
         traci.vehicle.add(
             vehicle_id,
