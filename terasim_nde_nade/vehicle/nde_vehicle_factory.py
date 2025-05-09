@@ -26,7 +26,7 @@ class NDEVehicleFactory(VehicleFactory):
         sensor_list = [
             NDEEgoSensor(cache=True, cache_history=True, cache_history_duration=1)
         ]
-        if veh_id == "CAV":
+        if veh_id == "AV":
             decision_model = NDEDecisionModel(
                 MOBIL_lc_flag=True,
                 stochastic_acc_flag=False,

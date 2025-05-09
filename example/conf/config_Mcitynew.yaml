@@ -164,7 +164,7 @@ adversity_cfg:
     #   end_time: 2000
     #   object_type: "police" 
 
-CAV_cfg:
+AV_cfg:
   route: ["EG_35_1_14", "EG_1_3_1", "EG_1_3_1.61", "EG_1_3_1.136", "EG_34_1_24", "EG_34_1_3", "gneE0", "EG_4_1_1", "EG_10_1_1", "EG_15_1_17", "EG_15_1_1", "EG_16_23_1", "EG_17_1_1", "EG_17_1_1.17", "EG_14_2_1", "EG_14_2_1.5", "EG_14_2_1.24", "EG_9_1_1", "EG_9_1_1.28", "EG_21_1_1", "EG_21_1_5", "EG_20_1_11", "EG_29_1_1", "EG_35_1_14"] # list of SUMO edges (example for Mcity)
   type: "NDE_HIGHWAY"
   cache_radius: 100

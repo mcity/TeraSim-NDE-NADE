@@ -581,7 +581,7 @@ def apply_collision_avoidance(
                 {
                     "victim_vehicle_id": agent_id,
                     "mode": "accept_collision",
-                    "additional_info": "CAV_neglected",
+                    "additional_info": "AV_neglected",
                 }
             )
             return nade_control_commands, env_command_information, 1.0, record

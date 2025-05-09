@@ -55,7 +55,7 @@ for raw_data_file_folder in tqdm(raw_data_file_folder_list):
     trajectories = SumoTrajVis.Trajectories(str(fcd_file))
     # Set trajectory color for different vehicles
     for trajectory in trajectories:
-        if trajectory.id == "CAV":
+        if trajectory.id == "AV":
             trajectory.assign_colors_constant("#ff0000")
         else:
             trajectory.assign_colors_constant("#00FF00")

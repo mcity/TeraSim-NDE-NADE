@@ -22,7 +22,7 @@ class NDEDecisionModel(IDMModel):
             veh_id (str): Vehicle ID.
             vehicle_location (str): Location of the vehicle.
         """
-        if "CAV" in veh_id:
+        if "AV" in veh_id:
             return
         if "highway" in vehicle_location:  # highway/freeway scenario
             traci.vehicle.setType(veh_id, "NDE_HIGHWAY")

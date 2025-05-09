@@ -125,5 +125,5 @@ adversity_cfg:
       probability: 0.1
       predicted_collision_type: "intersection_stopcrossing"
 
-CAV_cfg:
+AV_cfg:
   route: ['13', '14', '35', '24', '44', '17', '5', '6'] # list of SUMO edges (example for Carla Town10)

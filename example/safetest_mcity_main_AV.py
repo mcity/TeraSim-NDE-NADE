@@ -12,7 +12,7 @@ from terasim_nde_nade.vehicle import NDEVehicleFactory
 from terasim_nde_nade.vru import NDEVulnerableRoadUserFactory
 
 parser = argparse.ArgumentParser(description="Run simulation.")
-parser.add_argument("--dir", type=str, help="output directory", default="output_cav")
+parser.add_argument("--dir", type=str, help="output directory", default="output_av")
 parser.add_argument("--name", type=str, help="experiment name", default="test")
 parser.add_argument("--nth", type=str, help="the nth epoch", default="0_0")
 parser.add_argument(
@@ -42,9 +42,9 @@ for log_file, log_level in zip(log_files, log_levels):
 
 @hydra.main(config_path="conf", config_name="config_Mcitynew")
 def main(cfg: DictConfig) -> None:
-    assert "CAV_cfg" in cfg, "CAV_cfg is not in the config file"
+    assert "AV_cfg" in cfg, "AV_cfg is not in the config file"
     env = NADEWithAV(
-        cav_cfg = cfg.CAV_cfg,
+        av_cfg = cfg.AV_cfg,
         vehicle_factory=NDEVehicleFactory(cfg=cfg),
         vru_factory=NDEVulnerableRoadUserFactory(cfg=cfg),
         info_extractor=InfoExtractor, 

@@ -227,8 +227,8 @@ class NADE(BaseEnv):
         """
         Try to insert an emergency vehicle into the simulation.
         """
-        if "CAV" in traci.vehicle.getIDList():
-            if traci.vehicle.getLaneID("CAV") == "EG_16_23_1_1" and traci.vehicle.getNextTLS("CAV")[0][3] == 'G' and traci.vehicle.getLeader("CAV") is None and "BV_police_1" not in traci.vehicle.getIDList():
+        if "AV" in traci.vehicle.getIDList():
+            if traci.vehicle.getLaneID("AV") == "EG_16_23_1_1" and traci.vehicle.getNextTLS("AV")[0][3] == 'G' and traci.vehicle.getLeader("AV") is None and "BV_police_1" not in traci.vehicle.getIDList():
                 from terasim_nde_nade.adversity.static.stalled_object import create_emergency_police_type
                 emergency_vehicle_typeid = create_emergency_police_type("POLICE")
                 emergency_vehicle_id = "BV_police_1"

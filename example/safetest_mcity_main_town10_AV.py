@@ -42,9 +42,9 @@ for log_file, log_level in zip(log_files, log_levels):
 
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig) -> None:
-    assert "CAV_cfg" in cfg, "CAV_cfg is not in the config file"
+    assert "AV_cfg" in cfg, "AV_cfg is not in the config file"
     env = NADEWithAV(
-        cav_cfg = cfg.CAV_cfg,
+        av_cfg = cfg.AV_cfg,
         vehicle_factory=NDEVehicleFactory(cfg=cfg),
         vru_factory=NDEVulnerableRoadUserFactory(cfg=cfg),
         info_extractor=InfoExtractor,
