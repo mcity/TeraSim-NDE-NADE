@@ -500,6 +500,36 @@ class NADEWithAV(NADE):
                 {"predicted_collision_type": predicted_collision_type}
             )
         return CAV_command
+    
+    def analyse_liability(self, veh_1_id, veh_2_id):
+        """Analyse the liability of the collision. return collider_id, victim_id
+        """
+        # veh_1_lane_id = traci.vehicle.getLaneID(veh_1_id)
+        # veh_2_lane_id = traci.vehicle.getLaneID(veh_2_id)
+        veh_1_edge_id = traci.vehicle.getRoadID(veh_1_id)
+        veh_2_edge_id = traci.vehicle.getRoadID(veh_2_id)
+        print("Analysing liability for collision between vehicle {} and vehicle {}".format(veh_1_id, veh_2_id))
+        if veh_1_edge_id == veh_2_edge_id: # rear end or side collision
+            # get the front vehicle using traci lane position
+            print("two vehicles are on the same edge", veh_1_edge_id, veh_2_edge_id)
+            veh_1_lane_position = traci.vehicle.getLanePosition(veh_1_id)
+            veh_2_lane_position = traci.vehicle.getLanePosition(veh_2_id)
+            if veh_1_lane_position > veh_2_lane_position:
+                front_veh_id = veh_1_id
+                rear_veh_id = veh_2_id
+            else:
+                front_veh_id = veh_2_id
+                rear_veh_id = veh_1_id
+            print("front vehicle: ", front_veh_id, "rear vehicle: ", rear_veh_id)
+            # if the front vehicle has non-zero lateral speed, it is the front vehicle cutting in and generating the collision
+            if abs(traci.vehicle.getLateralSpeed(front_veh_id)) > 0.2:
+                print(f"Fix error, vehicle {front_veh_id} is the collider, vehicle {rear_veh_id} is the victim")
+                return front_veh_id, rear_veh_id
+            else:
+                return rear_veh_id, front_veh_id
+        else:
+            return veh_1_id, veh_2_id
+        
 
     def should_continue_simulation(self):
         """Check if the simulation should continue. There are four conditions to stop the simulation:
@@ -517,6 +547,7 @@ class NADEWithAV(NADE):
         collision_objects = traci.simulation.getCollisions()
         collision_object_ids = traci.simulation.getCollidingVehiclesIDList()
         if num_colliding_vehicles >= 2 and "CAV" in collision_object_ids:
+            # collision_objects = self.analyse_liability()
             collison_object = None
             for obj in collision_objects:
                 if obj.collider == CAV_ID or obj.victim == CAV_ID:
@@ -525,15 +556,16 @@ class NADEWithAV(NADE):
             assert collison_object is not None
             veh_1_id = collison_object.collider
             veh_2_id = collison_object.victim
+            collider_id, victim_id = self.analyse_liability(veh_1_id, veh_2_id)
             self.record.update(
                 {
                     "finish_reason": "collision",
-                    "collider": collison_object.collider,
-                    "victim": collison_object.victim,
-                    "veh_1_id": veh_1_id,
-                    "veh_1_obs": self.vehicle_list[veh_1_id].observation if veh_1_id in self.vehicle_list else None,
-                    "veh_2_id": veh_2_id,
-                    "veh_2_obs": self.vehicle_list[veh_2_id].observation if veh_2_id in self.vehicle_list else None,
+                    "collider": collider_id,
+                    "victim": victim_id,
+                    "veh_1_id": collider_id,
+                    "veh_1_obs": self.vehicle_list[collider_id].observation if collider_id in self.vehicle_list else None,
+                    "veh_2_id": victim_id,
+                    "veh_2_obs": self.vehicle_list[victim_id].observation if victim_id in self.vehicle_list else None,
                     "warmup_time": self.warmup_time,
                     "run_time": self.run_time,
                 }
