@@ -115,8 +115,8 @@ class NDE(EnvTemplateComplete):
             bool: Flag to indicate if the simulation should continue.
         """
         # Move half step forward, update all vehicles and vrus (some of them may leave or enter the simulation)
-        for veh_id in traci.vehicle.getIDList():
-            traci.vehicle.setSpeed(veh_id, -1)
+        # for veh_id in traci.vehicle.getIDList():
+        #     traci.vehicle.setSpeed(veh_id, -1)
         traci.simulation.executeMove()
         self._maintain_all_vehicles(ctx)
         self._maintain_all_vulnerable_road_users(ctx)
