@@ -41,21 +41,32 @@ class StalledObjectAdversity(AbstractStaticAdversity):
             bool: Flag to indicate if the adversarial event is effective.
         """
         
-
-        if self._lane_id == "":
-            logger.warning("Lane ID is not provided.")
+        if self._placement_mode == "lane_position":
+            if self._lane_id == "":
+                logger.warning("Lane ID is not provided.")
+                return False
+            if self._lane_position == -1:
+                logger.warning("Lane position is not provided.")
+                return False
+            try:
+                lane_length = traci.lane.getLength(self._lane_id)
+            except:
+                logger.warning(f"Failed to get length of the lane {self._lane_id}.")
+                return False
+            if self._lane_position > lane_length:
+                logger.warning(f"Lane position {self._lane_position} is greater than the lane length {lane_length}.")
+                return False
+        elif self._placement_mode == "xy_angle":
+            if self._x is None or self._y is None:
+                logger.warning("X and Y coordinates are not provided for xy_angle placement mode.")
+                return False
+            if self._angle is None:
+                logger.warning("Angle is not provided for xy_angle placement mode.")
+                return False
+        else:
+            logger.warning(f"Invalid placement mode: {self._placement_mode}. Must be 'lane_position' or 'xy_angle'.")
             return False
-        if self._lane_position == -1:
-            logger.warning("Lane position is not provided.")
-            return False
-        try:
-            lane_length = traci.lane.getLength(self._lane_id)
-        except:
-            logger.warning(f"Failed to get length of the lane {self._lane_id}.")
-            return False
-        if self._lane_position > lane_length:
-            logger.warning(f"Lane position {self._lane_position} is greater than the lane length {lane_length}.")
-            return False
+            
         if self._object_type == "":
             logger.warning("Object type is not provided. Using default value 'DEFAULT_VEHTYPE'.")
             self._object_type = "DEFAULT_VEHTYPE"
@@ -73,15 +84,27 @@ class StalledObjectAdversity(AbstractStaticAdversity):
         traci.vehicle.setLaneChangeMode(vehicle_id, 0)
 
     def add_vehicle(self, vehicle_id: str):
-        stalled_object_route_id = self.set_vehicle_route(vehicle_id)
-        traci.vehicle.add(
-            vehicle_id,
-            routeID=stalled_object_route_id,
-            typeID=self._object_type,
-        )
-        self.set_vehicle_feature(vehicle_id)
-        traci.vehicle.moveTo(vehicle_id, self._lane_id, self._lane_position)
-        traci.vehicle.setSpeed(vehicle_id, 0)
+        if self._placement_mode == "lane_position":
+            stalled_object_route_id = self.set_vehicle_route(vehicle_id)
+            traci.vehicle.add(
+                vehicle_id,
+                routeID=stalled_object_route_id,
+                typeID=self._object_type,
+            )
+            self.set_vehicle_feature(vehicle_id)
+            traci.vehicle.moveTo(vehicle_id, self._lane_id, self._lane_position)
+            traci.vehicle.setSpeed(vehicle_id, 0)
+        elif self._placement_mode == "xy_angle":
+            edge_id = self._get_edge_from_xy()
+            stalled_object_route_id = self.set_vehicle_route_for_xy(vehicle_id, edge_id)
+            traci.vehicle.add(
+                vehicle_id,
+                routeID=stalled_object_route_id,
+                typeID=self._object_type,
+            )
+            self.set_vehicle_feature(vehicle_id)
+            traci.vehicle.moveToXY(vehicle_id, "", -1, self._x, self._y, self._angle, keepRoute=2)
+            traci.vehicle.setSpeed(vehicle_id, 0)
 
     def set_vehicle_route(self, vehicle_id: str):
         edge_id = traci.lane.getEdgeID(self._lane_id)
@@ -90,22 +113,43 @@ class StalledObjectAdversity(AbstractStaticAdversity):
             traci.route.add(stalled_object_route_id, [edge_id])
         return stalled_object_route_id
     
+    def set_vehicle_route_for_xy(self, vehicle_id: str, edge_id: str):
+        stalled_object_route_id = f"r_stalled_object_xy"
+        if stalled_object_route_id not in traci.route.getIDList():
+            traci.route.add(stalled_object_route_id, [edge_id])
+        return stalled_object_route_id
+    
+    def _get_edge_from_xy(self):
+        try:
+            edge_id = traci.simulation.convertRoad(self._x, self._y, isGeo=False)[0]
+            return edge_id
+        except:
+            logger.warning(f"Failed to get edge from coordinates ({self._x}, {self._y}). Using default edge.")
+            return "1"
+    
     def initialize(self, time: float):
         """Initialize the adversarial event.
         """
         assert self.is_effective(), "Adversarial event is not effective."
         stalled_object_id = f"BV_{self._object_type}_stalled_object"
         self._static_adversarial_object_id_list.append(stalled_object_id)
-        edge_id = traci.lane.getEdgeID(self._lane_id)
+        
+        if self._placement_mode == "lane_position":
+            edge_id = traci.lane.getEdgeID(self._lane_id)
+            self.edge_id = edge_id
+            self.lane_index = self._lane_id.split("_")[-1]
+            self.lane_position = self._lane_position
+        elif self._placement_mode == "xy_angle":
+            edge_id = self._get_edge_from_xy()
+            self.edge_id = edge_id
+            self.lane_index = 0
+            self.lane_position = None
         
         self.add_vehicle(stalled_object_id)
 
         self._duration=0
         self._is_active = True
         self.stalled_object_id = stalled_object_id
-        self.edge_id = edge_id
-        self.lane_index = self._lane_id.split("_")[-1]
-        self.lane_position = self._lane_position
 
     def update(self, time: float):
         if self._is_active and self.end_time != -1 and time >= self.end_time:
@@ -114,8 +158,12 @@ class StalledObjectAdversity(AbstractStaticAdversity):
             except:
                 logger.warning(f"Failed to remove the vehicle {self.stalled_object_id}.")
             self._is_active = False
-        if self._is_active: # maintain the position of the vehicle
-            traci.vehicle.moveTo(self.stalled_object_id, self._lane_id, self._lane_position)
+        if self._is_active:
+            if self._placement_mode == "lane_position":
+                traci.vehicle.moveTo(self.stalled_object_id, self._lane_id, self._lane_position)
+            elif self._placement_mode == "xy_angle":
+                edge_id = self._get_edge_from_xy()
+                traci.vehicle.moveToXY(self.stalled_object_id, "", -1, self._x, self._y, self._angle, keepRoute=2)
             traci.vehicle.setSpeed(self.stalled_object_id, 0)
 
     

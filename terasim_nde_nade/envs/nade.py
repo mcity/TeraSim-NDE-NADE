@@ -61,11 +61,11 @@ class NADE(BaseEnv):
             # self.static_adversity.initialize(time=utils.get_time())
         else:
             self.static_adversity = None
-        on_start_result = super().on_start(ctx)
         self.distance_info = Dict({"before": self.update_distance(), "after": Dict()})
         self.allow_NADE_IS = True
         self.latest_IS_time = -1
         self.centered_veh_id = None
+        on_start_result = super().on_start(ctx)
         return on_start_result
     
     def sumo_warmup(self, warmup_time):

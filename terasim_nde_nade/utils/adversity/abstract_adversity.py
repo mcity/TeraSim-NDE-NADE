@@ -64,20 +64,30 @@ class AbstractStaticAdversity(abc.ABC):
 
     def __init__(
         self,
-        lane_id,
+        lane_id="",
         lane_position=-1,
         start_time=0,
         end_time=-1,
         object_type="",
-        other_settings=None
+        other_settings=None,
+        placement_mode="lane_position",
+        x=None,
+        y=None,
+        angle=None
     ):
         """Initialize the AbstractStaticAdversity class. This class is an abstract class that defines the interface for the different types of adversities that can be triggered in the simulation.
 
         Args:
             lane_id (str): Lane ID of the adversarial event.
             lane_position (int): Lane position of the adversarial event. Default is -1.
+            start_time (float): Start time of the adversarial event. Default is 0.
+            end_time (float): End time of the adversarial event. Default is -1 (infinite).
             object_type (str): Type of the object. Default is an empty string.
             other_settings (dict): Other settings for the adversarial event. Default is None.
+            placement_mode (str): Placement mode - "lane_position" or "xy_angle". Default is "lane_position".
+            x (float): X coordinate for xy_angle placement mode. Default is None.
+            y (float): Y coordinate for xy_angle placement mode. Default is None.
+            angle (float): Angle for xy_angle placement mode. Default is None.
         """
         self._adversity_id = uuid.uuid4()
         self._lane_id = lane_id
@@ -87,6 +97,10 @@ class AbstractStaticAdversity(abc.ABC):
         self._other_settings = other_settings
         self._start_time = start_time
         self._end_time = end_time
+        self._placement_mode = placement_mode
+        self._x = x
+        self._y = y
+        self._angle = angle
 
     @property
     def start_time(self):
