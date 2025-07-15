@@ -32,6 +32,27 @@ def create_emergency_police_type(subclass="EMERGENCY"):
     return custom_type_id
 
 
+def create_pedestrian_type():
+    """Create a custom vehicle type representing a pedestrian using a small static car.
+
+    Returns:
+        str: The ID of the custom vehicle type for pedestrian.
+    """
+    custom_type_id = "PEDESTRIAN"
+    
+    if custom_type_id not in traci.vehicletype.getIDList():
+        traci.vehicletype.copy("DEFAULT_VEHTYPE", custom_type_id)
+        traci.vehicletype.setVehicleClass(custom_type_id, "passenger")
+        traci.vehicletype.setShapeClass(custom_type_id, "passenger")
+        traci.vehicletype.setLength(custom_type_id, 0.5)  # Very small length
+        traci.vehicletype.setWidth(custom_type_id, 0.5)   # Very small width
+        traci.vehicletype.setHeight(custom_type_id, 1.7)  # Human height
+        # traci.vehicletype.setMaxSpeed(custom_type_id, 0)  # Static, no movement
+        # traci.vehicletype.setSpeedFactor(custom_type_id, 0)
+        traci.vehicletype.setColor(custom_type_id, (255, 0, 0, 255))  # Red color for visibility
+    return custom_type_id
+
+
 class StalledObjectAdversity(AbstractStaticAdversity):
 
     def is_effective(self):
@@ -72,6 +93,8 @@ class StalledObjectAdversity(AbstractStaticAdversity):
             self._object_type = "DEFAULT_VEHTYPE"
         elif self._object_type in ["EMERGENCY", "FIREBRIGADE", "POLICE"]:
             self._object_type = create_emergency_police_type(self._object_type)
+        elif self._object_type == "PEDESTRIAN":
+            self._object_type = create_pedestrian_type()
         else:
             vehicle_type_list = traci.vehicletype.getIDList()
             if self._object_type not in vehicle_type_list:
@@ -131,7 +154,10 @@ class StalledObjectAdversity(AbstractStaticAdversity):
         """Initialize the adversarial event.
         """
         assert self.is_effective(), "Adversarial event is not effective."
-        stalled_object_id = f"BV_{self._object_type}_stalled_object"
+        if self._object_type == "PEDESTRIAN":
+            stalled_object_id = f"VRU_{self._object_type}_stalled_object"
+        else:
+            stalled_object_id = f"BV_{self._object_type}_stalled_object"
         self._static_adversarial_object_id_list.append(stalled_object_id)
         
         if self._placement_mode == "lane_position":

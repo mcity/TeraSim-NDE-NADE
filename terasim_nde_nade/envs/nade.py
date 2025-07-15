@@ -220,7 +220,7 @@ class NADE(BaseEnv):
         # NADE Step 2. Make NADE decision, includes the modification of NDD distribution according to avoidability, and excute the control commands
         self.NADE_decision_and_control(env_command_information, env_observation)
         self.try_insert_emergency_vehicle()
-        self.respond_to_emergency_vehicle()
+        # self.respond_to_emergency_vehicle()
         return should_continue_simulation_flag
 
     def try_insert_emergency_vehicle(self):
