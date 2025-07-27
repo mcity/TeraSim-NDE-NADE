@@ -77,6 +77,9 @@ class NADEWithAV(NADE):
             self.cache_radius,
             [traci.constants.VAR_DISTANCE],
         )
+        traci.vehicle.setSpeedMode(AV_ID, 0)
+        traci.vehicle.setLaneChangeMode(AV_ID, 0)
+        traci.vehicle.setSpeed(AV_ID, speed)
 
         # traci.vehicle.setLaneChangeMode(AV_ID, 0)
         # traci.vehicle.setSpeedMode(AV_ID, 62)
@@ -104,7 +107,10 @@ class NADEWithAV(NADE):
             av_type = self.av_cfg.type
         else:
             av_type = "DEFAULT_VEHTYPE"
-        min_safe_distance = 10 + traci.vehicletype.getLength(av_type)  # Minimum safe distance from other vehicles
+        if hasattr(self.av_cfg, "clearance_distance"):
+            min_safe_distance = self.av_cfg.clearance_distance + traci.vehicletype.getLength(av_type)  # Minimum safe distance from other vehicles
+        else:
+            min_safe_distance = 50 + traci.vehicletype.getLength(av_type)  # Minimum safe distance from other vehicles
 
         if hasattr(self.av_cfg, "initial_lane_index"):
             possible_lane_indexes = [int(self.av_cfg.initial_lane_index)]
@@ -178,10 +184,17 @@ class NADEWithAV(NADE):
             position = float(self.av_cfg.initial_lane_position)
         else:
             position = traci.lane.getLength(lane_id) / 2
-
+        if hasattr(self.av_cfg, "type"):
+            av_type = self.av_cfg.type
+        else:
+            av_type = "DEFAULT_VEHTYPE"
+        if hasattr(self.av_cfg, "clearance_distance"):
+            min_safe_distance = self.av_cfg.clearance_distance + traci.vehicletype.getLength(av_type)  # Minimum safe distance from other vehicles
+        else:
+            min_safe_distance = 50 + traci.vehicletype.getLength(av_type)  # Minimum safe distance from other vehicles
         # Clear area around the chosen position
         self.clear_area_around_position(
-            lane_id, position, 10
+            lane_id, position, min_safe_distance
         )  # Clear 10m around the position
         if hasattr(self.av_cfg, "initial_speed"):
             speed = float(self.av_cfg.initial_speed)
