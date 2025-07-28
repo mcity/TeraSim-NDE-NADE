@@ -306,7 +306,7 @@ class ConstructionAdversity(AbstractStaticAdversity):
             zone_type: Zone type for logging and ID generation
         """
         # Create unique object ID
-        object_id = f"BV_construction_{zone_type}_{self._lane_id}_{len(self._construction_object_ids)}"
+        object_id = f"CONSTRUCTION_{zone_type}_{self._lane_id}_{len(self._construction_object_ids)}"
         self._construction_object_ids.append(object_id)
         
         # Add vehicle to simulation
