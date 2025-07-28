@@ -1,4 +1,5 @@
 from loguru import logger
+import math
 
 from terasim.overlay import traci
 
@@ -208,46 +209,92 @@ class ConstructionAdversity(AbstractStaticAdversity):
             return 0.0
         
         elif zone_type == 'taper_in':
-            # Gradual offset increase
+            # Gradual offset increase from right edge to work zone
             zone_length = zone_end - zone_start
             if zone_length <= 0:
-                return 0.0
+                return -(self._lane_width / 2 - 0.3)  # Start at right edge (negative = right)
             progress = (position - zone_start) / zone_length
             
+            # Start from right edge of lane (negative), transition to work zone offset
+            edge_offset = -(self._lane_width / 2 - 0.3)  # Negative for right side
+            
             if self._taper_type == 'linear':
-                offset = progress * self._work_zone_offset
+                offset = edge_offset + progress * (self._work_zone_offset - edge_offset)
             elif self._taper_type == 'curved':
                 # S-curve transition for smoother flow
-                offset = self._work_zone_offset * (3 * progress**2 - 2 * progress**3)
+                s_curve = 3 * progress**2 - 2 * progress**3
+                offset = edge_offset + s_curve * (self._work_zone_offset - edge_offset)
             else:
-                offset = progress * self._work_zone_offset
+                offset = edge_offset + progress * (self._work_zone_offset - edge_offset)
             
-            # Ensure offset doesn't exceed lane boundary
-            return min(offset, self._lane_width / 2 - 0.3)
+            # Ensure offset stays within lane boundaries
+            max_left_offset = self._lane_width / 2 - 0.3  # Leave 0.3m margin
+            max_right_offset = -(self._lane_width / 2 - 0.3)
+            return max(max_right_offset, min(offset, max_left_offset))
         
         elif zone_type in ['buffer', 'work']:
             # Full offset in work zone, but ensure within lane boundaries
-            return min(self._work_zone_offset, self._lane_width / 2 - 0.3)
+            max_left_offset = self._lane_width / 2 - 0.3  # Leave 0.3m margin on left
+            max_right_offset = -(self._lane_width / 2 - 0.3)  # Leave 0.3m margin on right
+            return max(max_right_offset, min(self._work_zone_offset, max_left_offset))
         
         elif zone_type == 'taper_out':
-            # Gradual offset decrease
+            # Gradual offset decrease from work zone to right edge
             zone_length = zone_end - zone_start
             if zone_length <= 0:
                 return self._work_zone_offset
             progress = (position - zone_start) / zone_length
             
+            # Transition from work zone offset to right edge of lane (negative)
+            edge_offset = -(self._lane_width / 2 - 0.3)  # Negative for right side
+            
             if self._taper_type == 'linear':
-                offset = self._work_zone_offset * (1 - progress)
+                offset = self._work_zone_offset + progress * (edge_offset - self._work_zone_offset)
             elif self._taper_type == 'curved':
                 # S-curve transition
-                offset = self._work_zone_offset * (1 - (3 * progress**2 - 2 * progress**3))
+                s_curve = 3 * progress**2 - 2 * progress**3
+                offset = self._work_zone_offset + s_curve * (edge_offset - self._work_zone_offset)
             else:
-                offset = self._work_zone_offset * (1 - progress)
+                offset = self._work_zone_offset + progress * (edge_offset - self._work_zone_offset)
             
-            # Ensure offset doesn't exceed lane boundary
-            return min(offset, self._lane_width / 2 - 0.3)
+            # Ensure offset stays within lane boundaries
+            max_left_offset = self._lane_width / 2 - 0.3  # Leave 0.3m margin
+            max_right_offset = -(self._lane_width / 2 - 0.3)
+            return max(max_right_offset, min(offset, max_left_offset))
         
         return 0.0
+    
+    def _calculate_shoulder_coordinates(self, lane_position):
+        """Calculate the actual shoulder coordinates for placing warning signs.
+        
+        Args:
+            lane_position: Position along the lane in meters
+            
+        Returns:
+            tuple: (x, y, angle) coordinates for shoulder placement
+        """
+        # Get lane center coordinates at this position
+        edge_id = traci.lane.getEdgeID(self._lane_id)
+        lane_index = int(self._lane_id.split('_')[-1])  # Extract lane index from lane ID
+        x_center, y_center = traci.simulation.convert2D(edge_id, lane_position, lane_index)
+        
+        # Get lane angle at this position
+        lane_angle = traci.lane.getAngle(self._lane_id, lane_position)
+        
+        # Calculate perpendicular angle (90 degrees to the right)
+        # In SUMO, angles are in degrees, 0 is North, clockwise positive
+        perpendicular_angle = (-lane_angle) % 360
+        perpendicular_rad = math.radians(perpendicular_angle)
+        
+        # Calculate offset distance (lane width/2 + shoulder offset)
+        offset_distance = self._lane_width / 2 + abs(self._warning_sign_offset)
+        
+        # Calculate shoulder coordinates
+        # Note: SUMO uses a different coordinate system where y increases northward
+        x_shoulder = x_center + offset_distance * math.cos(perpendicular_rad)
+        y_shoulder = y_center + offset_distance * math.sin(perpendicular_rad)
+        
+        return x_shoulder, y_shoulder, lane_angle
     
     def _place_object(self, position, lateral_offset, object_type, zone_type):
         """Place a single construction object at the specified position.
@@ -273,16 +320,39 @@ class ConstructionAdversity(AbstractStaticAdversity):
         traci.vehicle.setSpeedMode(object_id, 0)
         traci.vehicle.setLaneChangeMode(object_id, 0)
         
-        # Position the object
-        traci.vehicle.moveTo(object_id, self._lane_id, position)
-        traci.vehicle.setSpeed(object_id, 0)
+        # Check if this is a warning sign that should be placed on shoulder
+        type_name = None
+        if object_type == self._sign_type:
+            type_name = 'sign'
         
-        # Apply lateral offset
-        if lateral_offset != 0:
-            try:
-                traci.vehicle.changeSublane(object_id, lateral_offset)
-            except:
-                logger.debug(f"Could not apply lateral offset {lateral_offset} to {object_id}")
+        if type_name == 'sign' and zone_type in ['warning', 'termination']:
+            # Special handling for warning signs - place on shoulder using moveToXY
+            x_shoulder, y_shoulder, angle = self._calculate_shoulder_coordinates(position)
+            
+            # Use moveToXY to place sign on shoulder
+            traci.vehicle.moveToXY(
+                object_id,
+                "",  # Empty string allows placement anywhere
+                -1,  # Lane index -1 means any lane
+                x_shoulder,
+                y_shoulder,
+                angle,  # Keep parallel to road
+                keepRoute=2  # 2 = ignore route, force placement
+            )
+            logger.debug(f"Placed warning sign {object_id} on shoulder at ({x_shoulder:.1f}, {y_shoulder:.1f})")
+        else:
+            # Normal placement for cones and barriers
+            traci.vehicle.moveTo(object_id, self._lane_id, position)
+            
+            # Apply lateral offset for non-sign objects
+            if lateral_offset != 0:
+                try:
+                    traci.vehicle.changeSublane(object_id, lateral_offset)
+                except:
+                    logger.debug(f"Could not apply lateral offset {lateral_offset} to {object_id}")
+        
+        # Set speed to 0 for all objects
+        traci.vehicle.setSpeed(object_id, 0)
     
     def _calculate_dynamic_spacing(self, zone_type):
         """Calculate spacing based on MUTCD standards and speed limit."""
@@ -323,10 +393,10 @@ class ConstructionAdversity(AbstractStaticAdversity):
         if self._route_id not in traci.route.getIDList():
             traci.route.add(self._route_id, [edge_id])
         
-        # Create object types
-        cone_type = create_construction_cone_type()
-        barrier_type = create_construction_barrier_type()
-        sign_type = create_construction_sign_type()
+        # Create object types and store them as instance variables for comparison
+        self._cone_type = create_construction_cone_type()
+        self._barrier_type = create_construction_barrier_type()
+        self._sign_type = create_construction_sign_type()
         
         # Calculate zones
         zones = self._calculate_zone_positions()
@@ -338,7 +408,7 @@ class ConstructionAdversity(AbstractStaticAdversity):
             
             # Determine object type for this zone
             if zone_type == 'warning':
-                object_types = ['sign', 'cone']  # Alternating signs and cones
+                object_types = ['sign']  # Only warning signs in warning zone
             elif zone_type in ['taper_in', 'taper_out']:
                 object_types = ['cone']
             elif zone_type == 'buffer':
@@ -361,11 +431,11 @@ class ConstructionAdversity(AbstractStaticAdversity):
                 # Select object type
                 obj_type_name = object_types[object_index % len(object_types)]
                 if obj_type_name == 'cone':
-                    type_id = cone_type
+                    type_id = self._cone_type
                 elif obj_type_name == 'barrier':
-                    type_id = barrier_type
+                    type_id = self._barrier_type
                 elif obj_type_name == 'sign':
-                    type_id = sign_type
+                    type_id = self._sign_type
                 
                 # Calculate lateral offset for this position
                 lateral_offset = self._calculate_lateral_offset(
