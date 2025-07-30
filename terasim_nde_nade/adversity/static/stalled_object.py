@@ -4,6 +4,19 @@ from terasim.overlay import traci
 
 from ...utils import AbstractStaticAdversity
 
+def create_truck_type():
+    custom_type_id = "TRUCK"
+    if custom_type_id not in traci.vehicletype.getIDList():
+        traci.vehicletype.copy("DEFAULT_VEHTYPE", custom_type_id)
+        traci.vehicletype.setVehicleClass(custom_type_id, "truck")
+        traci.vehicletype.setShapeClass(custom_type_id, "truck")
+        traci.vehicletype.setLength(custom_type_id, 10)
+        traci.vehicletype.setWidth(custom_type_id, 2.5)
+        traci.vehicletype.setHeight(custom_type_id, 4)
+        traci.vehicletype.setMaxSpeed(custom_type_id, 10)
+        traci.vehicletype.setSpeedFactor(custom_type_id, 1)
+        traci.vehicletype.setColor(custom_type_id, (255, 0, 0, 255))
+    return custom_type_id
 
 def create_emergency_police_type(subclass="EMERGENCY"):
     """Create a custom vehicle type for emergency vehicles.
@@ -95,6 +108,8 @@ class StalledObjectAdversity(AbstractStaticAdversity):
             self._object_type = create_emergency_police_type(self._object_type)
         elif self._object_type == "PEDESTRIAN":
             self._object_type = create_pedestrian_type()
+        elif self._object_type == "TRUCK":
+            self._object_type = create_truck_type()
         else:
             vehicle_type_list = traci.vehicletype.getIDList()
             if self._object_type not in vehicle_type_list:
@@ -113,6 +128,7 @@ class StalledObjectAdversity(AbstractStaticAdversity):
                 vehicle_id,
                 routeID=stalled_object_route_id,
                 typeID=self._object_type,
+                vclass=self._vclass
             )
             self.set_vehicle_feature(vehicle_id)
             traci.vehicle.moveTo(vehicle_id, self._lane_id, self._lane_position)
