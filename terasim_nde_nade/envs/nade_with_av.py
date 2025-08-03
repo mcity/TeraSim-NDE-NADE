@@ -87,6 +87,38 @@ class NADEWithAV(NADE):
     def add_av_safe(self):
         """Add a AV to the simulation safely.
         """
+        # Handle coordinate conversion based on initial_position_type
+        if hasattr(self.av_cfg, "initial_position_type"):
+            try:
+                if self.av_cfg.initial_position_type == "xy":
+                    x = float(self.av_cfg.initial_xy.x)
+                    y = float(self.av_cfg.initial_xy.y)
+                    # Convert XY to road position
+                    edge_id, position, lane_index = traci.simulation.convertRoad(x, y)
+                    if edge_id:
+                        self.av_cfg.initial_lane_index = lane_index
+                        self.av_cfg.initial_lane_position = position
+                        logger.info(f"Converted XY ({x}, {y}) to edge {edge_id}, lane {lane_index}, position {position}")
+                    else:
+                        logger.warning(f"Failed to convert XY ({x}, {y}) to road position")
+                        
+                elif self.av_cfg.initial_position_type == "latlon":
+                    lat = float(self.av_cfg.initial_latlon.lat)
+                    lon = float(self.av_cfg.initial_latlon.lon)
+                    # Convert lat/lon to XY
+                    x, y = traci.simulation.convertGeo(lon, lat, fromGeo=True)
+                    # Convert XY to road position
+                    edge_id, position, lane_index = traci.simulation.convertRoad(x, y)
+                    if edge_id:
+                        self.av_cfg.initial_lane_index = lane_index
+                        self.av_cfg.initial_lane_position = position
+                        logger.info(f"Converted lat/lon ({lat}, {lon}) to edge {edge_id}, lane {lane_index}, position {position}")
+                    else:
+                        logger.warning(f"Failed to convert lat/lon ({lat}, {lon}) to road position")
+            except Exception as e:
+                logger.error(f"Error during coordinate conversion: {e}")
+                # Continue with default behavior
+                
         # handle the route of av: first check if there are any existing routes with the same name
         if AV_ROUTE_ID in traci.route.getIDList():
             av_route = traci.route.getEdges(AV_ROUTE_ID)
