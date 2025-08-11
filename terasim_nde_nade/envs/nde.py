@@ -192,13 +192,14 @@ class NDE(EnvTemplateComplete):
                 traci.simulationStep()
                 if traci.simulation.getTime() > warmup_time:
                     break
-            if traci.vehicle.getIDCount() > 2500:
-                logger.warning(
-                    f"Too many vehicles in the simulation: {traci.vehicle.getIDCount()}, Restarting..."
-                )
-                traci.load(self.simulator.sumo_cmd[1:])
-            else:
-                break
+            break
+            # if traci.vehicle.getIDCount() > 2500:
+            #     logger.warning(
+            #         f"Too many vehicles in the simulation: {traci.vehicle.getIDCount()}, Restarting..."
+            #     )
+            #     traci.load(self.simulator.sumo_cmd[1:])
+            # else:
+            #     break
         self.record.warmup_vehicle_num = traci.vehicle.getIDCount()
         self._vehicle_in_env_distance("before")
 
