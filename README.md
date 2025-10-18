@@ -7,6 +7,8 @@
 </div>
 
 ## 🚀 Introduction
+> **This repository has been archived.**  
+> Further development continues at [mcity/TeraSim](https://github.com/mcity/TeraSim).
 
 ### What is TeraSim-NDE-NADE?
 TeraSim-NDE-NADE is the traffic environment for TeraSim, which is an advanced **generative simulation framework** designed for testing autonomous vehicles (AVs) in **naturalistic** and **adversarial** environments. Unlike traditional scenario-based approaches, our method generates interactive, real-world-like traffic environments to **accelerate AV safety testing by 10³ - 10⁵ times**.
